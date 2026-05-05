@@ -5,9 +5,11 @@ import { useCRUD } from '../../hooks/useCRUD';
 import DataTable from '../../components/DataTable';
 import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/MasterModel.css';
+import { useAuth } from '../../../adminauth/context/AuthContext';
 
 const TaxList = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const {
     data, loading, isDeleteOpen, setIsDeleteOpen,
     currentItem, handleDeleteClick, handleConfirmDelete
@@ -81,9 +83,11 @@ const TaxList = () => {
             </select>
           </div>
 
-          <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
-            <Plus size={18} /> Add Tax
-          </button>
+          {hasPermission('tax', 'create') && (
+            <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
+              <Plus size={18} /> Add Tax
+            </button>
+          )}
         </div>
         
         <div style={{ padding: '10px' }}>
@@ -91,8 +95,8 @@ const TaxList = () => {
             title="Taxes" 
             columns={columns} 
             data={filteredData} 
-            onEdit={handleEdit} 
-            onDelete={handleDeleteClick}
+            onEdit={hasPermission('tax', 'edit') ? handleEdit : null}
+            onDelete={hasPermission('tax', 'delete') ? handleDeleteClick : null}
             hideControls={true}
           />
         </div>

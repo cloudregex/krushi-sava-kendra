@@ -6,9 +6,11 @@ import { MockService } from '../../services/MockService';
 import DataTable from '../../components/DataTable';
 import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/MasterModel.css';
+import { useAuth } from '../../../adminauth/context/AuthContext';
 
 const CategoryList = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [products, setProducts] = useState([]);
   const {
     data, loading, isDeleteOpen, setIsDeleteOpen,
@@ -101,9 +103,11 @@ const CategoryList = () => {
             </select>
           </div>
 
-          <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
-            <Plus size={18} /> Add
-          </button>
+          {hasPermission('category', 'create') && (
+            <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
+              <Plus size={18} /> Add
+            </button>
+          )}
         </div>
 
         <div style={{ padding: '10px' }}>
@@ -111,8 +115,8 @@ const CategoryList = () => {
             title="Categories"
             columns={columns}
             data={filteredData}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
+            onEdit={hasPermission('category', 'edit') ? handleEdit : null}
+            onDelete={hasPermission('category', 'delete') ? handleDeleteClick : null}
             hideControls={true}
           />
         </div>

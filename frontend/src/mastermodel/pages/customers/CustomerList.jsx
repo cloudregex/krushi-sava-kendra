@@ -5,9 +5,11 @@ import { useCRUD } from '../../hooks/useCRUD';
 import DataTable from '../../components/DataTable';
 import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/MasterModel.css';
+import { useAuth } from '../../../adminauth/context/AuthContext';
 
 const CustomerList = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const {
     data, loading, isDeleteOpen, setIsDeleteOpen,
     currentItem, handleDeleteClick, handleConfirmDelete
@@ -83,9 +85,11 @@ const CustomerList = () => {
             </select>
           </div>
 
-          <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
-            <Plus size={18} /> Add Customer
-          </button>
+          {hasPermission('customer', 'create') && (
+            <button className="btn-agro btn-primary" onClick={handleAdd} style={{ height: '38px', padding: '0 16px' }}>
+              <Plus size={18} /> Add Customer
+            </button>
+          )}
         </div>
 
         <div style={{ padding: '10px' }}>
@@ -93,8 +97,8 @@ const CustomerList = () => {
             title="Customers"
             columns={columns}
             data={filteredData}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
+            onEdit={hasPermission('customer', 'edit') ? handleEdit : null}
+            onDelete={hasPermission('customer', 'delete') ? handleDeleteClick : null}
             onView={handleView}
             hideControls={true}
           />

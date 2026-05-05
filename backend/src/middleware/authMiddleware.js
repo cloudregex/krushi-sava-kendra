@@ -1,30 +1,62 @@
-// middleware/authMiddleware.js
-const { verifyToken } = require('../helper/authHelper');
-const { handle401 } = require('../helper/errorHandler');
+const jwt = require('jsonwebtoken');
+const Admin = require('../modals/Admin');
+const User = require('../modals/User');
+const Role = require('../modals/Role');
+require('dotenv').config();
 
-/**
- * Authentication Middleware
- * Checks for JWT token in Authorization header
- */
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+const protect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Try finding in Admin table first
+      let account = await Admin.findByPk(decoded.id, {
+        attributes: { exclude: ['password'] }
+      });
+      let is_admin = true;
+
+      // If not found in Admin, check User table
+      if (!account) {
+        account = await User.findByPk(decoded.id, {
+          attributes: { exclude: ['password'] },
+          include: [{ model: Role, as: 'role' }]
+        });
+        is_admin = false;
+      }
+
+      if (!account) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      // Attach permissions to the request object for easy access in checkPermission
+      req.admin = account.toJSON();
+      req.admin.permissions = is_admin ? 'all' : (account.role?.permissions || {});
+
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
 
   if (!token) {
-    return handle401(res, "No token provided, access denied");
+    res.status(401).json({ message: 'Not authorized, no token' });
   }
-
-  const decoded = verifyToken(token);
-
-  if (!decoded) {
-    return handle401(res, "Invalid or expired token");
-  }
-
-  // Attach user data to request object
-  req.user = decoded;
-  next();
 };
 
-module.exports = {
-  authenticateToken,
+const superAdmin = (req, res, next) => {
+  if (req.admin && req.admin.role === 'superadmin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized as a superadmin' });
+  }
 };
+
+module.exports = { protect, superAdmin };
