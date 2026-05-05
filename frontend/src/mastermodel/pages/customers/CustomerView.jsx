@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, User, Phone, Mail, Home, Info } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import '../../styles/MasterModel.css';
 
 const CustomerView = () => {
@@ -12,7 +12,7 @@ const CustomerView = () => {
 
   useEffect(() => {
     const fetchItem = async () => {
-      const item = await MockService.getById('customers', id);
+      const item = await ApiService.getById('customers', id);
       if (item) {
         setFormData(item);
       } else {

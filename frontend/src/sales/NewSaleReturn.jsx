@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, ArrowLeft, Plus, Trash2, User, Calendar, FileText, RotateCcw, AlertCircle, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MockService } from '../mastermodel/services/MockService';
+import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
@@ -21,8 +21,8 @@ const NewSaleReturn = () => {
   });
 
   useEffect(() => {
-    MockService.getAll('customers').then(data => setCustomers(data));
-    MockService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('customers').then(data => setCustomers(data));
+    ApiService.getAll('products').then(data => setProducts(data));
   }, []);
 
   const [items, setItems] = useState([

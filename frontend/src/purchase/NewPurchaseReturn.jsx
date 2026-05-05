@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, ArrowLeft, Plus, Trash2, Truck, Calendar, FileText, RotateCcw, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MockService } from '../mastermodel/services/MockService';
+import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
@@ -21,8 +21,8 @@ const NewPurchaseReturn = () => {
   });
 
   useEffect(() => {
-    MockService.getAll('suppliers').then(data => setSuppliers(data));
-    MockService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('suppliers').then(data => setSuppliers(data));
+    ApiService.getAll('products').then(data => setProducts(data));
   }, []);
 
   const [items, setItems] = useState([

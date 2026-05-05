@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, X, Layers } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import '../../styles/MasterModel.css';
 
@@ -13,7 +13,7 @@ const CategoryEdit = () => {
 
   useEffect(() => {
     const fetchItem = async () => {
-      const item = await MockService.getById('categories', id);
+      const item = await ApiService.getById('categories', id);
       if (item) {
         setFormData(item);
       } else {
@@ -32,7 +32,7 @@ const CategoryEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await MockService.update('categories', Number(id), formData);
+    await ApiService.update('categories', Number(id), formData);
     navigate('/categories');
   };
 

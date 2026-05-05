@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft, Calendar, User, CreditCard, IndianRupee, Package } from 'lucide-react';
-import { MockService } from '../mastermodel/services/MockService';
+import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
@@ -56,8 +56,8 @@ const SaleEntry = () => {
   }, [children]);
 
   useEffect(() => {
-    MockService.getAll('customers').then(data => setCustomers(data));
-    MockService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('customers').then(data => setCustomers(data));
+    ApiService.getAll('products').then(data => setProducts(data));
   }, []);
 
   const calculateTotals = (rows, discount) => {

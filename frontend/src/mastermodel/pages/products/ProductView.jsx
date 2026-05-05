@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Package, Layers, DollarSign, Calendar } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import '../../styles/MasterModel.css';
 
 const ProductView = () => {
@@ -12,7 +12,7 @@ const ProductView = () => {
 
   useEffect(() => {
     const fetchItem = async () => {
-      const item = await MockService.getById('products', id);
+      const item = await ApiService.getById('products', id);
       if (item) {
         setFormData(item);
       } else {
