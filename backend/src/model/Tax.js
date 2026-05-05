@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../config/sqliteDB');
+const { sequelize } = require('../config/sqliteDB');
 
-const Category = sequelize.define('Category', {
+const Tax = sequelize.define('Tax', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -14,9 +14,13 @@ const Category = sequelize.define('Category', {
             notEmpty: true
         }
     },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: true
+    rate: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        validate: {
+            min: 0,
+            max: 100
+        }
     },
     isActive: {
         type: DataTypes.BOOLEAN,
@@ -26,4 +30,4 @@ const Category = sequelize.define('Category', {
     timestamps: true
 });
 
-module.exports = Category;
+module.exports = Tax;

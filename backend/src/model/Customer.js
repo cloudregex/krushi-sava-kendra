@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../config/sqliteDB');
+const { sequelize } = require('../config/sqliteDB');
 
-const Supplier = sequelize.define('Supplier', {
+const Customer = sequelize.define('Customer', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -20,10 +20,6 @@ const Supplier = sequelize.define('Supplier', {
         validate: {
             is: /^[0-9]{10}$/
         }
-    },
-    altMobileNo: {
-        type: DataTypes.STRING,
-        allowNull: true
     },
     email: {
         type: DataTypes.STRING,
@@ -48,4 +44,4 @@ const Supplier = sequelize.define('Supplier', {
     timestamps: true
 });
 
-module.exports = Supplier;
+module.exports = Customer;

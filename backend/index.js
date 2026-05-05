@@ -4,11 +4,11 @@ const cors = require('cors');
 const { connectSQLite, sequelize } = require('./src/config/sqliteDB');
 
 // Import Routes
-const categoryRoutes = require('./src/mastermodel/routers/categoryRoutes');
-const customerRoutes = require('./src/mastermodel/routers/customerRoutes');
-const productRoutes = require('./src/mastermodel/routers/productRoutes');
-const supplierRoutes = require('./src/mastermodel/routers/supplierRoutes');
-const taxRoutes = require('./src/mastermodel/routers/taxRoutes');
+const categoryRoutes = require('./src/routers/categoryRoutes');
+const customerRoutes = require('./src/routers/customerRoutes');
+const productRoutes = require('./src/routers/productRoutes');
+const supplierRoutes = require('./src/routers/supplierRoutes');
+const taxRoutes = require('./src/routers/taxRoutes');
 
 const app = express();
 const port = process.env.PORT || 4000;
