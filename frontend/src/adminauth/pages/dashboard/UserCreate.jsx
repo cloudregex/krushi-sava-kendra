@@ -82,18 +82,18 @@ const UserCreate = () => {
 
   return (
     <div className="agro-container" style={{ padding: '25px 25px 0 25px' }}>
-      <form onSubmit={handleSave} className="agro-unified-card" style={{ 
-        background: 'white', 
-        borderRadius: '16px', 
+      <form onSubmit={handleSave} className="agro-unified-card" style={{
+        background: 'white',
+        borderRadius: '16px',
         boxShadow: 'var(--shadow)',
         border: '1px solid var(--border-light)',
         marginTop: '5px',
         overflow: 'hidden'
       }}>
-        <div className="agro-header-compact" style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
+        <div className="agro-header-compact" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           padding: '15px 20px',
           borderBottom: '1px solid var(--border-light)',
           background: 'white'
@@ -114,33 +114,33 @@ const UserCreate = () => {
               <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Account Information</h3>
             </div>
 
-            <FormField 
-              label="Full Name" 
-              name="name" 
-              value={formData.name} 
-              onChange={handleChange} 
-              required 
-              placeholder="Enter employee full name" 
+            <FormField
+              label="Full Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="Enter employee full name"
             />
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <FormField 
-                label="Email Address" 
-                name="email" 
+              <FormField
+                label="Email Address"
+                name="email"
                 type="email"
-                value={formData.email} 
-                onChange={handleChange} 
-                required 
-                placeholder="e.g. employee@agro.com" 
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="e.g. employee@agro.com"
               />
-              <FormField 
-                label="Initial Password" 
-                name="password" 
+              <FormField
+                label="Initial Password"
+                name="password"
                 type="password"
-                value={formData.password} 
-                onChange={handleChange} 
-                required 
-                placeholder="Minimum 6 characters" 
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Minimum 6 characters"
               />
             </div>
 
@@ -149,17 +149,17 @@ const UserCreate = () => {
                 <Shield size={16} />
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Access Permissions</h3>
               </div>
-              <SearchableSelect 
-                label="System Access Role" 
-                options={roleOptions} 
-                value={allRoles.find(r => r.id === formData.roleId)?.roleName || ''} 
+              <SearchableSelect
+                label="System Access Role"
+                options={roleOptions}
+                value={allRoles.find(r => r.id === formData.roleId)?.roleName || ''}
                 onChange={(e) => {
                   const selectedRole = allRoles.find(r => r.roleName === e.target.value);
                   if (selectedRole) {
                     setFormData(prev => ({ ...prev, roleId: selectedRole.id }));
                   }
-                }} 
-                required 
+                }}
+                required
                 placeholder="Select a functional role"
               />
             </div>
@@ -172,19 +172,19 @@ const UserCreate = () => {
           </div>
         </div>
 
-        <div style={{ 
-          padding: '10px 20px', 
-          background: '#f8fafc', 
-          borderTop: '1px solid var(--border-light)', 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          gap: '10px' 
+        <div style={{
+          padding: '10px 20px',
+          background: '#f8fafc',
+          borderTop: '1px solid var(--border-light)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '10px'
         }}>
           <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/users')} style={{ height: '36px', minWidth: '100px', fontSize: '13px' }}>
             <X size={16} /> Cancel
           </button>
           <button type="submit" className="btn-agro btn-primary" style={{ height: '36px', minWidth: '160px', fontSize: '13px' }}>
-            {id ? <Save size={16} /> : <UserPlus size={16} />} 
+            {id ? <Save size={16} /> : <UserPlus size={16} />}
             <span style={{ marginLeft: '8px' }}>{id ? 'Update Account' : 'Create Account'}</span>
           </button>
         </div>
