@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, X, Percent } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import '../../styles/MasterModel.css';
 
@@ -13,7 +13,7 @@ const TaxEdit = () => {
 
   useEffect(() => {
     const fetchItem = async () => {
-      const item = await MockService.getById('taxes', id);
+      const item = await ApiService.getById('taxes', id);
       if (item) {
         setFormData(item);
       } else {
@@ -32,7 +32,7 @@ const TaxEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await MockService.update('taxes', Number(id), formData);
+    await ApiService.update('taxes', Number(id), formData);
     navigate('/taxes');
   };
 

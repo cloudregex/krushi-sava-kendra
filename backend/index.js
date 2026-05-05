@@ -3,10 +3,17 @@ const express = require('express');
 const cors = require('cors');
 const { connectDB, sequelize } = require('./src/config/db');
 
-// Import Routes
+// Import Auth & User Routes
 const authRoutes = require('./src/routes/authRoutes');
 const roleRoutes = require('./src/routes/roleRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+
+// Import Master Model Routes
+const categoryRoutes = require('./src/routers/categoryRoutes');
+const customerRoutes = require('./src/routers/customerRoutes');
+const productRoutes = require('./src/routers/productRoutes');
+const supplierRoutes = require('./src/routers/supplierRoutes');
+const taxRoutes = require('./src/routers/taxRoutes');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -15,17 +22,10 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// Connect and Sync Database
-connectDB();
-sequelize.sync({ alter: true }).then(() => {
-  console.log('✅ Database models synced.');
-}).catch(err => {
-  console.error('❌ Error syncing database models:', err);
-});
-
-// Basic Route
-app.get('/', (req, res) => {
-  res.send('Krushi Seva Kendra Admin Auth API is running...');
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
 });
 
 // API Routes
@@ -33,7 +33,31 @@ app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
 
-// Start Server
-app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/taxes', taxRoutes);
+
+// Basic Route
+app.get('/', (req, res) => {
+  res.send('Krushi Seva Kendra API is running...');
 });
+
+// Database Connection and Server Start
+const startServer = async () => {
+    try {
+        await connectDB();
+        // Sync models (this creates tables if they don't exist)
+        await sequelize.sync({ alter: true });
+        console.log('✅ Database models synced successfully.');
+        
+        app.listen(port, () => {
+            console.log(`🚀 Server is running at http://localhost:${port}`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+    }
+};
+
+startServer();

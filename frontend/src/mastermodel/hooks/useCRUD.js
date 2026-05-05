@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MockService } from '../services/MockService';
+import { ApiService } from '../services/ApiService';
 
 export const useCRUD = (module) => {
   const [data, setData] = useState([]);
@@ -11,8 +11,12 @@ export const useCRUD = (module) => {
 
   const refreshData = async () => {
     setLoading(true);
-    const result = await MockService.getAll(module);
-    setData(result);
+    try {
+      const result = await ApiService.getAll(module);
+      setData(result);
+    } catch (error) {
+      console.error("Failed to fetch data", error);
+    }
     setLoading(false);
   };
 
@@ -42,21 +46,29 @@ export const useCRUD = (module) => {
 
   const handleConfirmDelete = async () => {
     if (currentItem) {
-      await MockService.delete(module, currentItem.id);
-      setIsDeleteOpen(false);
-      setCurrentItem(null);
-      refreshData();
+      try {
+        await ApiService.delete(module, currentItem.id);
+        setIsDeleteOpen(false);
+        setCurrentItem(null);
+        refreshData();
+      } catch (error) {
+        console.error("Failed to delete item", error);
+      }
     }
   };
 
   const handleSave = async (formData) => {
-    if (currentItem && currentItem.id) {
-      await MockService.update(module, currentItem.id, formData);
-    } else {
-      await MockService.add(module, formData);
+    try {
+      if (currentItem && currentItem.id) {
+        await ApiService.update(module, currentItem.id, formData);
+      } else {
+        await ApiService.add(module, formData);
+      }
+      setIsModalOpen(false);
+      refreshData();
+    } catch (error) {
+      console.error("Failed to save item", error);
     }
-    setIsModalOpen(false);
-    refreshData();
   };
 
   return {

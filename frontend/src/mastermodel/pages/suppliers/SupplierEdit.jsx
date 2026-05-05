@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, X, User } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import '../../styles/MasterModel.css';
 
@@ -16,7 +16,7 @@ const SupplierEdit = () => {
 
   useEffect(() => {
     const fetchItem = async () => {
-      const item = await MockService.getById('suppliers', id);
+      const item = await ApiService.getById('suppliers', id);
       if (item) {
         setFormData(item);
       } else {
@@ -38,7 +38,7 @@ const SupplierEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await MockService.update('suppliers', Number(id), formData);
+    await ApiService.update('suppliers', Number(id), formData);
     navigate('/suppliers');
   };
 

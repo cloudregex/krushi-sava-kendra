@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Package, Search } from 'lucide-react';
 import { useCRUD } from '../../hooks/useCRUD';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import DataTable from '../../components/DataTable';
 import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/MasterModel.css';
@@ -18,7 +18,7 @@ const CategoryList = () => {
   } = useCRUD('categories');
 
   useEffect(() => {
-    MockService.getAll('products').then(setProducts);
+    ApiService.getAll('products').then(setProducts);
   }, []);
 
   const getProductCount = (categoryName) => {

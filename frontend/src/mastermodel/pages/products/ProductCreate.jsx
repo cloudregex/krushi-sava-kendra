@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Save, X, Tag, DollarSign, Package, Layers, Calendar } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import SearchableSelect from '../../components/SearchableSelect';
 import '../../styles/MasterModel.css';
@@ -22,8 +22,8 @@ const ProductCreate = () => {
     const fetchMasterData = async () => {
       try {
         const [catData, taxData] = await Promise.all([
-          MockService.getAll('categories'),
-          MockService.getAll('taxes')
+          ApiService.getAll('categories'),
+          ApiService.getAll('taxes')
         ]);
         setCategories(catData.filter(c => c.isActive).map(c => c.name));
         setTaxes(taxData.filter(t => t.isActive).map(t => t.rate.toString()));
@@ -44,7 +44,7 @@ const ProductCreate = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await MockService.save('products', formData);
+    await ApiService.save('products', formData);
     navigate('/products');
   };
 

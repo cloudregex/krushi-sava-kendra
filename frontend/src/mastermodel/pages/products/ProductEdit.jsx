@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, ArrowLeft, Save, X, Tag, DollarSign, Package, Layers, Calendar } from 'lucide-react';
-import { MockService } from '../../services/MockService';
+import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import SearchableSelect from '../../components/SearchableSelect';
 import '../../styles/MasterModel.css';
@@ -24,9 +24,9 @@ const ProductEdit = () => {
     const fetchData = async () => {
       try {
         const [item, catData, taxData] = await Promise.all([
-          MockService.getById('products', id),
-          MockService.getAll('categories'),
-          MockService.getAll('taxes')
+          ApiService.getById('products', id),
+          ApiService.getAll('categories'),
+          ApiService.getAll('taxes')
         ]);
 
         if (item) {
@@ -57,7 +57,7 @@ const ProductEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await MockService.update('products', Number(id), formData);
+    await ApiService.update('products', Number(id), formData);
     navigate('/products');
   };
 
