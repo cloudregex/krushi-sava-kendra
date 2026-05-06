@@ -19,6 +19,7 @@ const Layout = () => {
   const [suggestions, setSuggestions] = React.useState([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [showUserDropdown, setShowUserDropdown] = React.useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   // Sidebar Menu Items for Search
   const menuItems = [
@@ -65,6 +66,7 @@ const Layout = () => {
     navigate(path);
     setSearchQuery('');
     setShowSuggestions(false);
+    setIsSidebarOpen(false); // Close sidebar on navigation if it was open on mobile
   };
 
   // Map URL paths to modules
@@ -154,14 +156,57 @@ const Layout = () => {
             filter: grayscale(1) !important;
             cursor: not-allowed !important;
           }
+
+          /* Responsive Styles */
+          @media (max-width: 768px) {
+            .sidebar-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.5);
+              backdrop-filter: blur(4px);
+              z-index: 150;
+            }
+
+            .sidebar-wrapper {
+              position: fixed;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 280px;
+              z-index: 200;
+              transform: translateX(-100%);
+              transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .sidebar-wrapper.open {
+              transform: translateX(0);
+            }
+
+            .navbar-search-container {
+              display: none !important; /* Hide search on mobile in top bar */
+            }
+
+            .header-user-info {
+              display: none !important;
+            }
+          }
         `}
       </style>
 
-      {!isFullScreenPage && <Sidebar />}
+      {!isFullScreenPage && (
+        <>
+          <div className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
+            <Sidebar />
+          </div>
+          {isSidebarOpen && (
+            <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />
+          )}
+        </>
+      )}
 
       <main className="main-content" style={{
         flex: 1,
-        overflow: 'hidden', // Main wrapper no longer scrolls
+        overflow: 'hidden',
         padding: '0',
         background: 'var(--background)',
         display: 'flex',
@@ -179,14 +224,49 @@ const Layout = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 30px',
+            padding: '0 20px',
             borderRadius: '0',
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
             zIndex: 100,
             borderBottom: '2px solid rgba(16, 185, 129, 0.1)'
           }}>
+            {/* Mobile Menu Toggle */}
+            <div 
+              style={{ display: 'none' }} 
+              className="mobile-menu-toggle" 
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Search size={24} style={{ display: 'none' }} /> {/* Placeholder for hamburger */}
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                style={{ cursor: 'pointer', color: 'var(--primary)' }}
+              >
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </div>
+
+            <style>
+              {`
+                @media (max-width: 768px) {
+                  .mobile-menu-toggle {
+                    display: block !important;
+                  }
+                }
+              `}
+            </style>
+
             {/* Search Section on the Left */}
-            <div style={{ flex: 2, display: 'flex', justifyContent: 'flex-start' }}>
+            <div className="navbar-search-container" style={{ flex: 2, display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{ position: 'relative', width: '100%', maxWidth: '500px' }}>
                 <input
                   type="text"
@@ -266,15 +346,15 @@ const Layout = () => {
 
             {/* User Profile / Dropdown Section */}
             <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '15px' }}>
-              <div style={{ textAlign: 'right' }}>
+              <div className="header-user-info" style={{ textAlign: 'right' }}>
                 <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--text-main)' }}>{user?.name}</p>
                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--primary)', fontWeight: '700' }}>{user?.role?.toUpperCase()}</p>
               </div>
 
               <div 
                 style={{
-                  width: '45px',
-                  height: '45px',
+                  width: '40px',
+                  height: '40px',
                   borderRadius: '50%',
                   border: '2px solid var(--primary)',
                   display: 'flex',
@@ -284,17 +364,11 @@ const Layout = () => {
                   transition: 'all 0.2s ease',
                   color: 'var(--primary)',
                   fontWeight: '800',
-                  fontSize: '18px',
+                  fontSize: '16px',
                   background: 'white',
                   boxShadow: showUserDropdown ? '0 0 15px rgba(22, 163, 74, 0.2)' : 'none'
                 }}
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
-                onMouseEnter={e => {
-                  if (!showUserDropdown) e.currentTarget.style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={e => {
-                  if (!showUserDropdown) e.currentTarget.style.transform = 'scale(1)';
-                }}
               >
                 {user?.name?.charAt(0).toUpperCase() || 'A'}
               </div>
@@ -302,7 +376,6 @@ const Layout = () => {
               <AnimatePresence>
                 {showUserDropdown && (
                   <>
-                    {/* Backdrop to close dropdown */}
                     <div 
                       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 98 }}
                       onClick={() => setShowUserDropdown(false)}
@@ -316,78 +389,45 @@ const Layout = () => {
                         position: 'absolute',
                         top: '110%',
                         right: 0,
-                        width: '240px',
+                        width: '200px',
                         background: 'white',
-                        borderRadius: '16px',
+                        borderRadius: '12px',
                         boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
                         border: '1px solid #f1f5f9',
                         zIndex: 99,
                         overflow: 'hidden',
-                        padding: '8px'
+                        padding: '6px'
                       }}
                     >
                       <div 
                         onClick={() => { navigate('/user-profile'); setShowUserDropdown(false); }}
-                        style={{ 
-                          padding: '12px 15px', 
-                          borderRadius: '10px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px', 
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          color: 'var(--text-main)',
-                          fontSize: '14px',
-                          fontWeight: '600'
-                        }}
+                        style={{ padding: '10px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                         onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        <User size={18} color="var(--primary)" />
+                        <User size={16} color="var(--primary)" />
                         <span>User Profile</span>
                       </div>
 
                       <div 
                         onClick={() => { navigate('/profile'); setShowUserDropdown(false); }}
-                        style={{ 
-                          padding: '12px 15px', 
-                          borderRadius: '10px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px', 
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          color: 'var(--text-main)',
-                          fontSize: '14px',
-                          fontWeight: '600'
-                        }}
+                        style={{ padding: '10px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                         onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        <Store size={18} color="var(--primary)" />
+                        <Store size={16} color="var(--primary)" />
                         <span>Business Profile</span>
                       </div>
 
-                      <div style={{ margin: '8px 0', borderTop: '1px solid #f1f5f9' }} />
+                      <div style={{ margin: '6px 0', borderTop: '1px solid #f1f5f9' }} />
 
                       <div 
                         onClick={() => { logout(); setShowUserDropdown(false); }}
-                        style={{ 
-                          padding: '12px 15px', 
-                          borderRadius: '10px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px', 
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          color: '#ef4444',
-                          fontSize: '14px',
-                          fontWeight: '700'
-                        }}
+                        style={{ padding: '10px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#ef4444' }}
                         onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        <LogOut size={18} />
+                        <LogOut size={16} />
                         <span>Logout</span>
                       </div>
                     </motion.div>
@@ -400,7 +440,7 @@ const Layout = () => {
 
         {/* Isolated Scroll Container for Content */}
         <div 
-          key={location.pathname} // This key destroys and recreates the container on every route change, forcing a perfect scroll reset
+          key={location.pathname}
           style={{ 
             flex: 1, 
             overflowY: 'auto', 

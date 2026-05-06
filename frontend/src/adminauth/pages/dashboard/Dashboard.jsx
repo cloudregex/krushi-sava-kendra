@@ -122,14 +122,46 @@ const Dashboard = () => {
 
   return (
     <div className="agro-container">
+      <style>
+        {`
+          .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+
+          .content-split-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 40px;
+          }
+
+          @media (max-width: 1024px) {
+            .content-split-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .dashboard-grid {
+              grid-template-columns: 1fr;
+            }
+            .activity-item {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 10px;
+            }
+            .activity-amount {
+              text-align: left !important;
+            }
+          }
+        `}
+      </style>
       <div>
       {/* Stats Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-        gap: '20px', 
-        marginBottom: '40px' 
-      }}>
+      <div className="dashboard-grid">
         {stats.map((stat, i) => (
           <motion.div 
             key={i}
@@ -138,13 +170,13 @@ const Dashboard = () => {
             transition={{ delay: i * 0.1 }}
             style={{ 
               background: 'white',
-              padding: '25px',
+              padding: '20px',
               borderRadius: '24px',
               border: '1px solid #f1f5f9',
               boxShadow: '0 10px 25px -10px rgba(0,0,0,0.04)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px',
+              gap: '15px',
               position: 'relative',
               overflow: 'hidden'
             }}
@@ -153,9 +185,9 @@ const Dashboard = () => {
               <div style={{ 
                 background: `${stat.color}15`, 
                 color: stat.color, 
-                width: '54px', 
-                height: '54px', 
-                borderRadius: '16px', 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '14px', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center'
@@ -163,74 +195,65 @@ const Dashboard = () => {
                 {stat.icon}
               </div>
               {stat.trend && (
-                <span style={{ fontSize: '12px', fontWeight: '800', color: '#10b981', background: '#f0fdf4', padding: '4px 10px', borderRadius: '99px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#10b981', background: '#f0fdf4', padding: '3px 8px', borderRadius: '99px' }}>
                   {stat.trend}
                 </span>
               )}
             </div>
             <div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {stat.label}
               </p>
-              <h3 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-main)', margin: 0 }}>
+              <h3 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-main)', margin: 0 }}>
                 {stat.value}
               </h3>
-            </div>
-            <div style={{ 
-              position: 'absolute', 
-              right: '-10px', 
-              bottom: '-10px', 
-              opacity: 0.03, 
-              transform: 'rotate(-15deg)' 
-            }}>
-              {React.cloneElement(stat.icon, { size: 100 })}
             </div>
           </motion.div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px', marginBottom: '40px' }}>
+      <div className="content-split-grid">
         {/* Recent Activity */}
         <div style={{ 
           background: 'white', 
-          borderRadius: '28px', 
+          borderRadius: '24px', 
           border: '1px solid #f1f5f9',
           boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
           overflow: 'hidden'
         }}>
-          <div style={{ padding: '30px', borderBottom: '1px solid #f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '25px', borderBottom: '1px solid #f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <h3 style={{ fontSize: '20px', fontWeight: '900', margin: 0 }}>Recent Activity</h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>Latest 5 transactions from your center</p>
+              <h3 style={{ fontSize: '18px', fontWeight: '900', margin: 0 }}>Recent Activity</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Latest 5 transactions</p>
             </div>
             <button 
               onClick={() => navigate('/billing')}
-              style={{ padding: '10px 20px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+              style={{ padding: '8px 16px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
             >
               View All
             </button>
           </div>
           
-          <div style={{ padding: '20px 30px 30px' }}>
+          <div style={{ padding: '15px 20px 25px' }}>
             {recentActivity.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {recentActivity.map((activity, index) => (
-                  <div key={index} style={{ 
+                  <div key={index} className="activity-item" style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
-                    padding: '15px', 
-                    borderRadius: '20px',
+                    padding: '12px', 
+                    borderRadius: '16px',
                     border: '1px solid #f8fafc',
                     transition: 'all 0.2s'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                       <div style={{ 
                         background: activity.color + '15', 
                         color: activity.color, 
-                        width: '48px', 
-                        height: '48px', 
-                        borderRadius: '14px', 
+                        width: '40px', 
+                        height: '40px', 
+                        borderRadius: '12px', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center'
@@ -238,12 +261,12 @@ const Dashboard = () => {
                         {activity.icon}
                       </div>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>{activity.type === 'Sale' ? 'Sale' : 'Purchase'}</h4>
-                        <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>{activity.billDate} • Bill: {activity.billNo}</p>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800' }}>{activity.type === 'Sale' ? 'Sale' : 'Purchase'}</h4>
+                        <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>{activity.billDate} • Bill: {activity.billNo}</p>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: activity.type === 'Sale' ? '#10b981' : '#ef4444' }}>
+                    <div className="activity-amount" style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: activity.type === 'Sale' ? '#10b981' : '#ef4444' }}>
                         {activity.type === 'Sale' ? '+' : '-'} ₹{(activity.grandTotal || 0).toLocaleString()}
                       </p>
                     </div>
@@ -251,9 +274,9 @@ const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <Clock size={40} style={{ opacity: 0.1, marginBottom: '15px' }} />
-                <p style={{ fontWeight: '600' }}>No transactions yet.</p>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Clock size={32} style={{ opacity: 0.1, marginBottom: '10px' }} />
+                <p style={{ fontSize: '13px', fontWeight: '600' }}>No transactions yet.</p>
               </div>
             )}
           </div>
@@ -264,32 +287,32 @@ const Dashboard = () => {
           {/* Stock Inventory */}
           <div style={{ 
             background: 'white', 
-            borderRadius: '28px', 
-            padding: '30px',
+            borderRadius: '24px', 
+            padding: '25px',
             border: '1px solid #f1f5f9',
             boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
             height: '100%'
           }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '20px' }}>Inventory Status</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+            <h3 style={{ fontSize: '17px', fontWeight: '900', marginBottom: '20px' }}>Inventory Status</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {categoryStock.map((cat, i) => (
                 <div key={i}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-main)' }}>{cat.name}</span>
-                    <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--primary)' }}>{cat.count} Items</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)' }}>{cat.name}</span>
+                    <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>{cat.count} Items</span>
                   </div>
-                  <div style={{ width: '100%', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${cat.percentage}%` }}
                       transition={{ duration: 1, delay: i * 0.2 }}
-                      style={{ height: '100%', background: 'var(--primary)', borderRadius: '5px' }}
+                      style={{ height: '100%', background: 'var(--primary)', borderRadius: '4px' }}
                     />
                   </div>
                 </div>
               ))}
               {categoryStock.length === 0 && (
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>No data available.</p>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>No data available.</p>
               )}
             </div>
           </div>

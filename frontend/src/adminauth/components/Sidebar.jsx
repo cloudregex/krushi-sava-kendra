@@ -112,7 +112,7 @@ const Sidebar = () => {
 
   return (
     <aside className="sidebar" style={{
-      width: '280px',
+      width: '100%',
       height: '100vh',
       background: 'linear-gradient(180deg, #064e3b 0%, #065f46 100%)',
       padding: '20px 15px',
