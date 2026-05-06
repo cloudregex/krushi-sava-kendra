@@ -30,18 +30,58 @@ const BusinessProfile = () => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ padding: '40px' }}
+      className="agro-container"
+      style={{ padding: '20px' }}
     >
+      <style>
+        {`
+          .business-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+          }
+
+          .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+          }
+
+          @media (max-width: 1024px) {
+            .business-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .business-header {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 10px;
+            }
+            .form-row {
+              grid-template-columns: 1fr;
+            }
+            .save-btn-container {
+              justify-content: center !important;
+            }
+            .save-btn-container button {
+              width: 100%;
+            }
+          }
+        `}
+      </style>
       <div style={{ marginBottom: '30px' }}>
-        <h2 style={{ color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <h2 style={{ color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '15px' }} className="business-header">
           <Store size={32} /> Business Profile
         </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Manage your shop details and settings</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
+      <div className="business-grid">
         {/* Left Column - Logo & Stats */}
-        <div className="glass-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
+        <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
           <div style={{ 
             width: '150px', 
             height: '150px', 
@@ -94,9 +134,9 @@ const BusinessProfile = () => {
         </div>
 
         {/* Right Column - Details Form */}
-        <div className="glass-card" style={{ padding: '40px', background: 'white' }}>
+        <div className="agro-unified-card" style={{ padding: '30px', background: 'white' }}>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
+            <div className="form-row">
               <div className="input-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <Store size={14} /> Shop Name
@@ -106,7 +146,7 @@ const BusinessProfile = () => {
                   name="shopName"
                   value={profile.shopName}
                   onChange={handleChange}
-                  className="input-field" 
+                  className="form-control" 
                   placeholder="Enter shop name"
                 />
               </div>
@@ -119,7 +159,7 @@ const BusinessProfile = () => {
                   name="gstin"
                   value={profile.gstin}
                   onChange={handleChange}
-                  className="input-field" 
+                  className="form-control" 
                   placeholder="Enter GSTIN"
                 />
               </div>
@@ -133,14 +173,14 @@ const BusinessProfile = () => {
                 name="address"
                 value={profile.address}
                 onChange={handleChange}
-                className="input-field" 
+                className="form-control" 
                 rows="3"
                 placeholder="Enter full address"
                 style={{ resize: 'none' }}
               ></textarea>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+            <div className="form-row">
               <div className="input-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <Phone size={14} /> Contact Number
@@ -150,7 +190,7 @@ const BusinessProfile = () => {
                   name="mobile"
                   value={profile.mobile}
                   onChange={handleChange}
-                  className="input-field" 
+                  className="form-control" 
                   placeholder="Enter mobile number"
                 />
               </div>
@@ -163,13 +203,13 @@ const BusinessProfile = () => {
                   name="email"
                   value={profile.email}
                   onChange={handleChange}
-                  className="input-field" 
+                  className="form-control" 
                   placeholder="Enter email"
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }} className="save-btn-container">
               <button type="submit" className="btn-agro btn-primary">
                 <Save size={18} /> Save Profile
               </button>

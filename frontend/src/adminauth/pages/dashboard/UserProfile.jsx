@@ -10,18 +10,53 @@ const UserProfile = () => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ padding: '40px' }}
+      className="agro-container"
+      style={{ padding: '20px' }}
     >
+      <style>
+        {`
+          .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+          }
+
+          @media (max-width: 1024px) {
+            .profile-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .profile-header {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 10px;
+            }
+            .system-info-grid {
+              grid-template-columns: 1fr !important;
+            }
+            .security-item {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 15px;
+            }
+            .security-item button {
+              width: 100%;
+            }
+          }
+        `}
+      </style>
       <div style={{ marginBottom: '30px' }}>
-        <h2 style={{ color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <h2 style={{ color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '15px' }} className="profile-header">
           <User size={32} /> User Profile
         </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Manage your personal account details</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
+      <div className="profile-grid">
         {/* Left Column - User Info Card */}
-        <div className="glass-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
+        <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
           <div style={{ 
             width: '120px', 
             height: '120px', 
@@ -38,7 +73,16 @@ const UserProfile = () => {
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name}</h3>
-          <div className="badge badge-success" style={{ display: 'inline-block', marginBottom: '20px' }}>
+          <div style={{ 
+            display: 'inline-block', 
+            marginBottom: '20px',
+            background: 'var(--primary-soft)',
+            color: 'var(--primary)',
+            padding: '4px 12px',
+            borderRadius: '99px',
+            fontSize: '12px',
+            fontWeight: '800'
+          }}>
             {user?.role?.toUpperCase()}
           </div>
           
@@ -55,11 +99,11 @@ const UserProfile = () => {
         </div>
 
         {/* Right Column - Account Settings */}
-        <div className="glass-card" style={{ padding: '40px', background: 'white' }}>
+        <div className="agro-unified-card" style={{ padding: '30px', background: 'white' }}>
           <h4 style={{ marginBottom: '25px', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Account Security</h4>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
+            <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px' }}>
                   <Key size={20} color="#3b82f6" />
@@ -74,7 +118,7 @@ const UserProfile = () => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
+            <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px' }}>
                   <Clock size={20} color="#10b981" />
@@ -92,7 +136,7 @@ const UserProfile = () => {
 
           <div style={{ marginTop: '40px' }}>
             <h4 style={{ marginBottom: '20px', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>System Info</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="system-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '12px' }}>
                 <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: 'var(--text-muted)' }}>Joined Date</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
