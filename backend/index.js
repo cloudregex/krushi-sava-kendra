@@ -42,7 +42,7 @@ app.use('/api/taxes', taxRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
-  res.send('Krushi Seva Kendra API is running...');
+    res.send('Krushi Seva Kendra API is running...');
 });
 
 // Database Connection and Server Start
@@ -52,7 +52,7 @@ const startServer = async () => {
         // Sync models (this creates tables if they don't exist)
         await sequelize.sync();
         console.log('✅ Database models synced successfully.');
-        
+
         app.listen(port, () => {
             console.log(`🚀 Server is running at http://localhost:${port}`);
         });
@@ -62,3 +62,4 @@ const startServer = async () => {
 };
 
 startServer();
+
