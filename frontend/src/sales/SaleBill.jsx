@@ -8,8 +8,11 @@ const initialBills = [
   { id: 'SALE-103', customerId: 'CUS-503', customerName: 'Anil Jadhav', billDate: '2026-04-25', grandTotal: 8900.00, paidAmount: 0, dueAmount: 8900.00, paymentType: 'Credit', status: 'Unpaid' },
 ];
 
+import { useAuth } from '../adminauth/context/AuthContext';
+
 const SaleBill = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -71,9 +74,11 @@ const SaleBill = () => {
             </select>
           </div>
 
-          <button className="btn-agro btn-primary" onClick={() => navigate('/sales/entry')} style={{ height: '38px', padding: '0 16px' }}>
-            <Plus size={18} /> New Sale Bill
-          </button>
+          {hasPermission('sale', 'create') && (
+            <button className="btn-agro btn-primary" onClick={() => navigate('/sales/entry')} style={{ height: '38px', padding: '0 16px' }}>
+              <Plus size={18} /> New Sale Bill
+            </button>
+          )}
         </div>
 
         <div style={{ padding: '10px' }}>
@@ -109,13 +114,15 @@ const SaleBill = () => {
                     </td>
                     <td>{getStatusBadge(bill.status)}</td>
                     <td style={{ textAlign: 'left' }}>
-                      <button
-                        className="btn-agro btn-outline"
-                        onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
-                      >
-                        View
-                      </button>
+                      {hasPermission('sale', 'view') && (
+                        <button
+                          className="btn-agro btn-outline"
+                          onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
+                          style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
+                        >
+                          View
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

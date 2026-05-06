@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { STORAGE_KEYS, getFromStorage, setToStorage } from '../../utils/storage';
 import { ShieldCheck, Plus, Trash2 } from 'lucide-react';
-
 import '../../../mastermodel/styles/MasterModel.css';
-
 import ConfirmModal from '../../../mastermodel/components/ConfirmModal';
+import roleService from '../../services/roleService';
+import userService from '../../services/userService';
 
 const RoleManagement = () => {
   const navigate = useNavigate();
@@ -15,11 +14,25 @@ const RoleManagement = () => {
   const [roleToDelete, setRoleToDelete] = useState(null);
 
   useEffect(() => {
-    const savedRoles = getFromStorage(STORAGE_KEYS.ROLES) || [];
-    setRoles(savedRoles);
-    const savedUsers = getFromStorage(STORAGE_KEYS.USERS) || [];
-    setUsers(savedUsers);
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [rolesData, usersData] = await Promise.all([
+        roleService.getRoles(),
+        userService.getUsers()
+      ]);
+      setRoles(rolesData);
+      setUsers(usersData.map(u => ({ 
+        ...u, 
+        name: u.userName || u.fullName,
+        role: u.role?.roleName || u.role || 'User'
+      })));
+    } catch (error) {
+      console.error('Error fetching role management data:', error);
+    }
+  };
 
   const handleAddRole = () => {
     navigate('/roles/create');
@@ -34,13 +47,16 @@ const RoleManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (roleToDelete) {
-      const updatedRoles = roles.filter(r => r.id !== roleToDelete.id);
-      setRoles(updatedRoles);
-      setToStorage(STORAGE_KEYS.ROLES, updatedRoles);
-      setIsModalOpen(false);
-      setRoleToDelete(null);
+      try {
+        await roleService.deleteRole(roleToDelete.id);
+        setRoles(roles.filter(r => r.id !== roleToDelete.id));
+        setIsModalOpen(false);
+        setRoleToDelete(null);
+      } catch (error) {
+        alert('Failed to delete role: ' + error.message);
+      }
     }
   };
 

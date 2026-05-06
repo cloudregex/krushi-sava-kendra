@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { STORAGE_KEYS, getFromStorage, setToStorage } from '../../utils/storage';
 import { ShieldCheck, Save, X, ArrowLeft } from 'lucide-react';
-
 import '../../../mastermodel/styles/MasterModel.css';
+import roleService from '../../services/roleService';
 
 const AVAILABLE_MODULES = [
   { id: 'product', name: 'Product' },
@@ -20,21 +19,26 @@ const AVAILABLE_MODULES = [
 const RoleCreate = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [roles, setRoles] = useState([]);
   const [currentRole, setCurrentRole] = useState({ roleName: '', permissions: {} });
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedRoles = getFromStorage(STORAGE_KEYS.ROLES) || [];
-    setRoles(savedRoles);
-
     if (id) {
-      const roleToEdit = savedRoles.find(r => r.id === id);
+      fetchRole();
+    }
+  }, [id]);
+
+  const fetchRole = async () => {
+    try {
+      const rolesData = await roleService.getRoles();
+      const roleToEdit = rolesData.find(r => r.id === id);
       if (roleToEdit) {
         setCurrentRole(roleToEdit);
       }
+    } catch (error) {
+      console.error('Error fetching role:', error);
     }
-  }, [id]);
+  };
 
   const toggleAction = (moduleId, action) => {
     const perms = { ...currentRole.permissions };
@@ -62,23 +66,22 @@ const RoleCreate = () => {
     setCurrentRole({ ...currentRole, permissions: perms });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentRole.roleName) {
       setError('Role name is required');
       return;
     }
 
-    let updatedRoles;
-    if (currentRole.id) {
-      updatedRoles = roles.map(r => r.id === currentRole.id ? currentRole : r);
-    } else {
-      const newRole = { ...currentRole, id: Date.now().toString() };
-      updatedRoles = [...roles, newRole];
+    try {
+      if (id) {
+        await roleService.updateRole(id, currentRole);
+      } else {
+        await roleService.createRole(currentRole);
+      }
+      navigate('/roles');
+    } catch (error) {
+      setError(error.message || 'Failed to save role');
     }
-
-    setRoles(updatedRoles);
-    setToStorage(STORAGE_KEYS.ROLES, updatedRoles);
-    navigate('/roles');
   };
 
   return (

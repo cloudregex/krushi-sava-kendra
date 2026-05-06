@@ -25,10 +25,10 @@ import {
   Store
 } from 'lucide-react';
 
-import logo from '../../assets/premium_logo.png';
+import logo from '../../assets/logo.png';
 
 const Sidebar = () => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, hasAnyPermission } = useAuth();
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState({
     sales: location.pathname.startsWith('/sales'),
@@ -100,10 +100,12 @@ const Sidebar = () => {
 
   const filterItem = (item) => {
     if (item.children) {
-      const filteredChildren = item.children.filter(child => !child.module || hasPermission(child.module, child.action));
+      // Show parent if ANY child is permitted
+      const filteredChildren = item.children.filter(child => !child.module || hasPermission(child.module, child.action || 'view'));
       return filteredChildren.length > 0 ? { ...item, children: filteredChildren } : null;
     }
-    return !item.module || hasPermission(item.module, item.action) ? item : null;
+    // Show top level item if permitted or if it has any permission (for consistency)
+    return !item.module || hasPermission(item.module, item.action || 'view') || hasAnyPermission(item.module) ? item : null;
   };
 
   const filteredMenu = menuItems.map(filterItem).filter(Boolean);

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogIn } from 'lucide-react';
-import { STORAGE_KEYS, getFromStorage } from '../../utils/storage';
-
+import authService from '../../services/authService';
 import logo from '../../../assets/logo.png';
 import '../../../mastermodel/styles/MasterModel.css';
 
@@ -14,12 +13,22 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate('/dashboard');
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      const checkAdmin = async () => {
+        const exists = await authService.checkAdminExists();
+        if (!exists) {
+          navigate('/register-admin');
+        }
+      };
+      checkAdmin();
+    }
   }, [user, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = login(formData.email, formData.password);
+    const res = await login(formData.email, formData.password);
     if (res.success) {
       navigate('/dashboard');
     } else {

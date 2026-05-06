@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { STORAGE_KEYS, getFromStorage, setToStorage, initializeStorage } from '../../utils/storage';
 import { Users, UserPlus, Trash2, Shield, Edit3 } from 'lucide-react';
-
 import '../../../mastermodel/styles/MasterModel.css';
-
 import { useNavigate } from 'react-router-dom';
-
 import ConfirmModal from '../../../mastermodel/components/ConfirmModal';
+import userService from '../../services/userService';
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -15,12 +12,25 @@ const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
-    initializeStorage();
-    setUsers(getFromStorage(STORAGE_KEYS.USERS) || []);
+    fetchUsers();
   }, []);
 
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.getUsers();
+      const mappedUsers = data.map(u => ({
+        ...u,
+        name: u.userName || u.fullName,
+        role: u.role?.roleName || u.role || 'User' // Extract roleName string from object
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   const handleDeleteClick = (user) => {
-    if (user.role === 'Admin') {
+    if (user.role === 'superadmin' || user.role === 'admin') {
       alert('Cannot delete Admin account');
       return;
     }
@@ -28,14 +38,16 @@ const UserManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (userToDelete) {
-      const currentUsers = getFromStorage(STORAGE_KEYS.USERS) || [];
-      const updatedUsers = currentUsers.filter(u => u.id !== userToDelete.id);
-      setUsers(updatedUsers);
-      setToStorage(STORAGE_KEYS.USERS, updatedUsers);
-      setIsModalOpen(false);
-      setUserToDelete(null);
+      try {
+        await userService.deleteUser(userToDelete.id);
+        setUsers(users.filter(u => u.id !== userToDelete.id));
+        setIsModalOpen(false);
+        setUserToDelete(null);
+      } catch (error) {
+        alert('Failed to delete user: ' + error.message);
+      }
     }
   };
 

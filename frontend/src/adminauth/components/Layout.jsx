@@ -83,12 +83,9 @@ const Layout = () => {
 
   const currentModule = getModuleFromPath(location.pathname);
 
-  // Safety redirect for view permission
-  if (currentModule && !hasPermission(currentModule, 'view')) {
-    if (!((currentModule === 'roles' || currentModule === 'users') && hasPermission(currentModule, 'manage'))) {
-      return <Navigate to="/dashboard" />;
-    }
-  }
+  // Safety redirect check logic
+  const shouldRedirect = currentModule && !hasPermission(currentModule, 'view') && 
+    !((currentModule === 'roles' || currentModule === 'users') && hasPermission(currentModule, 'manage'));
 
   // Generate permission classes
   const permissionClasses = currentModule ? [
@@ -128,6 +125,10 @@ const Layout = () => {
   const isFullScreenPage = location.pathname.endsWith('/new') ||
     location.pathname.endsWith('/entry') ||
     location.pathname.includes('/view/');
+
+  if (shouldRedirect) {
+    return <Navigate to="/dashboard" />;
+  }
 
   return (
     <div className={`layout-container ${permissionClasses}`} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
