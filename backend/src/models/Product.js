@@ -14,6 +14,10 @@ const Product = sequelize.define('Product', {
             notEmpty: true
         }
     },
+    marathiName: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     code: {
         type: DataTypes.STRING,
         allowNull: false,

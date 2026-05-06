@@ -5,6 +5,7 @@ import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import SearchableSelect from '../../components/SearchableSelect';
 import '../../styles/MasterModel.css';
+import { getMarathiTranslation } from '../../utils/TranslationHelper';
 
 const ProductCreate = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const ProductCreate = () => {
   const [taxes, setTaxes] = useState([]);
 
   const [formData, setFormData] = useState({
-    name: '', code: '', category: '', tax: '',
+    name: '', marathiName: '', code: '', category: '', tax: '',
     company: '', primaryUnit: '', secondaryUnit: '', conversionFactor: '',
     minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
@@ -36,10 +37,23 @@ const ProductCreate = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+
+      // Auto-translate if English name is being changed
+      if (name === 'name') {
+        const translation = getMarathiTranslation(value);
+        if (translation) {
+          newData.marathiName = translation;
+        }
+      }
+
+      return newData;
+    });
   };
 
   const handleFinalSave = async (e) => {
@@ -78,16 +92,19 @@ const ProductCreate = () => {
               </div>
 
               <div className="agro-grid-2">
-                <FormField label="Product Name" name="name" value={formData.name} onChange={handleChange} required placeholder="Enter product name" />
-                <FormField label="Product Code" name="code" value={formData.code} onChange={handleChange} required placeholder="e.g. PRD001" />
+                <FormField label="Product Name (English)" name="name" value={formData.name} onChange={handleChange} required placeholder="e.g. Urea" />
+                <FormField label="उत्पादनाचे नाव (मराठी)" name="marathiName" value={formData.marathiName} onChange={handleChange} placeholder="उदा. युरिया" />
               </div>
 
               <div className="agro-grid-2">
+                <FormField label="Product Code" name="code" value={formData.code} onChange={handleChange} required placeholder="e.g. PRD001" />
                 <SearchableSelect label="Category" options={categories} value={formData.category} onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))} required />
-                <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required placeholder="Select Tax %" />
               </div>
 
-              <FormField label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="e.g. ABC Ltd" />
+              <div className="agro-grid-2">
+                <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required placeholder="Select Tax %" />
+                <FormField label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="e.g. ABC Ltd" />
+              </div>
 
               <div className="agro-grid-3">
                 <SearchableSelect label="Purchase Unit" options={['Box', 'Bag', 'Case', 'Crate', 'Drum', 'Nos']} value={formData.primaryUnit} onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))} required />
@@ -114,14 +131,14 @@ const ProductCreate = () => {
 
               <div className="agro-grid-2">
                 <FormField label="Current Stock" name="currentStock" type="number" value={formData.currentStock} onChange={handleChange} required placeholder="0" />
-                <FormField 
-                  label="Low Stock Alert" 
-                  name="minStock" 
-                  type="number" 
-                  value={formData.minStock} 
-                  onChange={handleChange} 
-                  required 
-                  placeholder="5" 
+                <FormField
+                  label="Low Stock Alert"
+                  name="minStock"
+                  type="number"
+                  value={formData.minStock}
+                  onChange={handleChange}
+                  required
+                  placeholder="5"
                   hint={formData.currentStock !== "" && formData.minStock !== "" ? (Number(formData.currentStock) < Number(formData.minStock) ? `Low by ${Number(formData.minStock) - Number(formData.currentStock)}` : "Stock Sufficient") : ""}
                   hintColor={formData.currentStock !== "" && formData.minStock !== "" ? (Number(formData.currentStock) < Number(formData.minStock) ? "#ef4444" : "#16a34a") : ""}
                 />

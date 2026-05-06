@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 const startServer = async () => {
     try {
         await connectDB();
-        // Sync models (this creates tables if they don't exist)
+        // Sync models
         await sequelize.sync();
         console.log('✅ Database models synced successfully.');
 

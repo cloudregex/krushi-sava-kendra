@@ -17,7 +17,17 @@ const ProductList = () => {
   } = useCRUD('products');
 
   const columns = [
-    { header: 'Product Name', accessor: 'name' },
+    {
+      header: 'Product Name',
+      render: (row) => (
+        <div style={{ color: '#334155' }}>
+          <span>{row.name}</span>
+          {row.marathiName && (
+            <span style={{ color: '#16a34a', fontSize: '12px', marginLeft: '6px' }}>({row.marathiName})</span>
+          )}
+        </div>
+      )
+    },
     { header: 'Code', accessor: 'code' },
     { header: 'Category', accessor: 'category' },
     {

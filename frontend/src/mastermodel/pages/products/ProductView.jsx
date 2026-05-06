@@ -73,7 +73,9 @@ const ProductView = () => {
               <Package size={40} />
             </div>
 
-            <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 4px 0', textAlign: 'center' }}>{formData.name}</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 4px 0', textAlign: 'center' }}>
+              {formData.name} {formData.marathiName && <span style={{ color: '#16a34a', fontSize: '15px' }}>({formData.marathiName})</span>}
+            </h2>
             <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '15px' }}>Code: {formData.code}</div>
             <span className={`badge ${formData.isActive ? 'badge-success' : 'badge-danger'}`} style={{ padding: '4px 12px', fontSize: '11px' }}>
               {formData.isActive ? 'Active' : 'Inactive'}
