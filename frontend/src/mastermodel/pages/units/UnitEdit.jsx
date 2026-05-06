@@ -3,15 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, X, Tag } from 'lucide-react';
 import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
-import SearchableSelect from '../../components/SearchableSelect';
 import '../../styles/MasterModel.css';
 
 const UnitEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const unitOptions = [
-    'Kilogram', 'Gram', 'Liter', 'Milliliter', 'Pieces', 'Box', 'Bag', 'Packet', 'Bottle', 'Tin', 'Drum', 'Set', 'Dozen', 'Roll'
-  ];
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -75,17 +71,14 @@ const UnitEdit = () => {
               <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Unit Details</h3>
             </div>
             
-            <SearchableSelect
-              label="Unit Name"
-              options={unitOptions}
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              required
-              placeholder="Select or Search Unit"
-              limitInitial={4}
+            <FormField 
+              label="Unit Name" 
+              name="name" 
+              value={formData.name} 
+              onChange={handleChange} 
+              required 
+              placeholder="e.g. Kilogram, Litre, etc." 
             />
-
-
           </div>
         </div>
 
