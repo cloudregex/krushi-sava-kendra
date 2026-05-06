@@ -77,19 +77,19 @@ const ProductCreate = () => {
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Basic Information</h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '5px' }}>
+              <div className="agro-grid-2">
                 <FormField label="Product Name" name="name" value={formData.name} onChange={handleChange} required placeholder="Enter product name" />
                 <FormField label="Product Code" name="code" value={formData.code} onChange={handleChange} required placeholder="e.g. PRD001" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+              <div className="agro-grid-2">
                 <SearchableSelect label="Category" options={categories} value={formData.category} onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))} required />
                 <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required placeholder="Select Tax %" />
               </div>
 
               <FormField label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="e.g. ABC Ltd" />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+              <div className="agro-grid-3">
                 <SearchableSelect label="Purchase Unit" options={['Box', 'Bag', 'Case', 'Crate', 'Drum', 'Nos']} value={formData.primaryUnit} onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))} required />
                 <SearchableSelect label="Sale Unit" options={['Nos', 'Kg', 'Ltr', 'Pcs', 'Gm', 'Ml', 'Packet']} value={formData.secondaryUnit} onChange={(e) => setFormData(prev => ({ ...prev, secondaryUnit: e.target.value }))} required />
                 <FormField
@@ -112,7 +112,7 @@ const ProductCreate = () => {
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Stock & Alerts</h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="agro-grid-2">
                 <FormField label="Current Stock" name="currentStock" type="number" value={formData.currentStock} onChange={handleChange} required placeholder="0" />
                 <FormField 
                   label="Low Stock Alert" 
@@ -132,18 +132,11 @@ const ProductCreate = () => {
           </div>
         </div>
 
-        <div style={{
-          padding: '10px 20px',
-          background: '#f8fafc',
-          borderTop: '1px solid var(--border-light)',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '10px'
-        }}>
-          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')} style={{ height: '36px', minWidth: '100px', fontSize: '13px' }}>
+        <div className="agro-form-footer">
+          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')}>
             <X size={16} /> Cancel
           </button>
-          <button type="submit" className="btn-agro btn-primary" style={{ height: '36px', minWidth: '140px', fontSize: '13px' }}>
+          <button type="submit" className="btn-agro btn-primary">
             <Save size={16} /> Save Product
           </button>
         </div>

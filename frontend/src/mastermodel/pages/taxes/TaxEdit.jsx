@@ -70,18 +70,11 @@ const TaxEdit = () => {
             </div>
           </div>
 
-          <div style={{ 
-            padding: '25px 40px', 
-            background: '#f9fafb', 
-            borderTop: '1px solid var(--border-light)', 
-            display: 'flex', 
-            justifyContent: 'flex-end', 
-            gap: '15px' 
-          }}>
-            <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/taxes')} style={{ minWidth: '120px' }}>
+          <div className="agro-form-footer">
+            <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/taxes')}>
               <X size={18} /> Cancel
             </button>
-            <button type="submit" className="btn-agro btn-primary" style={{ minWidth: '180px' }}>
+            <button type="submit" className="btn-agro btn-primary">
               <Save size={18} /> Update Tax
             </button>
           </div>

@@ -422,3 +422,70 @@ select.form-control {
     flex-wrap: wrap;
   }
 }
+
+/* Responsive Utility Classes */
+.agro-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.agro-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.agro-view-layout {
+  display: flex;
+  min-height: 400px;
+}
+
+.agro-view-sidebar {
+  width: 280px;
+  background: #f8fafc;
+  padding: 30px 20px;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .agro-grid-2, .agro-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .agro-view-layout {
+    flex-direction: column;
+  }
+
+  .agro-view-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: 20px;
+  }
+
+  .agro-form-footer {
+    padding: 15px !important;
+    gap: 10px !important;
+    justify-content: center !important;
+  }
+
+  .agro-form-footer button {
+    flex: 1;
+    min-width: 0 !important;
+    white-space: nowrap;
+    font-size: 12px !important;
+  }
+}
+
+.agro-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 30px;
+  background: #f8fafc;
+  border-top: 1px solid var(--border-light);
+}

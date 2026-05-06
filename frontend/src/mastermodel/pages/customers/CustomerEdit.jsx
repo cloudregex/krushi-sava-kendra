@@ -80,7 +80,7 @@ const CustomerEdit = () => {
 
             <FormField label="Full Name" name="name" value={formData.name} onChange={handleChange} required placeholder="Enter customer name" />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="agro-grid-2">
               <FormField label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} required placeholder="10 digit number" />
               <FormField label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="Optional" />
             </div>
@@ -97,18 +97,11 @@ const CustomerEdit = () => {
           </div>
         </div>
 
-        <div style={{
-          padding: '10px 20px',
-          background: '#f8fafc',
-          borderTop: '1px solid var(--border-light)',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '10px'
-        }}>
-          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/customers')} style={{ height: '36px', minWidth: '100px', fontSize: '13px' }}>
+        <div className="agro-form-footer">
+          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/customers')}>
             <X size={16} /> Cancel
           </button>
-          <button type="submit" className="btn-agro btn-primary" style={{ height: '36px', minWidth: '140px', fontSize: '13px' }}>
+          <button type="submit" className="btn-agro btn-primary">
             <Save size={16} /> Update Record
           </button>
         </div>
