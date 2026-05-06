@@ -22,12 +22,6 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// Request Logger
-
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-});
 
 // API Routes
 app.use('/api/auth', authRoutes);
