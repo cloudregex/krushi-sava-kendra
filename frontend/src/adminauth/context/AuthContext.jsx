@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { STORAGE_KEYS, getFromStorage, setToStorage, initializeStorage } from '../utils/storage';
+import authService from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -8,56 +8,71 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initializeStorage();
-    const savedUser = getFromStorage(STORAGE_KEYS.CURRENT_USER);
-    if (savedUser) {
-      setUser(savedUser);
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (savedUser && token) {
+      setUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const roles = getFromStorage(STORAGE_KEYS.ROLES) || [];
-      const userRole = roles.find(r => r.roleName === foundUser.role);
-      const userWithPermissions = { ...foundUser, permissions: userRole?.permissions || {} };
-      
-      setUser(userWithPermissions);
-      setToStorage(STORAGE_KEYS.CURRENT_USER, userWithPermissions);
+  const login = async (email, password) => {
+    try {
+      const userData = await authService.login(email, password);
+      setUser(userData);
       return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message || 'Login failed' };
     }
-    return { success: false, message: 'Invalid credentials or user not found' };
   };
 
-  const registerAdmin = (adminData) => {
-    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
-    if (users.some(u => u.role === 'Admin')) {
-      return { success: false, message: 'Admin already exists' };
+  const registerAdmin = async (adminData) => {
+    try {
+      await authService.register(adminData);
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message || 'Registration failed' };
     }
-    
-    const newAdmin = { ...adminData, role: 'Admin', id: Date.now().toString() };
-    const updatedUsers = [...users, newAdmin];
-    setToStorage(STORAGE_KEYS.USERS, updatedUsers);
-    
-    return { success: true };
   };
 
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   };
 
   const hasPermission = (module, action) => {
-    if (!user || !user.permissions) return false;
-    if (user.role === 'Admin') return true;
-    return user.permissions[module]?.includes(action);
+    if (!user) return false;
+    
+    // SuperAdmin or Admin (with permissions: 'all') has all access
+    if (user.role === 'superadmin' || user.role === 'admin' || user.permissions === 'all') {
+      return true;
+    }
+    
+    // Check specific module permissions for Employee/User roles
+    if (user.permissions && typeof user.permissions === 'object') {
+      const modulePerms = user.permissions[module];
+      if (Array.isArray(modulePerms)) {
+        return modulePerms.includes(action);
+      }
+    }
+    
+    return false;
+  };
+
+  const hasAnyPermission = (module) => {
+    if (!user) return false;
+    if (user.role === 'superadmin' || user.role === 'admin' || user.permissions === 'all') {
+      return true;
+    }
+    if (user.permissions && typeof user.permissions === 'object') {
+      const modulePerms = user.permissions[module];
+      return Array.isArray(modulePerms) && modulePerms.length > 0;
+    }
+    return false;
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, registerAdmin, hasPermission, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, registerAdmin, hasPermission, hasAnyPermission, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

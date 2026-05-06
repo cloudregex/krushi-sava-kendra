@@ -1,9 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { connectSQLite, sequelize } = require('./src/config/sqliteDB');
+const { connectDB, sequelize } = require('./src/config/db');
 
-// Import Routes
+// Import Auth & User Routes
+const authRoutes = require('./src/routes/authRoutes');
+const roleRoutes = require('./src/routes/roleRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+
+// Import Master Model Routes
 const categoryRoutes = require('./src/routers/categoryRoutes');
 const customerRoutes = require('./src/routers/customerRoutes');
 const productRoutes = require('./src/routers/productRoutes');
@@ -23,30 +28,35 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/users', userRoutes);
+
 app.use('/api/categories', categoryRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/taxes', taxRoutes);
 
+// Basic Route
 app.get('/', (req, res) => {
-  res.send('Krushi Seva Kendra API is running.');
+  res.send('Krushi Seva Kendra API is running...');
 });
 
 // Database Connection and Server Start
 const startServer = async () => {
     try {
-        await connectSQLite();
+        await connectDB();
         // Sync models (this creates tables if they don't exist)
-        await sequelize.sync({ alter: true });
-        console.log('Database synced successfully.');
+        await sequelize.sync();
+        console.log('✅ Database models synced successfully.');
         
         app.listen(port, () => {
-            console.log(`Server is running at http://localhost:${port}`);
+            console.log(`🚀 Server is running at http://localhost:${port}`);
         });
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('❌ Failed to start server:', error);
     }
 };
 

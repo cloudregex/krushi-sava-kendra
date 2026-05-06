@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UserPlus, ShieldCheck } from 'lucide-react';
-import { STORAGE_KEYS, getFromStorage } from '../../utils/storage';
-
+import authService from '../../services/authService';
 import logo from '../../../assets/logo.png';
 import '../../../mastermodel/styles/MasterModel.css';
 
@@ -14,15 +13,26 @@ const AdminRegister = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
-    if (users.some(u => u.role === 'Admin')) {
-      navigate('/login');
-    }
+    const checkAdmin = async () => {
+      const exists = await authService.checkAdminExists();
+      if (exists) {
+        navigate('/login');
+      }
+    };
+    checkAdmin();
   }, [navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = registerAdmin(formData);
+    // Map 'name' to 'fullName' for the backend
+    const adminData = {
+      fullName: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: 'superadmin' // First admin is superadmin
+    };
+    
+    const res = await registerAdmin(adminData);
     if (res.success) {
       navigate('/login');
     } else {
