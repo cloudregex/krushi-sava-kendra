@@ -5,18 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 
 const UserProfile = () => {
   const { user } = useAuth();
-  const [profileImage, setProfileImage] = React.useState(null);
   const [formData, setFormData] = React.useState({
     name: user?.name || '',
     email: user?.email || ''
   });
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProfileImage(URL.createObjectURL(file));
-    }
-  };
 
   const handleUpdateProfile = (e) => {
     e.preventDefault();
@@ -75,55 +67,19 @@ const UserProfile = () => {
         {/* Left Column - User Info Card */}
         <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
           <div style={{ 
-            width: '150px', 
-            height: '150px', 
+            width: '120px', 
+            height: '120px', 
             borderRadius: '50%', 
-            background: 'var(--background)', 
+            background: 'var(--primary)', 
             margin: '0 auto 20px', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
             color: 'white',
-            position: 'relative',
-            border: '2px dashed var(--primary)',
-            overflow: 'hidden'
+            fontSize: '48px',
+            fontWeight: '800'
           }}>
-            {profileImage ? (
-              <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ 
-                width: '100%', 
-                height: '100%', 
-                background: 'var(--primary)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: '60px',
-                fontWeight: '800'
-              }}>
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <label style={{ 
-              position: 'absolute', 
-              bottom: '5px', 
-              right: '5px', 
-              background: 'white', 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--primary)',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-              border: '1px solid #eee',
-              zIndex: 10
-            }}>
-              <Camera size={20} />
-              <input type="file" style={{ display: 'none' }} onChange={handleImageUpload} accept="image/*" />
-            </label>
+            {user?.name?.charAt(0).toUpperCase()}
           </div>
           <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name}</h3>
           <div style={{ 
@@ -156,50 +112,6 @@ const UserProfile = () => {
           <h4 style={{ marginBottom: '25px', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Edit Profile Information</h4>
           
           <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="form-group">
-              <label>Profile Image</label>
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <label 
-                  style={{ 
-                    flex: 1,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    padding: '12px 15px', 
-                    border: '2px dashed var(--border)', 
-                    borderRadius: '12px', 
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: 'var(--text-muted)',
-                    transition: 'all 0.3s ease',
-                    background: '#fafafa'
-                  }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-soft)'; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = '#fafafa'; }}
-                >
-                  <Camera size={18} color="var(--primary)" />
-                  <span>{profileImage ? 'Change Profile Picture' : 'Upload Profile Picture'}</span>
-                  <input 
-                    type="file" 
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                  />
-                </label>
-                {profileImage && (
-                  <button 
-                    type="button" 
-                    onClick={() => setProfileImage(null)}
-                    style={{ padding: '12px 18px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: '0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
-                    onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </div>
-
             <div className="form-group">
               <label>Full Name</label>
               <input 
