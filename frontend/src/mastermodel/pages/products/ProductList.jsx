@@ -28,12 +28,9 @@ const ProductList = () => {
         </div>
       )
     },
-    { header: 'Code', accessor: 'code' },
+    { header: 'HSN Code', accessor: 'hsnCode' },
     { header: 'Category', accessor: 'category' },
-    {
-      header: 'Packing',
-      render: (row) => row.primaryUnit ? `1 ${row.primaryUnit} = ${row.conversionFactor} ${row.secondaryUnit}` : 'N/A'
-    },
+
     {
       header: 'Current Stock',
       render: (row) => {
@@ -41,7 +38,7 @@ const ProductList = () => {
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: '700', color: isLowStock ? '#ef4444' : '#16a34a' }}>
-              {row.currentStock || 0} {row.secondaryUnit}
+              {row.currentStock || 0}
             </span>
             {isLowStock ? (
               <span className="badge badge-danger" style={{ fontSize: '10px', padding: '2px 8px' }}>

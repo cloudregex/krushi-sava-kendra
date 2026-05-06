@@ -76,7 +76,7 @@ const ProductView = () => {
             <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 4px 0', textAlign: 'center' }}>
               {formData.name} {formData.marathiName && <span style={{ color: '#16a34a', fontSize: '15px' }}>({formData.marathiName})</span>}
             </h2>
-            <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '15px' }}>Code: {formData.code}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '15px' }}>HSN Code: {formData.hsnCode}</div>
             <span className={`badge ${formData.isActive ? 'badge-success' : 'badge-danger'}`} style={{ padding: '4px 12px', fontSize: '11px' }}>
               {formData.isActive ? 'Active' : 'Inactive'}
             </span>
@@ -99,12 +99,7 @@ const ProductView = () => {
                 <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{formData.company || 'N/A'}</div>
               </div>
 
-              <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)' }}>
-                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Unit Conversion</label>
-                <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>
-                  1 {formData.primaryUnit} = {formData.conversionFactor} {formData.secondaryUnit}
-                </div>
-              </div>
+
 
               <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)' }}>
                 <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Registered On</label>
@@ -115,13 +110,13 @@ const ProductView = () => {
                 <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Current Stock Inventory</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <div style={{ fontSize: '20px', color: Number(formData.currentStock) <= Number(formData.minStock) ? '#ef4444' : '#16a34a', fontWeight: '800' }}>
-                    {formData.currentStock || 0} {formData.secondaryUnit}
+                    {formData.currentStock || 0}
                   </div>
                   {Number(formData.currentStock) <= Number(formData.minStock) && (
                     <span className="badge badge-danger" style={{ padding: '2px 8px', fontSize: '10px' }}>Low Stock Warning</span>
                   )}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Safety Stock Threshold: {formData.minStock} {formData.secondaryUnit}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Safety Stock Threshold: {formData.minStock}</div>
               </div>
             </div>
           </div>

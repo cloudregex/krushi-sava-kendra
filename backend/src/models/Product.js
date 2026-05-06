@@ -18,7 +18,7 @@ const Product = sequelize.define('Product', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    code: {
+    hsnCode: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
@@ -35,19 +35,7 @@ const Product = sequelize.define('Product', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    primaryUnit: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    secondaryUnit: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    conversionFactor: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-        defaultValue: 1
-    },
+
     minStock: {
         type: DataTypes.FLOAT,
         allowNull: false,

@@ -15,8 +15,8 @@ const ProductEdit = () => {
   const [taxes, setTaxes] = useState([]);
 
   const [formData, setFormData] = useState({
-    name: '', marathiName: '', code: '', category: '', tax: '',
-    company: '', primaryUnit: '', secondaryUnit: '', conversionFactor: '', 
+    name: '', marathiName: '', hsnCode: '', category: '', tax: '',
+    company: '',
     minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
   });
@@ -60,7 +60,8 @@ const ProductEdit = () => {
       // Auto-translate if English name is being changed
       if (name === 'name') {
         const translation = getMarathiTranslation(value);
-        if (translation) {
+        // Only auto-fill if a translation is found, otherwise keep original or previous
+        if (translation && translation !== value) {
           newData.marathiName = translation;
         }
       }
@@ -118,7 +119,7 @@ const ProductEdit = () => {
               </div>
 
               <div className="agro-grid-2">
-                <FormField label="Product Code" name="code" value={formData.code} onChange={handleChange} required placeholder="e.g. PRD001" />
+                <FormField label="HSN Code" name="hsnCode" value={formData.hsnCode} onChange={handleChange} required placeholder="e.g. 3101" />
                 <SearchableSelect label="Category" options={categories} value={formData.category} onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))} required />
               </div>
 
@@ -127,20 +128,7 @@ const ProductEdit = () => {
                 <FormField label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="e.g. ABC Ltd" />
               </div>
 
-              <div className="agro-grid-3">
-                <SearchableSelect label="Purchase Unit" options={['Box', 'Bag', 'Case', 'Crate', 'Drum', 'Nos']} value={formData.primaryUnit} onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))} required />
-                <SearchableSelect label="Sale Unit" options={['Nos', 'Kg', 'Ltr', 'Pcs', 'Gm', 'Ml', 'Packet']} value={formData.secondaryUnit} onChange={(e) => setFormData(prev => ({ ...prev, secondaryUnit: e.target.value }))} required />
-                <FormField 
-                  label="Conversion Factor" 
-                  name="conversionFactor" 
-                  type="number" 
-                  value={formData.conversionFactor} 
-                  onChange={handleChange} 
-                  required 
-                  placeholder="e.g. 10" 
-                  hint={(formData.primaryUnit && formData.secondaryUnit) ? `1 ${formData.primaryUnit} = ${formData.conversionFactor || '?'} ${formData.secondaryUnit}` : ""}
-                />
-              </div>
+
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border-light)' }}>
