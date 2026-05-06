@@ -107,9 +107,9 @@ const UserCreate = () => {
           </button>
         </div>
 
-        <div style={{ padding: '15px 20px' }}>
+        <div style={{ padding: window.innerWidth < 768 ? '15px' : '15px 25px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0', color: 'var(--primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px', color: 'var(--primary)' }}>
               <User size={16} />
               <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Account Information</h3>
             </div>
@@ -123,7 +123,7 @@ const UserCreate = () => {
               placeholder="Enter employee full name"
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-grid">
               <FormField
                 label="Email Address"
                 name="email"
@@ -144,8 +144,8 @@ const UserCreate = () => {
               />
             </div>
 
-            <div style={{ marginTop: '5px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0', color: 'var(--primary)' }}>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px', color: 'var(--primary)' }}>
                 <Shield size={16} />
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Access Permissions</h3>
               </div>
@@ -173,17 +173,18 @@ const UserCreate = () => {
         </div>
 
         <div style={{
-          padding: '10px 20px',
+          padding: window.innerWidth < 768 ? '15px' : '10px 25px',
           background: '#f8fafc',
           borderTop: '1px solid var(--border-light)',
           display: 'flex',
+          flexDirection: window.innerWidth < 768 ? 'column' : 'row',
           justifyContent: 'flex-end',
           gap: '10px'
         }}>
-          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/users')} style={{ height: '36px', minWidth: '100px', fontSize: '13px' }}>
+          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/users')} style={{ height: '36px', minWidth: window.innerWidth < 768 ? '100%' : '100px', fontSize: '13px' }}>
             <X size={16} /> Cancel
           </button>
-          <button type="submit" className="btn-agro btn-primary" style={{ height: '36px', minWidth: '160px', fontSize: '13px' }}>
+          <button type="submit" className="btn-agro btn-primary" style={{ height: '36px', minWidth: window.innerWidth < 768 ? '100%' : '160px', fontSize: '13px' }}>
             {id ? <Save size={16} /> : <UserPlus size={16} />}
             <span style={{ marginLeft: '8px' }}>{id ? 'Update Account' : 'Create Account'}</span>
           </button>

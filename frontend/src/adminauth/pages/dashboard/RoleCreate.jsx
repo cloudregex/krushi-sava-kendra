@@ -104,27 +104,27 @@ const RoleCreate = () => {
           </button>
         </div>
 
-        <div style={{ padding: '25px' }}>
-          <div style={{ background: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '25px', color: 'var(--primary)' }}>
+        <div style={{ padding: window.innerWidth < 768 ? '15px' : '25px' }}>
+          <div style={{ background: '#f8fafc', padding: window.innerWidth < 768 ? '15px' : '25px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: window.innerWidth < 768 ? '20px' : '25px', color: 'var(--primary)' }}>
               <ShieldCheck size={20} />
-              <h3 style={{ fontSize: '16px', margin: 0, fontWeight: '700' }}>Role Specifications</h3>
+              <h3 style={{ fontSize: window.innerWidth < 768 ? '15px' : '16px', margin: 0, fontWeight: '700' }}>Role Specifications</h3>
             </div>
             
-            <div className="form-group" style={{ maxWidth: '400px' }}>
+            <div className="form-group" style={{ maxWidth: window.innerWidth < 768 ? '100%' : '400px' }}>
               <label style={{ fontSize: '12px', marginBottom: '6px' }}>Role Name</label>
               <input 
                 type="text" 
                 className="form-control" 
-                style={{ height: '40px', fontSize: '14px' }} 
+                style={{ height: window.innerWidth < 768 ? '45px' : '40px', fontSize: '14px' }} 
                 placeholder="e.g. Accountant, Sales Executive" 
                 value={currentRole.roleName} 
                 onChange={(e) => setCurrentRole({ ...currentRole, roleName: e.target.value })} 
               />
             </div>
 
-            <div style={{ marginTop: '30px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '800', marginBottom: '20px', display: 'block', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ marginTop: window.innerWidth < 768 ? '25px' : '30px' }}>
+              <label style={{ fontSize: window.innerWidth < 768 ? '12px' : '13px', fontWeight: '800', marginBottom: '20px', display: 'block', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Module-wise Permissions
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
@@ -165,11 +165,18 @@ const RoleCreate = () => {
 
             {error && <p style={{ color: '#ef4444', fontSize: '13px', margin: '20px 0', fontWeight: '600' }}>{error}</p>}
 
-            <div style={{ display: 'flex', gap: '15px', marginTop: '35px', paddingTop: '25px', borderTop: '1px solid #e2e8f0' }}>
-              <button className="btn-agro btn-primary" onClick={handleSave} style={{ height: '42px', padding: '0 30px', fontSize: '14px' }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+              gap: '15px', 
+              marginTop: '35px', 
+              paddingTop: '25px', 
+              borderTop: '1px solid #e2e8f0' 
+            }}>
+              <button className="btn-agro btn-primary" onClick={handleSave} style={{ height: '42px', padding: '0 30px', fontSize: '14px', width: window.innerWidth < 768 ? '100%' : 'auto' }}>
                 <Save size={18} /> {id ? 'Update Role' : 'Create Role'}
               </button>
-              <button className="btn-agro btn-outline" onClick={() => navigate('/roles')} style={{ height: '42px', padding: '0 30px', fontSize: '14px' }}>
+              <button className="btn-agro btn-outline" onClick={() => navigate('/roles')} style={{ height: '42px', padding: '0 30px', fontSize: '14px', width: window.innerWidth < 768 ? '100%' : 'auto' }}>
                 <X size={18} /> Cancel
               </button>
             </div>
