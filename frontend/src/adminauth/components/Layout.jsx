@@ -196,7 +196,7 @@ const Layout = () => {
       {!isFullScreenPage && (
         <>
           <div className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
-            <Sidebar />
+            <Sidebar onClose={() => setIsSidebarOpen(false)} />
           </div>
           {isSidebarOpen && (
             <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />

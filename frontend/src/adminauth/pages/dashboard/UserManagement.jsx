@@ -78,22 +78,22 @@ const UserManagement = () => {
           </button>
         </div>
 
-        <div style={{ padding: '20px' }}>
-          <div style={{ border: '1px solid var(--border-light)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ padding: '15px' }}>
+          <div className="agro-table-container">
             <table className="agro-table">
               <thead>
                 <tr>
                   <th>User Details</th>
                   <th>Email</th>
                   <th>Access Role</th>
-                  <th style={{ textAlign: 'left' }}>Actions</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '32px',
                           height: '32px',
@@ -104,7 +104,8 @@ const UserManagement = () => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: '700',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          flexShrink: 0
                         }}>
                           {u.name.charAt(0)}
                         </div>
@@ -120,22 +121,21 @@ const UserManagement = () => {
                         fontWeight: '700',
                         background: u.role === 'Admin' ? '#fef3c7' : '#f1f5f9',
                         color: u.role === 'Admin' ? '#d97706' : 'var(--primary)',
-                        border: `1px solid ${u.role === 'Admin' ? '#fde68a' : '#e2e8f0'}`
+                        border: `1px solid ${u.role === 'Admin' ? '#fde68a' : '#e2e8f0'}`,
+                        whiteSpace: 'nowrap'
                       }}>
                         {u.role}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'left' }}>
-                      {u.role !== 'Admin' && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                          <button onClick={() => navigate(`/users/edit/${u.id}`)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '5px' }}>
-                            <Edit3 size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteClick(u)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '5px' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '5px' }}>
+                        <button onClick={() => navigate(`/users/edit/${u.id}`)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '8px' }}>
+                          <Edit3 size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteClick(u)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

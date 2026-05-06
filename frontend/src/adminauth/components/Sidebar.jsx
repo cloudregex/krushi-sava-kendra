@@ -27,9 +27,13 @@ import {
 
 import logo from '../../assets/logo.png';
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
   const { user, logout, hasPermission, hasAnyPermission } = useAuth();
   const location = useLocation();
+
+  const handleLinkClick = () => {
+    if (onClose) onClose();
+  };
   const [openGroups, setOpenGroups] = useState({
     sales: location.pathname.startsWith('/sales'),
     purchase: location.pathname.startsWith('/purchase'),
@@ -207,6 +211,7 @@ const Sidebar = () => {
                           <NavLink
                             key={child.path}
                             to={child.path}
+                            onClick={handleLinkClick}
                             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                             style={({ isActive }) => ({
                               display: 'flex',
@@ -235,6 +240,7 @@ const Sidebar = () => {
             ) : (
               <NavLink
                 to={item.path}
+                onClick={handleLinkClick}
                 className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                 style={({ isActive }) => ({
                   display: 'flex',

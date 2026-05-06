@@ -392,6 +392,7 @@ select.form-control {
 
   .agro-card {
     padding: 20px;
+    border-radius: 12px;
   }
 
   .agro-card-header {
@@ -400,18 +401,44 @@ select.form-control {
     gap: 15px;
   }
 
+
   .agro-card-header h2 {
     font-size: 20px;
   }
+
+
 
   .agro-header-compact {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    padding: 15px !important;
+  }
+
+  .agro-header-compact > div {
+    width: 100%;
+  }
+
+  .agro-header-compact button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .agro-table-container, .agro-table-wrapper-simple {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .agro-table {
+    min-width: 600px;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
+
+
+    gap: 15px;
+
   }
 
   .action-icons {
@@ -420,6 +447,7 @@ select.form-control {
 
   .pagination {
     flex-wrap: wrap;
+
   }
 }
 
@@ -488,4 +516,12 @@ select.form-control {
   padding: 20px 30px;
   background: #f8fafc;
   border-top: 1px solid var(--border-light);
-}
+    gap: 5px;
+  }
+
+  .btn-agro {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+
