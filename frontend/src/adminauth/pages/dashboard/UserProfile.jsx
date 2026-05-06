@@ -74,10 +74,12 @@ const UserProfile = () => {
           <div style={{ 
             width: '120px', height: '120px', borderRadius: '50%', 
             background: 'linear-gradient(135deg, var(--primary) 0%, #166534 100%)', 
-            margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyCenter: 'center',
-            color: 'white', fontSize: '48px', fontWeight: '800', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+            margin: '0 auto 25px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', fontSize: '56px', fontWeight: '800', 
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '4px solid white'
           }}>
-            {user?.name?.charAt(0).toUpperCase() || user?.fullName?.charAt(0).toUpperCase()}
+            {user?.name?.charAt(0).toUpperCase() || user?.fullName?.charAt(0).toUpperCase() || user?.userName?.charAt(0).toUpperCase()}
           </div>
           <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name || user?.fullName}</h3>
           <div style={{ 

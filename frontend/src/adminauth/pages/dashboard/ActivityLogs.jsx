@@ -117,11 +117,11 @@ const ActivityLogs = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                   <tr>
-                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Action</th>
-                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Done By</th>
-                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Module</th>
-                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b' }}>Details</th>
-                    <th style={{ padding: '15px 20px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>Date & Time</th>
+                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b', width: '15%' }}>Action</th>
+                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b', width: '20%' }}>Done By</th>
+                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b', width: '15%' }}>Module</th>
+                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b', width: '30%' }}>Details</th>
+                    <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '13px', color: '#64748b', width: '20%' }}>Date & Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -156,7 +156,7 @@ const ActivityLogs = () => {
                         <td style={{ padding: '15px 20px', fontSize: '13px', color: '#64748b' }}>
                           {log.details || 'No details'}
                         </td>
-                        <td style={{ padding: '15px 20px', textAlign: 'right', fontSize: '12px', color: '#94a3b8' }}>
+                        <td style={{ padding: '15px 20px', textAlign: 'left', fontSize: '12px', color: '#94a3b8' }}>
                           {log.createdAt ? formatLogDate(log.createdAt) : 'N/A'}
                         </td>
                       </tr>
