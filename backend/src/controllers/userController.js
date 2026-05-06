@@ -1,5 +1,5 @@
-const User = require('../modals/User');
-const Role = require('../modals/Role');
+const User = require('../models/User');
+const Role = require('../models/Role');
 const { handle200, handle201 } = require('../helper/successHandler');
 const { handle404, handle500, formatSequelizeError } = require('../helper/errorHandler');
 

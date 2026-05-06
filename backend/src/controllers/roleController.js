@@ -1,4 +1,4 @@
-const Role = require('../modals/Role');
+const Role = require('../models/Role');
 const { handle200, handle201, handle204 } = require('../helper/successHandler');
 const { handle404, handle500, formatSequelizeError } = require('../helper/errorHandler');
 

@@ -1,4 +1,4 @@
-const Tax = require('../model/Tax');
+const Tax = require('../models/Tax');
 
 exports.getAll = async (req, res) => {
     try {
