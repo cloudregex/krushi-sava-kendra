@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Shield, Key, Clock, Calendar, X, Save, History, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Mail, Shield, Key, Clock, Calendar, X, Save, History, Plus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import profileService from '../../services/profileService';
 import { toast } from 'react-hot-toast';
@@ -58,7 +57,7 @@ const UserProfile = () => {
       day: '2-digit', month: 'short', year: 'numeric', 
       hour: '2-digit', minute: '2-digit' 
     });
-
+  };
 
   return (
     <motion.div 
@@ -69,18 +68,40 @@ const UserProfile = () => {
     >
       <style>
         {`
-          .profile-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+          .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+          }
           .log-item { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px; }
           .log-item:last-child { border-bottom: none; }
-          @media (max-width: 1024px) { .profile-grid { grid-template-columns: 1fr; } }
+
+          @media (max-width: 1024px) {
+            .profile-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
           @media (max-width: 768px) {
-            .profile-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
-            .security-item { flex-direction: column; align-items: flex-start !important; gap: 15px; }
-            .security-item button { width: 100%; }
+            .profile-header {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 10px;
+            }
+            .system-info-grid {
+              grid-template-columns: 1fr !important;
+            }
+            .security-item {
+              flex-direction: column;
+              align-items: flex-start !important;
+              gap: 15px;
+            }
+            .security-item button {
+              width: 100%;
+            }
           }
         `}
       </style>
-
       <div style={{ marginBottom: '30px' }}>
         <h2 style={{ color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '15px' }} className="profile-header">
           <User size={32} /> User Profile
@@ -89,108 +110,130 @@ const UserProfile = () => {
       </div>
 
       <div className="profile-grid">
-        {/* Left Column - User Info */}
-        <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white', alignSelf: 'start' }}>
+        {/* Left Column - User Info Card */}
+        <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
           <div style={{ 
-            width: '100px', height: '100px', borderRadius: '50%', background: 'var(--primary)', 
-            margin: '0 auto 15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: '36px', fontWeight: '800'
+            width: '120px', 
+            height: '120px', 
+            borderRadius: '50%', 
+            background: 'var(--primary)', 
+            margin: '0 auto 20px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '48px',
+            fontWeight: '800'
           }}>
             {user?.name?.charAt(0).toUpperCase()}
           </div>
-          <h3 style={{ margin: '0 0 5px 0', color: 'var(--text-main)' }}>{user?.name}</h3>
+          <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name}</h3>
           <div style={{ 
-            display: 'inline-block', marginBottom: '20px', background: 'var(--primary-soft)',
-            color: 'var(--primary)', padding: '4px 12px', borderRadius: '99px', fontSize: '11px', fontWeight: '800'
+            display: 'inline-block', 
+            marginBottom: '20px',
+            background: 'var(--primary-soft)',
+            color: 'var(--primary)',
+            padding: '4px 12px',
+            borderRadius: '99px',
+            fontSize: '12px',
+            fontWeight: '800'
           }}>
             {user?.role?.toUpperCase()}
           </div>
           
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', textAlign: 'left' }}>
-            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Mail size={14} color="var(--text-muted)" />
-              <span style={{ fontSize: '13px' }}>{user?.email}</span>
+            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Mail size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>{user?.email || 'No email provided'}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Shield size={14} color="var(--text-muted)" />
-              <span style={{ fontSize: '13px' }}>{user?.role} Access</span>
+            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Shield size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>Role: {user?.role} Access</span>
             </div>
           </div>
         </div>
 
-
-        {/* Right Column - Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-          {/* Security Card */}
-          <div className="agro-unified-card" style={{ padding: '25px', background: 'white' }}>
-            <h4 style={{ marginBottom: '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Key size={18} /> Account Security
-            </h4>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {!showPasswordForm ? (
-                <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+        {/* Right Column - Account Settings */}
+        <div className="agro-unified-card" style={{ padding: '30px', background: 'white' }}>
+          <h4 style={{ marginBottom: '25px', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Account Security</h4>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Password Section */}
+            {!showPasswordForm ? (
+              <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px' }}>
+                    <Key size={20} color="#3b82f6" />
+                  </div>
                   <div>
-                    <p style={{ margin: 0, fontWeight: '700', fontSize: '14px' }}>Change Password</p>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Last updated: Not recently</p>
+                    <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--text-main)' }}>Change Password</p>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Update your account password regularly</p>
                   </div>
-                  <button className="btn-agro btn-outline" onClick={() => setShowPasswordForm(true)} style={{ padding: '6px 15px', fontSize: '12px' }}>
-                    Update
-                  </button>
                 </div>
-              ) : (
-                <form onSubmit={handlePasswordUpdate} style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
-                    <div className="form-group">
-                      <label>Current Password</label>
-                      <input 
-                        type="password" 
-                        className="form-control" 
-                        required 
-                        value={passwords.current}
-                        onChange={(e) => setPasswords({...passwords, current: e.target.value})}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>New Password</label>
-                      <input 
-                        type="password" 
-                        className="form-control" 
-                        required 
-                        value={passwords.new}
-                        onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Confirm New Password</label>
-                      <input 
-                        type="password" 
-                        className="form-control" 
-                        required 
-                        value={passwords.confirm}
-                        onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                      <button type="submit" className="btn-agro btn-primary" disabled={loading} style={{ flex: 1, height: '36px', fontSize: '13px' }}>
-                        {loading ? 'Updating...' : 'Save Password'}
-                      </button>
-                      <button type="button" className="btn-agro btn-outline" onClick={() => setShowPasswordForm(false)} style={{ flex: 1, height: '36px', fontSize: '13px' }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
-
-              <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                <div>
-                  <p style={{ margin: 0, fontWeight: '700', fontSize: '14px' }}>System Activity Logs</p>
-                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Track all your actions in the system</p>
-                </div>
-                <button className="btn-agro btn-outline" onClick={fetchLogs} disabled={loading} style={{ padding: '6px 15px', fontSize: '12px' }}>
-                  {loading ? 'Loading...' : 'View Logs'}
+                <button className="btn-agro" onClick={() => setShowPasswordForm(true)} style={{ padding: '8px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
+                  Update
                 </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePasswordUpdate} style={{ background: 'var(--background)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>Current Password</label>
+                    <input type="password" className="form-control" required value={passwords.current} onChange={(e) => setPasswords({...passwords, current: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>New Password</label>
+                    <input type="password" className="form-control" required value={passwords.new} onChange={(e) => setPasswords({...passwords, new: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>Confirm New Password</label>
+                    <input type="password" className="form-control" required value={passwords.confirm} onChange={(e) => setPasswords({...passwords, confirm: e.target.value})} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button type="submit" className="btn-agro btn-primary" disabled={loading} style={{ flex: 1, height: '36px', fontSize: '13px' }}>
+                      {loading ? 'Updating...' : 'Save Changes'}
+                    </button>
+                    <button type="button" className="btn-agro btn-outline" onClick={() => setShowPasswordForm(false)} style={{ flex: 1, height: '36px', fontSize: '13px' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Activity Logs Section */}
+            <div className="security-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'var(--background)', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px' }}>
+                  <Clock size={20} color="#10b981" />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--text-main)' }}>Session Activity</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>View your recent actions and history</p>
+                </div>
+              </div>
+              <button className="btn-agro" onClick={fetchLogs} disabled={loading} style={{ padding: '8px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
+                {loading ? '...' : 'View Logs'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '40px' }}>
+            <h4 style={{ marginBottom: '20px', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>System Info</h4>
+            <div className="system-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: 'var(--text-muted)' }}>Joined Date</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={14} color="var(--primary)" />
+                  <span style={{ fontWeight: '600', fontSize: '14px' }}>May 01, 2026</span>
+                </div>
+              </div>
+              <div style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: 'var(--text-muted)' }}>Account Status</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Shield size={14} color="var(--info)" />
+                  <span style={{ fontWeight: '600', fontSize: '14px' }}>Active</span>
+                </div>
               </div>
             </div>
           </div>
@@ -221,11 +264,11 @@ const UserProfile = () => {
                   <div key={log.id} className="log-item">
                     <div style={{ 
                       padding: '8px', 
-                      background: log.action === 'CREATE' ? '#f0fdf4' : log.action === 'UPDATE' ? '#eff6ff' : '#fef2f2',
+                      background: log.action === 'CREATE' ? '#f0fdf4' : log.action === 'UPDATE' ? '#eff6ff' : log.action === 'LOGIN' ? '#fefce8' : '#fef2f2',
                       borderRadius: '8px',
-                      color: log.action === 'CREATE' ? '#16a34a' : log.action === 'UPDATE' ? '#3b82f6' : '#ef4444'
+                      color: log.action === 'CREATE' ? '#16a34a' : log.action === 'UPDATE' ? '#3b82f6' : log.action === 'LOGIN' ? '#ca8a04' : '#ef4444'
                     }}>
-                      {log.action === 'CREATE' ? <Plus size={16} /> : log.action === 'UPDATE' ? <Save size={16} /> : <AlertCircle size={16} />}
+                      {log.action === 'CREATE' ? <Plus size={16} /> : log.action === 'UPDATE' ? <Save size={16} /> : log.action === 'LOGIN' ? <User size={16} /> : <AlertCircle size={16} />}
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: 0, fontWeight: '700', fontSize: '13px' }}>{log.action} - {log.module}</p>
