@@ -9,11 +9,15 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+      if (
+        wrapperRef.current && !wrapperRef.current.contains(event.target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(event.target))
+      ) {
         setIsOpen(false);
         setSearchTerm(value || '');
       }
@@ -80,20 +84,22 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
   };
 
   const dropdown = isOpen ? createPortal(
-    <div style={{
-      position: 'absolute',
-      top: dropdownPos.top,
-      left: dropdownPos.left,
-      width: dropdownPos.width,
-      zIndex: 9999,
-      background: 'white',
-      border: '1px solid var(--border-light)',
-      borderRadius: '12px',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-      maxHeight: '250px',
-      overflowY: 'auto',
-      padding: '6px'
-    }}>
+    <div 
+      ref={dropdownRef}
+      style={{
+        position: 'absolute',
+        top: dropdownPos.top,
+        left: dropdownPos.left,
+        width: dropdownPos.width,
+        zIndex: 9999,
+        background: 'white',
+        border: '1px solid var(--border-light)',
+        borderRadius: '12px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+        maxHeight: '250px',
+        overflowY: 'auto',
+        padding: '6px'
+      }}>
       {filteredOptions.length > 0 ? (
         filteredOptions.map((opt, i) => (
           <div 

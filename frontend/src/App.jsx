@@ -170,13 +170,13 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
+    <>
       <Toaster position="top-right" reverseOrder={false} />
       <Router>
         <ScrollToTop />
         <AppRoutes />
       </Router>
-    </AuthProvider>
+    </>
   );
 }
 
