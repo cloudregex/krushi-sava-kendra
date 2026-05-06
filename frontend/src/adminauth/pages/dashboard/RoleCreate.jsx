@@ -5,15 +5,16 @@ import '../../../mastermodel/styles/MasterModel.css';
 import roleService from '../../services/roleService';
 
 const AVAILABLE_MODULES = [
-  { id: 'product', name: 'Product' },
-  { id: 'category', name: 'Category' },
-  { id: 'customer', name: 'Customer' },
-  { id: 'supplier', name: 'Supplier' },
-  { id: 'sale', name: 'Sale' },
-  { id: 'purchase', name: 'Purchase' },
-  { id: 'tax', name: 'Tax' },
-  { id: 'users', name: 'Users' },
-  { id: 'roles', name: 'Roles' }
+  { id: 'product', name: 'Products' },
+  { id: 'category', name: 'Categories' },
+  { id: 'customer', name: 'Customers' },
+  { id: 'supplier', name: 'Suppliers' },
+  { id: 'stock', name: 'Stock Management' },
+  { id: 'sale', name: 'Sales / Billing' },
+  { id: 'purchase', name: 'Purchase Management' },
+  { id: 'tax', name: 'Tax Settings' },
+  { id: 'users', name: 'User Management' },
+  { id: 'roles', name: 'Role Management' }
 ];
 
 const RoleCreate = () => {
@@ -127,12 +128,23 @@ const RoleCreate = () => {
               <label style={{ fontSize: window.innerWidth < 768 ? '12px' : '13px', fontWeight: '800', marginBottom: '20px', display: 'block', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Module-wise Permissions
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: window.innerWidth < 1024 ? '1fr' : 'repeat(2, 1fr)', 
+                gap: '20px' 
+              }}>
                 {AVAILABLE_MODULES.map((module) => {
                   const modulePerms = currentRole.permissions[module.id] || [];
                   const isAll = modulePerms.length === 4;
                   return (
-                    <div key={module.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-light)', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                    <div key={module.id} style={{ 
+                      background: 'white', 
+                      padding: '20px', 
+                      borderRadius: '12px', 
+                      border: '1px solid #e2e8f0', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      transition: 'transform 0.2s ease'
+                    }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                         <span style={{ fontWeight: '800', fontSize: '13px', color: 'var(--primary)' }}>{module.name}</span>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', cursor: 'pointer', color: '#64748b', fontWeight: '600' }}>
