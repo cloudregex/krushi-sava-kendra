@@ -1,4 +1,5 @@
 const Role = require('../models/Role');
+const { logActivity } = require('../helper/logger');
 const { handle200, handle201, handle204 } = require('../helper/successHandler');
 const { handle404, handle500, formatSequelizeError } = require('../helper/errorHandler');
 
@@ -18,6 +19,9 @@ exports.createRole = async (req, res) => {
       roleName,
       permissions: permissions || {},
     });
+
+    // Log activity
+    await logActivity(req, 'Role', 'CREATE', `Created new role: ${role.roleName}`);
 
     return handle201(res, role, "Role created successfully");
   } catch (error) {
@@ -50,6 +54,10 @@ exports.updateRole = async (req, res) => {
       role.permissions = permissions || role.permissions;
 
       const updatedRole = await role.save();
+
+      // Log activity
+      await logActivity(req, 'Role', 'UPDATE', `Updated role: ${updatedRole.roleName}`);
+
       return handle200(res, updatedRole, "Role updated successfully");
     } else {
       return handle404(res, 'Role not found');
@@ -67,7 +75,12 @@ exports.deleteRole = async (req, res) => {
     const role = await Role.findByPk(req.params.id);
 
     if (role) {
+      const roleName = role.roleName;
       await role.destroy();
+
+      // Log activity
+      await logActivity(req, 'Role', 'DELETE', `Removed role: ${roleName}`);
+
       return handle200(res, null, 'Role removed successfully');
     } else {
       return handle404(res, 'Role not found');

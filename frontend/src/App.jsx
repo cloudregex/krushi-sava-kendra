@@ -14,6 +14,7 @@ import UserManagement from './adminauth/pages/dashboard/UserManagement';
 import UserCreate from './adminauth/pages/dashboard/UserCreate';
 import BusinessProfile from './adminauth/pages/dashboard/BusinessProfile';
 import UserProfile from './adminauth/pages/dashboard/UserProfile';
+import ActivityLogs from './adminauth/pages/dashboard/ActivityLogs';
 import ModulePage from './adminauth/pages/dashboard/ModulePage';
 import {
   Suppliers, SupplierCreate, SupplierEdit, SupplierView,
@@ -54,6 +55,7 @@ const AppRoutes = () => {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" />} />
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="activity-logs" element={<ActivityLogs />} />
 
         {/* Master Model Routes */}
         <Route path="products">

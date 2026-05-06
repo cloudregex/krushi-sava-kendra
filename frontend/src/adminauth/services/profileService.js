@@ -8,7 +8,12 @@ const profileService = {
 
   getMyLogs: async () => {
     const response = await api.get('/activity-logs/me');
-    return response.data;
+    return response.data.data;
+  },
+
+  getAllLogs: async () => {
+    const response = await api.get('/activity-logs');
+    return response.data.data;
   }
 };
 

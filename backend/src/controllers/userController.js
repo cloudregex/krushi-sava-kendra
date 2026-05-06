@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Role = require('../models/Role');
+const { logActivity } = require('../helper/logger');
 const { handle200, handle201 } = require('../helper/successHandler');
 const { handle404, handle500, formatSequelizeError } = require('../helper/errorHandler');
 
@@ -21,6 +22,9 @@ exports.addUser = async (req, res) => {
       password,
       roleId,
     });
+
+    // Log activity
+    await logActivity(req, 'User', 'CREATE', `Added new user: ${user.userName} (${user.email})`);
 
     return handle201(res, user, "User added successfully");
   } catch (error) {
@@ -57,6 +61,10 @@ exports.updateUser = async (req, res) => {
       user.roleId = roleId || user.roleId;
 
       const updatedUser = await user.save();
+
+      // Log activity
+      await logActivity(req, 'User', 'UPDATE', `Updated user details: ${updatedUser.userName}`);
+
       return handle200(res, updatedUser, "User updated successfully");
     } else {
       return handle404(res, 'User not found');
@@ -74,7 +82,12 @@ exports.deleteUser = async (req, res) => {
     const user = await User.findByPk(req.params.id);
 
     if (user) {
+      const userName = user.userName;
       await user.destroy();
+
+      // Log activity
+      await logActivity(req, 'User', 'DELETE', `Removed user: ${userName}`);
+
       return handle200(res, null, 'User removed successfully');
     } else {
       return handle404(res, 'User not found');

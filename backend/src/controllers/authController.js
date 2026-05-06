@@ -78,7 +78,9 @@ exports.loginAdmin = async (req, res) => {
       };
 
       req.user = { ...responseData, isAdmin: is_admin }; 
-      await logActivity(req, 'Authentication', 'LOGIN', 'User logged in successfully');
+      
+      // Log activity without blocking the response too much
+      logActivity(req, 'Authentication', 'LOGIN', 'User logged in successfully').catch(err => console.error('Login log failed:', err));
 
       return handle200(res, responseData, "Login successful");
     } else {

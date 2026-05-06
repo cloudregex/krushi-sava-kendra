@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Shield, Key, Clock, Calendar, X, Save, History, Plus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import profileService from '../../services/profileService';
 import { toast } from 'react-hot-toast';
 
 const UserProfile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [showLogsModal, setShowLogsModal] = useState(false);
-  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   
   const [passwords, setPasswords] = useState({
@@ -38,25 +38,8 @@ const UserProfile = () => {
     }
   };
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const data = await profileService.getMyLogs();
-      setLogs(data);
-      setShowLogsModal(true);
-    } catch (error) {
-      toast.error("Failed to fetch activity logs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatLogDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-IN', { 
-      day: '2-digit', month: 'short', year: 'numeric', 
-      hour: '2-digit', minute: '2-digit' 
-    });
+  const handleViewLogs = () => {
+    navigate('/activity-logs');
   };
 
   return (
@@ -68,37 +51,13 @@ const UserProfile = () => {
     >
       <style>
         {`
-          .profile-grid {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 30px;
-          }
-          .log-item { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px; }
-          .log-item:last-child { border-bottom: none; }
-
-          @media (max-width: 1024px) {
-            .profile-grid {
-              grid-template-columns: 1fr;
-            }
-          }
-
+          .profile-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+          @media (max-width: 1024px) { .profile-grid { grid-template-columns: 1fr; } }
           @media (max-width: 768px) {
-            .profile-header {
-              flex-direction: column;
-              align-items: flex-start !important;
-              gap: 10px;
-            }
-            .system-info-grid {
-              grid-template-columns: 1fr !important;
-            }
-            .security-item {
-              flex-direction: column;
-              align-items: flex-start !important;
-              gap: 15px;
-            }
-            .security-item button {
-              width: 100%;
-            }
+            .profile-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            .system-info-grid { grid-template-columns: 1fr !important; }
+            .security-item { flex-direction: column; align-items: flex-start !important; gap: 15px; }
+            .security-item button { width: 100%; }
           }
         `}
       </style>
@@ -113,30 +72,18 @@ const UserProfile = () => {
         {/* Left Column - User Info Card */}
         <div className="agro-unified-card" style={{ padding: '30px', textAlign: 'center', background: 'white' }}>
           <div style={{ 
-            width: '120px', 
-            height: '120px', 
-            borderRadius: '50%', 
-            background: 'var(--primary)', 
-            margin: '0 auto 20px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '48px',
-            fontWeight: '800'
+            width: '120px', height: '120px', borderRadius: '50%', 
+            background: 'linear-gradient(135deg, var(--primary) 0%, #166534 100%)', 
+            margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyCenter: 'center',
+            color: 'white', fontSize: '48px', fontWeight: '800', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
           }}>
-            {user?.name?.charAt(0).toUpperCase()}
+            {user?.name?.charAt(0).toUpperCase() || user?.fullName?.charAt(0).toUpperCase()}
           </div>
-          <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name}</h3>
+          <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>{user?.name || user?.fullName}</h3>
           <div style={{ 
-            display: 'inline-block', 
-            marginBottom: '20px',
-            background: 'var(--primary-soft)',
-            color: 'var(--primary)',
-            padding: '4px 12px',
-            borderRadius: '99px',
-            fontSize: '12px',
-            fontWeight: '800'
+            display: 'inline-block', marginBottom: '20px', background: 'var(--primary-soft)',
+            color: 'var(--primary)', padding: '4px 12px', borderRadius: '99px',
+            fontSize: '12px', fontWeight: '800'
           }}>
             {user?.role?.toUpperCase()}
           </div>
@@ -212,8 +159,8 @@ const UserProfile = () => {
                   <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>View your recent actions and history</p>
                 </div>
               </div>
-              <button className="btn-agro" onClick={fetchLogs} disabled={loading} style={{ padding: '8px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
-                {loading ? '...' : 'View Logs'}
+              <button className="btn-agro" onClick={handleViewLogs} style={{ padding: '8px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
+                View Logs
               </button>
             </div>
           </div>
@@ -239,53 +186,6 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
-
-      {/* Logs Modal */}
-      <AnimatePresence>
-        {showLogsModal && (
-          <div style={{ 
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' 
-          }}>
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
-            >
-              <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px' }}>
-                  <History size={20} color="var(--primary)" /> Activity History
-                </h3>
-                <button onClick={() => setShowLogsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
-              </div>
-              <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '10px' }}>
-                {logs.length > 0 ? logs.map((log) => (
-                  <div key={log.id} className="log-item">
-                    <div style={{ 
-                      padding: '8px', 
-                      background: log.action === 'CREATE' ? '#f0fdf4' : log.action === 'UPDATE' ? '#eff6ff' : log.action === 'LOGIN' ? '#fefce8' : '#fef2f2',
-                      borderRadius: '8px',
-                      color: log.action === 'CREATE' ? '#16a34a' : log.action === 'UPDATE' ? '#3b82f6' : log.action === 'LOGIN' ? '#ca8a04' : '#ef4444'
-                    }}>
-                      {log.action === 'CREATE' ? <Plus size={16} /> : log.action === 'UPDATE' ? <Save size={16} /> : log.action === 'LOGIN' ? <User size={16} /> : <AlertCircle size={16} />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: '700', fontSize: '13px' }}>{log.action} - {log.module}</p>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{log.details}</p>
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '11px', color: '#94a3b8' }}>
-                      {formatLogDate(log.createdAt)}
-                    </div>
-                  </div>
-                )) : (
-                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No activity logs found.</div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };

@@ -19,13 +19,14 @@ exports.getMyLogs = async (req, res) => {
   }
 };
 
-// @desc    Get all activity logs (Admin only)
+// @desc    Get all activity logs (Super Admin only)
 // @route   GET /api/activity-logs
-// @access  Private/Admin
+// @access  Private/SuperAdmin
 exports.getAllLogs = async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied' });
+    // Only Super Admin can see everyone's logs
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied. Super Admin only.' });
     }
 
     const logs = await ActivityLog.findAll({
