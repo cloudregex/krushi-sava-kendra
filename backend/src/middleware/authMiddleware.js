@@ -35,9 +35,13 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
-      // Attach permissions to the request object for easy access in checkPermission
-      req.admin = account.toJSON();
-      req.admin.permissions = is_admin ? 'all' : (account.role?.permissions || {});
+      // Attach user info to the request object
+      const userData = account.toJSON();
+      userData.isAdmin = is_admin;
+      userData.permissions = is_admin ? 'all' : (account.role?.permissions || {});
+      
+      req.user = userData;
+      req.admin = userData; // Keep req.admin for backward compatibility
 
       next();
     } catch (error) {
