@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Store, MapPin, Phone, Mail, FileText, Save, Camera } from 'lucide-react';
+import { Store, MapPin, Phone, Mail, FileText, Save, Camera, User } from 'lucide-react';
 
 const BusinessProfile = () => {
   const [profile, setProfile] = useState({
@@ -9,6 +9,7 @@ const BusinessProfile = () => {
     gstin: '27AAAAA0000A1Z5',
     address: 'Main Road, Near Bus Stand, Pune, Maharashtra',
     mobile: '9876543210',
+    altMobile: '',
     email: 'contact@krushiseva.com',
     website: 'www.krushiseva.com'
   });
@@ -152,6 +153,22 @@ const BusinessProfile = () => {
               </div>
               <div className="input-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
+                  <User size={14} /> Owner Name
+                </label>
+                <input 
+                  type="text" 
+                  name="ownerName"
+                  value={profile.ownerName}
+                  onChange={handleChange}
+                  className="form-control" 
+                  placeholder="Enter owner name"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <FileText size={14} /> GSTIN Number
                 </label>
                 <input 
@@ -161,6 +178,19 @@ const BusinessProfile = () => {
                   onChange={handleChange}
                   className="form-control" 
                   placeholder="Enter GSTIN"
+                />
+              </div>
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
+                  <Store size={14} /> Website (Optional)
+                </label>
+                <input 
+                  type="text" 
+                  name="website"
+                  value={profile.website}
+                  onChange={handleChange}
+                  className="form-control" 
+                  placeholder="www.example.com"
                 />
               </div>
             </div>
@@ -196,6 +226,22 @@ const BusinessProfile = () => {
               </div>
               <div className="input-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
+                  <Phone size={14} /> Alternate Mobile
+                </label>
+                <input 
+                  type="text" 
+                  name="altMobile"
+                  value={profile.altMobile}
+                  onChange={handleChange}
+                  className="form-control" 
+                  placeholder="Enter alternate number"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <Mail size={14} /> Email Address
                 </label>
                 <input 
@@ -206,6 +252,39 @@ const BusinessProfile = () => {
                   className="form-control" 
                   placeholder="Enter email"
                 />
+              </div>
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: '600', fontSize: '14px', color: 'var(--text-muted)' }}>
+                  <Camera size={14} /> Shop Image / Logo
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <label 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px', 
+                      padding: '10px 15px', 
+                      border: '2px dashed var(--border)', 
+                      borderRadius: '12px', 
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: 'var(--text-muted)',
+                      transition: 'all 0.3s ease',
+                      background: '#fafafa'
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-soft)'; }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = '#fafafa'; }}
+                  >
+                    <Camera size={18} color="var(--primary)" />
+                    <span>{logo ? 'Change Shop Logo' : 'Upload Shop Logo'}</span>
+                    <input 
+                      type="file" 
+                      onChange={(e) => setLogo(URL.createObjectURL(e.target.files[0]))}
+                      style={{ display: 'none' }}
+                      accept="image/*"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 
