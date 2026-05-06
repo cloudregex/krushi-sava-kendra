@@ -9,11 +9,11 @@ const roleRoutes = require('./src/routes/roleRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 
 // Import Master Model Routes
-const categoryRoutes = require('./src/routers/categoryRoutes');
-const customerRoutes = require('./src/routers/customerRoutes');
-const productRoutes = require('./src/routers/productRoutes');
-const supplierRoutes = require('./src/routers/supplierRoutes');
-const taxRoutes = require('./src/routers/taxRoutes');
+const categoryRoutes = require('./src/routes/categoryRoutes');
+const customerRoutes = require('./src/routes/customerRoutes');
+const productRoutes = require('./src/routes/productRoutes');
+const supplierRoutes = require('./src/routes/supplierRoutes');
+const taxRoutes = require('./src/routes/taxRoutes');
 
 const app = express();
 const port = process.env.PORT || 4000;
