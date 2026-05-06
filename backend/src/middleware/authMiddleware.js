@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const Admin = require('../modals/Admin');
-const User = require('../modals/User');
-const Role = require('../modals/Role');
+const Admin = require('../models/Admin');
+const User = require('../models/User');
+const Role = require('../models/Role');
 require('dotenv').config();
 
 const protect = async (req, res, next) => {
