@@ -54,16 +54,8 @@ const ProductView = () => {
           </button>
         </div>
 
-        <div style={{ display: 'flex', minHeight: '400px' }}>
-          <div style={{
-            width: '280px',
-            background: '#f8fafc',
-            padding: '30px 20px',
-            borderRight: '1px solid var(--border-light)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}>
+        <div className="agro-view-layout">
+          <div className="agro-view-sidebar">
             <div style={{
               width: '100px',
               height: '100px',
@@ -94,7 +86,7 @@ const ProductView = () => {
               <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>General Specifications</h3>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+            <div className="agro-grid-2">
               <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)' }}>
                 <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Category</label>
                 <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{formData.category}</div>
@@ -117,7 +109,7 @@ const ProductView = () => {
                 <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{formData.createdAt ? new Date(formData.createdAt).toLocaleDateString() : 'N/A'}</div>
               </div>
 
-              <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)', gridColumn: 'span 2' }}>
+              <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)', gridColumn: 'span 1' }}>
                 <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Current Stock Inventory</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <div style={{ fontSize: '20px', color: Number(formData.currentStock) <= Number(formData.minStock) ? '#ef4444' : '#16a34a', fontWeight: '800' }}>

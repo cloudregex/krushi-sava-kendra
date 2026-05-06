@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Shield, Key, Clock, Calendar, X, Save, History, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -57,7 +58,7 @@ const UserProfile = () => {
       day: '2-digit', month: 'short', year: 'numeric', 
       hour: '2-digit', minute: '2-digit' 
     });
-  };
+
 
   return (
     <motion.div 
@@ -116,6 +117,7 @@ const UserProfile = () => {
             </div>
           </div>
         </div>
+
 
         {/* Right Column - Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
