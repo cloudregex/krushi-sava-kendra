@@ -178,11 +178,10 @@ const SaleEntry = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    const val = ['discount', 'paidAmount'].includes(field) ? (parseFloat(value) || 0) : value;
-    const updated = { ...master, [field]: val };
+    const updated = { ...master, [field]: value };
     if (field === 'discount' || field === 'paidAmount') {
-      const disc = field === 'discount' ? val : master.discount;
-      const paid = field === 'paidAmount' ? val : master.paidAmount;
+      const disc = parseFloat(field === 'discount' ? value : master.discount) || 0;
+      const paid = parseFloat(field === 'paidAmount' ? value : master.paidAmount) || 0;
       updated.grandTotal = Math.max(0, updated.subtotal + updated.taxAmount - disc);
       updated.dueAmount = updated.grandTotal - paid;
     }
@@ -337,7 +336,7 @@ const SaleEntry = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontWeight: '700', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
                     <label style={{ fontSize: '12px' }}>Balance Due</label>
-                    <span style={{ fontSize: '14px' }}>₹{master.dueAmount.toFixed(2)}</span>
+                    <span style={{ fontSize: '14px' }}>₹{(parseFloat(master.dueAmount) || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -347,15 +346,15 @@ const SaleEntry = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                     <span>Subtotal</span>
-                    <span>₹{master.subtotal.toFixed(2)}</span>
+                    <span>₹{(parseFloat(master.subtotal) || 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                     <span>Total Tax</span>
-                    <span>₹{master.taxAmount.toFixed(2)}</span>
+                    <span>₹{(parseFloat(master.taxAmount) || 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '800', color: 'var(--primary)', borderTop: '1px solid #dcfce7', paddingTop: '10px', marginTop: '10px' }}>
                     <span>Grand Total</span>
-                    <span>₹{master.grandTotal.toFixed(2)}</span>
+                    <span>₹{(parseFloat(master.grandTotal) || 0).toFixed(2)}</span>
                   </div>
                   <button className="btn-agro btn-primary" style={{ width: '100%', marginTop: '15px', height: '40px', fontSize: '14px' }}>
                     <Save size={18} /> Complete Sale
