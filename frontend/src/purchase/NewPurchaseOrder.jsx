@@ -186,7 +186,6 @@ const NewPurchaseOrder = () => {
                       <th style={{ width: '250px' }}>Product Name</th>
                       <th style={{ width: '100px' }}>Quantity</th>
                       <th style={{ width: '120px' }}>Expected Rate</th>
-                      <th style={{ width: '150px' }}>Estimated Total</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
@@ -221,7 +220,6 @@ const NewPurchaseOrder = () => {
                           />
                         </td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={item.expectedPrice} onChange={(e) => handleItemChange(item.id, 'expectedPrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td style={{ fontSize: '13px', fontWeight: '700' }}>₹{(item.quantity * item.expectedPrice).toFixed(2)}</td>
                         <td style={{ textAlign: 'center' }}>
                           <button onClick={() => removeItem(item.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
                         </td>
@@ -232,15 +230,9 @@ const NewPurchaseOrder = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', marginTop: '5px' }}>
-              <div style={{ textAlign: 'right', padding: '15px 25px', background: '#f5f3ff', borderRadius: '12px', border: '1px solid #ddd6fe', minWidth: '220px' }}>
-                <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: 'var(--primary)' }}>Estimated Total Amount</p>
-                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: 'var(--primary)' }}>₹{items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.expectedPrice) || 0), 0).toFixed(2)}</h2>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                  <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/orders')} style={{ flex: 1, height: '38px', fontSize: '13px' }}>Cancel</button>
-                  <button className="btn-agro btn-primary" style={{ flex: 1, height: '38px', fontSize: '13px' }}><Save size={18} /> Place Order</button>
-                </div>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', padding: '10px 0' }}>
+              <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/orders')} style={{ width: '120px', height: '38px', fontSize: '13px' }}>Cancel</button>
+              <button className="btn-agro btn-primary" style={{ width: '150px', height: '38px', fontSize: '13px' }}><Save size={18} /> Place Order</button>
             </div>
           </div>
         </div>

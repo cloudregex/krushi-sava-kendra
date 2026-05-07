@@ -145,9 +145,7 @@ const ViewPurchaseOrder = () => {
                 <thead>
                   <tr>
                     <th style={{ padding: '10px 15px' }}>Product Details</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Ordered Qty</th>
-                    <th style={{ width: '150px', textAlign: 'right' }}>Target Rate (₹)</th>
-                    <th style={{ width: '150px', textAlign: 'right' }}>Sub-total (₹)</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Ordered Qty</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,22 +163,10 @@ const ViewPurchaseOrder = () => {
                         </div>
                       </td>
                       <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary)' }}>{item.quantity}</td>
-                      <td style={{ textAlign: 'right' }}>{item.expectedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '800' }}>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ minWidth: '320px', padding: '18px', background: 'white', borderRadius: '16px', border: '1px solid var(--border-light)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'right' }}>
-                <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: '700' }}>TOTAL ESTIMATED VALUE</p>
-                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: 'var(--primary)' }}>₹{orderData.expectedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
-                <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
-                  Prices are subject to final invoice at delivery
-                </p>
-              </div>
             </div>
           </div>
         </div>
