@@ -1,3 +1,5 @@
+import api from '../../adminauth/utils/api';
+
 // Smart Agricultural Dictionary
 export const PRODUCT_NAME_MAPPING = {
   'fertilizer': 'खत',
@@ -21,14 +23,9 @@ export const getMarathiTranslationAsync = async (text) => {
       return PRODUCT_NAME_MAPPING[words[0]];
     }
 
-    // Google Input Tools Transliteration API
-    const response = await fetch(
-      `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=mr-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=test`
-    );
-    
-    if (!response.ok) throw new Error('API Error');
-    
-    const data = await response.json();
+    // Call backend proxy for Google Input Tools Transliteration API to avoid CORS
+    const response = await api.get(`/translate?text=${encodeURIComponent(text)}`);
+    const data = response.data;
     
     if (data && data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
       return data[1][0][1][0];
@@ -40,6 +37,7 @@ export const getMarathiTranslationAsync = async (text) => {
     return getMarathiTranslation(text); // Fallback to local
   }
 };
+
 
 // 2. Local Phonetic Fallback (Order matters: longer rules first)
 const PHONETIC_RULES = [
