@@ -9,27 +9,28 @@ import '../../../mastermodel/styles/MasterModel.css';
 const AdminRegister = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
+  const [adminExists, setAdminExists] = useState(false);
+  const [checking, setChecking] = useState(true);
   const { registerAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkAdmin = async () => {
+      setChecking(true);
       const exists = await authService.checkAdminExists();
-      if (exists) {
-        navigate('/login');
-      }
+      setAdminExists(exists);
+      setChecking(false);
     };
     checkAdmin();
-  }, [navigate]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Map 'name' to 'fullName' for the backend
     const adminData = {
       fullName: formData.name,
       email: formData.email,
       password: formData.password,
-      role: 'superadmin' // First admin is superadmin
+      role: 'superadmin'
     };
     
     const res = await registerAdmin(adminData);
@@ -39,6 +40,8 @@ const AdminRegister = () => {
       setError(res.message);
     }
   };
+
+  if (checking) return null;
 
   return (
     <div style={{ 
@@ -82,7 +85,7 @@ const AdminRegister = () => {
             margin: '0 0 5px 0',
             letterSpacing: '-0.5px'
           }}>
-            Admin Registration
+            {adminExists ? 'System Initialized' : 'Admin Registration'}
           </h1>
           <p style={{ 
             color: '#475569', 
@@ -90,128 +93,165 @@ const AdminRegister = () => {
             fontWeight: '500',
             margin: 0 
           }}>
-            Setup your primary control account
+            {adminExists ? 'The system is ready for use' : 'Setup your primary control account'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div className="form-group">
-            <label style={{ 
-              fontSize: '14px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              marginBottom: '8px', 
-              display: 'block' 
-            }}>
-              Full Name
-            </label>
-            <input 
-              type="text" 
-              className="form-control" 
-              style={{ 
-                height: '50px', 
-                borderRadius: '12px', 
-                fontSize: '14px', 
-                padding: '0 18px',
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0'
-              }}
-              placeholder="Enter your full name"
-              required 
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ 
-              fontSize: '14px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              marginBottom: '8px', 
-              display: 'block' 
-            }}>
-              Email Address
-            </label>
-            <input 
-              type="email" 
-              className="form-control" 
-              style={{ 
-                height: '50px', 
-                borderRadius: '12px', 
-                fontSize: '14px', 
-                padding: '0 18px',
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0'
-              }}
-              placeholder="e.g. admin@krushi.com"
-              required 
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ 
-              fontSize: '14px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              marginBottom: '8px', 
-              display: 'block' 
-            }}>
-              Master Password
-            </label>
-            <input 
-              type="password" 
-              className="form-control" 
-              style={{ 
-                height: '50px', 
-                borderRadius: '12px', 
-                fontSize: '14px', 
-                padding: '0 18px',
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0'
-              }}
-              placeholder="Create a strong password"
-              required 
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-            />
-          </div>
-
-          {error && (
+        {adminExists ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ 
-              padding: '12px 15px', 
-              background: '#fff1f2', 
-              border: '1px solid #fecdd3', 
+              background: '#ecfdf5', 
+              color: '#065f46', 
+              padding: '15px', 
               borderRadius: '12px', 
-              color: '#e11d48', 
-              fontSize: '13px', 
-              fontWeight: '600' 
+              marginBottom: '25px',
+              fontSize: '14px',
+              fontWeight: '500'
             }}>
-              {error}
+              Superadmin account has already been created. Regular users should use the login page.
             </div>
-          )}
+            <button 
+              onClick={() => navigate('/login')}
+              className="btn-agro btn-primary" 
+              style={{ 
+                height: '55px', 
+                width: '100%',
+                borderRadius: '15px', 
+                fontSize: '16px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                border: 'none',
+                color: 'white',
+                boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)'
+              }}
+            >
+              Go to Login
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="form-group">
+              <label style={{ 
+                fontSize: '14px', 
+                fontWeight: '700', 
+                color: '#1e293b', 
+                marginBottom: '8px', 
+                display: 'block' 
+              }}>
+                Full Name
+              </label>
+              <input 
+                type="text" 
+                className="form-control" 
+                style={{ 
+                  height: '50px', 
+                  borderRadius: '12px', 
+                  fontSize: '14px', 
+                  padding: '0 18px',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0'
+                }}
+                placeholder="Enter your full name"
+                required 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+              />
+            </div>
 
-          <button type="submit" className="btn-agro btn-primary" style={{ 
-            height: '55px', 
-            borderRadius: '15px', 
-            fontSize: '16px', 
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            marginTop: '10px',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            border: 'none',
-            color: 'white',
-            boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)'
-          }}>
-            <ShieldCheck size={20} />
-            Initialize System
-          </button>
-        </form>
+            <div className="form-group">
+              <label style={{ 
+                fontSize: '14px', 
+                fontWeight: '700', 
+                color: '#1e293b', 
+                marginBottom: '8px', 
+                display: 'block' 
+              }}>
+                Email Address
+              </label>
+              <input 
+                type="email" 
+                className="form-control" 
+                style={{ 
+                  height: '50px', 
+                  borderRadius: '12px', 
+                  fontSize: '14px', 
+                  padding: '0 18px',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0'
+                }}
+                placeholder="e.g. admin@krushi.com"
+                required 
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+              />
+            </div>
+
+            <div className="form-group">
+              <label style={{ 
+                fontSize: '14px', 
+                fontWeight: '700', 
+                color: '#1e293b', 
+                marginBottom: '8px', 
+                display: 'block' 
+              }}>
+                Master Password
+              </label>
+              <input 
+                type="password" 
+                className="form-control" 
+                style={{ 
+                  height: '50px', 
+                  borderRadius: '12px', 
+                  fontSize: '14px', 
+                  padding: '0 18px',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0'
+                }}
+                placeholder="Create a strong password"
+                required 
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+              />
+            </div>
+
+            {error && (
+              <div style={{ 
+                padding: '12px 15px', 
+                background: '#fff1f2', 
+                border: '1px solid #fecdd3', 
+                borderRadius: '12px', 
+                color: '#e11d48', 
+                fontSize: '13px', 
+                fontWeight: '600' 
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" className="btn-agro btn-primary" style={{ 
+              height: '55px', 
+              borderRadius: '15px', 
+              fontSize: '16px', 
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              marginTop: '10px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              color: 'white',
+              boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)'
+            }}>
+              <ShieldCheck size={20} />
+              Initialize System
+            </button>
+          </form>
+        )}
 
         <div style={{ 
           marginTop: '30px', 
@@ -219,7 +259,7 @@ const AdminRegister = () => {
           fontSize: '14px', 
           color: '#64748b'
         }}>
-          Already have an account? <Link to="/login" style={{ color: '#10b981', textDecoration: 'none', fontWeight: '700' }}>Login here</Link>
+          {adminExists ? 'Already logged in?' : 'Already have an account?'} <Link to="/login" style={{ color: '#10b981', textDecoration: 'none', fontWeight: '700' }}>Login here</Link>
         </div>
       </div>
     </div>

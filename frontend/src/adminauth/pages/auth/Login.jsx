@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogIn } from 'lucide-react';
 import authService from '../../services/authService';
@@ -15,14 +15,6 @@ const Login = () => {
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
-    } else {
-      const checkAdmin = async () => {
-        const exists = await authService.checkAdminExists();
-        if (!exists) {
-          navigate('/register-admin');
-        }
-      };
-      checkAdmin();
     }
   }, [user, navigate]);
 
@@ -190,6 +182,8 @@ const Login = () => {
           color: '#64748b',
           fontWeight: '500'
         }}>
+          Need to setup a new system? <Link to="/register-admin" style={{ color: '#10b981', textDecoration: 'none', fontWeight: '700' }}>Register here</Link>
+          <br /><br />
           Only users created by Admin can login.
         </div>
       </div>

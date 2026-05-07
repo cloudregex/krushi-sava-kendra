@@ -170,7 +170,7 @@ const AppRoutes = () => {
         <Route path="user-profile" element={<UserProfile />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/register-admin" />} />
     </Routes>
   );
 };
