@@ -35,31 +35,33 @@ const ProductCreate = () => {
     fetchMasterData();
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Immediate state update for the field being typed
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
 
-    setFormData(prev => {
-      const newData = {
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      };
-
-      // Auto-translate if English name is being changed
-      if (name === 'name') {
-        const trimmedValue = value.trim();
-        if (!trimmedValue) {
-          newData.marathiName = '';
-        } else {
-          const translation = getMarathiTranslation(value);
-          // Only auto-fill if a translation is found and it's different from English
-          if (translation && translation !== value) {
-            newData.marathiName = translation;
+    // Auto-translate logic (Asynchronous for accuracy)
+    if (name === 'name') {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) {
+        setFormData(prev => ({ ...prev, marathiName: '' }));
+      } else {
+        try {
+          const translation = await getMarathiTranslationAsync(value);
+          if (translation) {
+            setFormData(prev => ({ ...prev, marathiName: translation }));
           }
+        } catch (error) {
+          // Fallback to local translation if API fails
+          const localTranslation = getMarathiTranslation(value);
+          setFormData(prev => ({ ...prev, marathiName: localTranslation }));
         }
       }
-
-      return newData;
-    });
+    }
   };
 
   const handleFinalSave = async (e) => {
