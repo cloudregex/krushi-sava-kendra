@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { History, Plus, Save, X, User, Clock, Search, Filter, AlertCircle, RefreshCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { History, Plus, Save, X, User, Clock, Search, Filter, AlertCircle, RefreshCcw, ArrowLeft } from 'lucide-react';
 import profileService from '../../services/profileService';
 import { toast } from 'react-hot-toast';
 
 import { useAuth } from '../../context/AuthContext';
 
 const ActivityLogs = () => {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -76,9 +78,14 @@ const ActivityLogs = () => {
           </h2>
           <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Track your recent actions across the system</p>
         </div>
-        <button className="btn-agro btn-outline" onClick={fetchLogs} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-agro btn-outline" onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <button className="btn-agro btn-outline" onClick={fetchLogs} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="agro-unified-card" style={{ background: 'white', borderRadius: '20px', overflow: 'hidden' }}>
