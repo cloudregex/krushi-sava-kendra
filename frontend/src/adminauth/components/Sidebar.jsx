@@ -89,8 +89,8 @@ const Sidebar = ({ onClose }) => {
       icon: <Truck size={20} />,
       id: 'purchase',
       children: [
-        { name: 'Purchase Bill', icon: <FileText size={18} />, path: '/purchase/bills', module: 'purchase', action: 'view' },
         { name: 'Purchase Order', icon: <ClipboardList size={18} />, path: '/purchase/orders', module: 'purchase', action: 'view' },
+        { name: 'Purchase Bill', icon: <FileText size={18} />, path: '/purchase/bills', module: 'purchase', action: 'view' },
         { name: 'Purchase Return', icon: <RotateCcw size={18} />, path: '/purchase/returns', module: 'purchase', action: 'view' },
       ]
     },
