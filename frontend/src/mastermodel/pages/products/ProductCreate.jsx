@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Save, X, Tag, DollarSign, Package, Layers, Calendar } from 'lucide-react';
 import { ApiService } from '../../services/ApiService';
+import { toast } from 'react-hot-toast';
 import FormField from '../../components/FormField';
 import SearchableSelect from '../../components/SearchableSelect';
 import '../../styles/MasterModel.css';
@@ -37,7 +38,7 @@ const ProductCreate = () => {
 
   const handleChange = async (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     // Immediate state update for the field being typed
     setFormData(prev => ({
       ...prev,
@@ -66,8 +67,27 @@ const ProductCreate = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await ApiService.save('products', formData);
-    navigate('/products');
+    try {
+      // Sanitize numeric fields
+      const sanitizedData = {
+        ...formData,
+        minStock: formData.minStock === '' ? 0 : Number(formData.minStock),
+        currentStock: formData.currentStock === '' ? 0 : Number(formData.currentStock)
+      };
+      
+      console.log("Sending product data to save:", sanitizedData);
+      await ApiService.save('products', sanitizedData);
+      toast.success("Product registered successfully!");
+      navigate('/products');
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Failed to save product. Please check all fields.";
+      toast.error(errorMsg);
+      console.error("Error saving product:", error);
+    }
+  };
+
+  const getMarathiTranslationAsync = async (text) => {
+    return getMarathiTranslation(text);
   };
 
   return (

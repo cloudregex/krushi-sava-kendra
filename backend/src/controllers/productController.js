@@ -25,6 +25,7 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
     try {
+        console.log("Creating product with data:", req.body);
         const newItem = await Product.create(req.body);
         
         // Log activity
@@ -32,6 +33,11 @@ exports.create = async (req, res) => {
         
         res.status(201).json(newItem);
     } catch (error) {
+        console.error("Product creation error:", error);
+        if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+            const messages = error.errors.map(e => e.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
         res.status(400).json({ message: error.message });
     }
 };
