@@ -46,11 +46,12 @@ const ProductCreate = () => {
 
       // Auto-translate if English name is being changed
       if (name === 'name') {
-        if (!value) {
+        const trimmedValue = value.trim();
+        if (!trimmedValue) {
           newData.marathiName = '';
         } else {
           const translation = getMarathiTranslation(value);
-          // Only auto-fill if a translation is found, otherwise keep original or previous
+          // Only auto-fill if a translation is found and it's different from English
           if (translation && translation !== value) {
             newData.marathiName = translation;
           }
