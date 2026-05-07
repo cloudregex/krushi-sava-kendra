@@ -21,7 +21,8 @@ import {
   Customers, CustomerCreate, CustomerEdit, CustomerView,
   Categories, CategoryCreate, CategoryEdit,
   Taxes, TaxCreate, TaxEdit,
-  Products, ProductCreate, ProductEdit, ProductView
+  Products, ProductCreate, ProductEdit, ProductView,
+  Units, UnitCreate, UnitEdit
 } from './mastermodel/pages';
 
 import SaleBill from './sales/SaleBill';
@@ -87,6 +88,11 @@ const AppRoutes = () => {
           <Route index element={<Taxes />} />
           <Route path="create" element={<TaxCreate />} />
           <Route path="edit/:id" element={<TaxEdit />} />
+        </Route>
+        <Route path="units">
+          <Route index element={<Units />} />
+          <Route path="create" element={<UnitCreate />} />
+          <Route path="edit/:id" element={<UnitEdit />} />
         </Route>
 
         {/* Sales Routes */}

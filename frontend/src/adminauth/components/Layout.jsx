@@ -27,6 +27,7 @@ const Layout = () => {
     { name: 'Business Profile', path: '/profile' },
     { name: 'User Profile', path: '/user-profile' },
     { name: 'Category', path: '/categories', module: 'category', action: 'view' },
+    { name: 'Units', path: '/units', module: 'category', action: 'view' },
     { name: 'Products', path: '/products', module: 'product', action: 'view' },
     { name: 'Customers', path: '/customers', module: 'customer', action: 'view' },
     { name: 'Suppliers', path: '/suppliers', module: 'supplier', action: 'view' },
@@ -73,6 +74,7 @@ const Layout = () => {
   const getModuleFromPath = (path) => {
     if (path.includes('/products')) return 'product';
     if (path.includes('/categories')) return 'category';
+    if (path.includes('/units')) return 'category';
     if (path.includes('/customers')) return 'customer';
     if (path.includes('/suppliers')) return 'supplier';
     if (path.includes('/sales')) return 'sale';

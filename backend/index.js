@@ -14,6 +14,7 @@ const customerRoutes = require('./src/routes/customerRoutes');
 const productRoutes = require('./src/routes/productRoutes');
 const supplierRoutes = require('./src/routes/supplierRoutes');
 const taxRoutes = require('./src/routes/taxRoutes');
+const unitRoutes = require('./src/routes/unitRoutes');
 const activityRoutes = require('./src/routes/activityRoutes');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/taxes', taxRoutes);
+app.use('/api/units', unitRoutes);
 app.use('/api/activity-logs', activityRoutes);
 
 // Basic Route

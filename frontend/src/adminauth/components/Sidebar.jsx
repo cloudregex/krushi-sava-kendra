@@ -55,6 +55,7 @@ const Sidebar = ({ onClose }) => {
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
     { name: 'Category', icon: <Tags size={20} />, path: '/categories', module: 'category', action: 'view' },
+    { name: 'Units', icon: <ClipboardList size={20} />, path: '/units', module: 'category', action: 'view' },
     { name: 'Products', icon: <Package size={20} />, path: '/products', module: 'product', action: 'view' },
     { name: 'Customers', icon: <UserCheck size={20} />, path: '/customers', module: 'customer', action: 'view' },
     { name: 'Suppliers', icon: <Truck size={20} />, path: '/suppliers', module: 'supplier', action: 'view' },

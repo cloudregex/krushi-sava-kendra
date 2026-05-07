@@ -16,3 +16,7 @@ export { default as Products } from './products/ProductList';
 export { default as ProductCreate } from './products/ProductCreate';
 export { default as ProductEdit } from './products/ProductEdit';
 export { default as ProductView } from './products/ProductView';
+export { default as Units } from './units/UnitList';
+export { default as UnitCreate } from './units/UnitCreate';
+export { default as UnitEdit } from './units/UnitEdit';
+

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-const SearchableSelect = ({ label, options, value, onChange, placeholder, required }) => {
+const SearchableSelect = ({ label, options, value, onChange, placeholder, required, limitInitial }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -43,11 +43,11 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
     }
   }, [isOpen]);
 
-  const isSearching = isOpen && searchTerm !== value;
+  const isSearching = isOpen && searchTerm.length > 0;
   
   const filteredOptions = isSearching 
     ? options.filter(opt => String(opt).toLowerCase().includes(searchTerm.toLowerCase()))
-    : options;
+    : (limitInitial ? options.slice(0, limitInitial) : options);
 
   const handleSelect = (opt) => {
     setSearchTerm(opt);
