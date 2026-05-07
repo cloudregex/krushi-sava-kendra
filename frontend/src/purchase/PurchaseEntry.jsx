@@ -10,8 +10,12 @@ const newRow = () => ({
   id: Date.now() + Math.random(),
   productId: '',
   productName: '',
+  hsnCode: '',
   batchNo: '',
-  quantity: 1,
+  altQuantity: 0,
+  unit: 'Bag',
+  quantity: 0,
+  altUnit: 'MT',
   purchasePrice: '',
   salePrice: '',
   mrp: '',
@@ -65,7 +69,7 @@ const PurchaseEntry = () => {
   const calculateTotals = (rows, discount) => {
     let totalQty = 0, subtotal = 0, totalTax = 0;
     rows.forEach(child => {
-      const qty = parseFloat(child.quantity) || 0;
+      const qty = parseFloat(child.altQuantity) || 0;
       const price = parseFloat(child.purchasePrice) || 0;
       const taxP = parseFloat(child.taxPercent) || 0;
       const rowSub = qty * price;
@@ -89,7 +93,6 @@ const PurchaseEntry = () => {
   };
 
   const handleChildChange = (id, field, value, extraData) => {
-    // Check for duplicate products
     if (field === 'productId' && value) {
       const isDuplicate = children.some(child => String(child.productId) === String(value) && child.id !== id);
       if (isDuplicate) {
@@ -106,25 +109,15 @@ const PurchaseEntry = () => {
         if (extraData) {
           u.productName = extraData.name || '';
           u.batchNo = extraData.batchNo || '';
+          u.hsnCode = extraData.hsnCode || '31021000';
           u.purchasePrice = parseFloat(extraData.purchasePrice) || '';
           u.salePrice = parseFloat(extraData.salePrice) || '';
           u.mrp = parseFloat(extraData.mrp) || '';
           u.taxPercent = parseFloat(extraData.tax) || '';
-        } else if (!value) {
-          u.productName = '';
-          u.batchNo = '';
-          u.purchasePrice = '';
-          u.salePrice = '';
-          u.mrp = '';
-          u.taxPercent = '';
-          u.amount = 0;
-          u.taxAmount = 0;
         }
       }
-      // Use 1 as default quantity for calculation if empty or <= 0
-      const rawQty = parseFloat(field === 'quantity' ? value : u.quantity);
-      const qty = (isNaN(rawQty) || rawQty <= 0) ? 1 : rawQty;
       
+      const qty = parseFloat(field === 'altQuantity' ? value : u.altQuantity) || 0;
       const price = parseFloat(field === 'purchasePrice' ? value : u.purchasePrice) || 0;
       const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
       const rowSub = qty * price;
@@ -136,7 +129,6 @@ const PurchaseEntry = () => {
     setChildren(updated);
     calculateTotals(updated, master.discount);
 
-    // Auto-focus quantity field after selecting a product
     if (field === 'productId' && value) {
       setTimeout(() => {
         if (qtyRefs.current[id]) qtyRefs.current[id].focus();
@@ -247,14 +239,14 @@ const PurchaseEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '220px' }}>PRODUCT NAME</th>
+                      <th style={{ width: '200px' }}>PRODUCT NAME</th>
+                      <th style={{ width: '90px' }}>HSN</th>
+                      <th style={{ width: '70px' }}>ALT QTY</th>
+                      <th style={{ width: '60px' }}>UNIT</th>
                       <th style={{ width: '70px' }}>QTY</th>
-                      <th style={{ width: '90px' }}>P.RATE</th>
-                      <th style={{ width: '90px' }}>S.RATE</th>
-                      <th style={{ width: '80px' }}>MRP</th>
+                      <th style={{ width: '60px' }}>UNIT</th>
+                      <th style={{ width: '90px' }}>RATE</th>
                       <th style={{ width: '60px' }}>TAX%</th>
-                      <th style={{ width: '110px' }}>MFG. DATE</th>
-                      <th style={{ width: '110px' }}>EXP. DATE</th>
                       <th style={{ width: '100px' }}>AMOUNT</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
@@ -273,28 +265,23 @@ const PurchaseEntry = () => {
                             inputRef={el => rowRefs.current[child.id] = el}
                           />
                         </td>
+                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.hsnCode} onChange={(e) => handleChildChange(child.id, 'hsnCode', e.target.value)} /></td>
                         <td>
                           <input 
                             type="number" 
                             className="form-control" 
                             style={{ height: '34px', fontSize: '12px' }} 
                             ref={el => qtyRefs.current[child.id] = el}
-                            value={child.quantity} 
-                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} 
-                            onBlur={(e) => {
-                              if (!e.target.value || parseFloat(e.target.value) <= 0) {
-                                handleChildChange(child.id, 'quantity', '1');
-                              }
-                            }}
+                            value={child.altQuantity} 
+                            onChange={(e) => handleChildChange(child.id, 'altQuantity', e.target.value)} 
                             onKeyDown={(e) => handleEnterNavigation(e, idx)} 
                           />
                         </td>
+                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.unit} onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)} /></td>
+                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.quantity} onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.altUnit} onChange={(e) => handleChildChange(child.id, 'altUnit', e.target.value)} /></td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.purchasePrice} onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.salePrice} onChange={(e) => handleChildChange(child.id, 'salePrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.mrp} onChange={(e) => handleChildChange(child.id, 'mrp', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td><input type="date" className="form-control" style={{ height: '34px', fontSize: '12px', padding: '0 5px' }} value={child.purchaseDate} onChange={(e) => handleChildChange(child.id, 'purchaseDate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td><input type="date" className="form-control" style={{ height: '34px', fontSize: '12px', padding: '0 5px' }} value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
                         <td style={{ fontSize: '13px', fontWeight: '700' }}>₹{child.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'center' }}>
                           <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
@@ -361,6 +348,67 @@ const PurchaseEntry = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Tax Breakdown Table */}
+          <div style={{ marginBottom: '15px' }}>
+            <h3 style={{ fontSize: '13px', marginBottom: '8px', fontWeight: '700', color: 'var(--primary)' }}>Tax Breakdown (CGST & SGST)</h3>
+            <div style={{ border: '1px solid var(--border-light)', borderRadius: '8px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-light)' }}>
+                  <tr>
+                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid var(--border-light)' }}>Tax Rate</th>
+                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>CGST</th>
+                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>SGST / UTGST</th>
+                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'right' }}>Total Tax</th>
+                  </tr>
+                  <tr>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Rate</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Amount</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Rate</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.values(children.reduce((acc, item) => {
+                    if (!item.productId) return acc;
+                    const rate = parseFloat(item.taxPercent) || 0;
+                    if (!acc[rate]) {
+                      acc[rate] = { rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
+                    }
+                    const itemTax = (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * rate) / 100;
+                    acc[rate].cgstAmount += itemTax / 2;
+                    acc[rate].sgstAmount += itemTax / 2;
+                    acc[rate].totalTax += itemTax;
+                    return acc;
+                  }, {})).map((tax, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>{tax.rate}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>{(tax.rate / 2).toFixed(2)}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(tax.cgstAmount).toFixed(2)}</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>{(tax.rate / 2).toFixed(2)}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(tax.sgstAmount).toFixed(2)}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: '700' }}>₹{tax.totalTax.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {children.filter(c => c.productId).length === 0 && (
+                    <tr>
+                      <td colSpan="6" style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>No products added yet</td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot style={{ background: '#f8fafc', fontWeight: '800' }}>
+                  <tr>
+                    <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
+                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         </div>
