@@ -241,13 +241,11 @@ const PurchaseEntry = () => {
                     <tr>
                       <th style={{ width: '200px' }}>PRODUCT NAME</th>
                       <th style={{ width: '90px' }}>HSN</th>
-                      <th style={{ width: '70px' }}>ALT QTY</th>
-                      <th style={{ width: '60px' }}>UNIT</th>
-                      <th style={{ width: '70px' }}>QTY</th>
-                      <th style={{ width: '60px' }}>UNIT</th>
-                      <th style={{ width: '90px' }}>RATE</th>
-                      <th style={{ width: '60px' }}>TAX%</th>
-                      <th style={{ width: '100px' }}>AMOUNT</th>
+                      <th style={{ width: '100px' }}>QUANTITY</th>
+                      <th style={{ width: '80px' }}>UNIT</th>
+                      <th style={{ width: '100px' }}>RATE</th>
+                      <th style={{ width: '80px' }}>TAX%</th>
+                      <th style={{ width: '120px' }}>AMOUNT</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
@@ -278,8 +276,6 @@ const PurchaseEntry = () => {
                           />
                         </td>
                         <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.unit} onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)} /></td>
-                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.quantity} onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.altUnit} onChange={(e) => handleChildChange(child.id, 'altUnit', e.target.value)} /></td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.purchasePrice} onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
                         <td style={{ fontSize: '13px', fontWeight: '700' }}>₹{child.totalAmount.toFixed(2)}</td>

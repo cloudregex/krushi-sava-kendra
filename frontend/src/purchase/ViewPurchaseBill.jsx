@@ -222,11 +222,10 @@ const ViewPurchaseBill = () => {
               <th>Description of Goods</th>
               <th style={{ width: '80px' }}>HSN/SAC</th>
               <th style={{ width: '60px', textAlign: 'center' }}>GST Rate</th>
-              <th style={{ width: '80px', textAlign: 'center' }}>Alt. Qty</th>
-              <th style={{ width: '80px', textAlign: 'center' }}>Quantity</th>
+              <th style={{ width: '100px', textAlign: 'center' }}>Quantity</th>
               <th style={{ width: '80px', textAlign: 'right' }}>Rate (Incl.)</th>
               <th style={{ width: '80px', textAlign: 'right' }}>Rate</th>
-              <th style={{ width: '50px', textAlign: 'center' }}>per</th>
+              <th style={{ width: '60px', textAlign: 'center' }}>per</th>
               <th style={{ width: '100px', textAlign: 'right' }}>Amount</th>
             </tr>
           </thead>
@@ -245,7 +244,6 @@ const ViewPurchaseBill = () => {
                   <td>{item.hsnCode || '31021000'}</td>
                   <td style={{ textAlign: 'center' }}>{item.taxPercent}%</td>
                   <td style={{ textAlign: 'center' }}>{item.altQuantity || item.quantity} {item.unit || 'Bag'}</td>
-                  <td style={{ textAlign: 'center' }}>{item.quantity} {item.altUnit || 'MT'}</td>
                   <td style={{ textAlign: 'right' }}>{item.purchasePrice.toFixed(2)}</td>
                   <td style={{ textAlign: 'right' }}>{taxableRate}</td>
                   <td style={{ textAlign: 'center' }}>{item.unit || 'Bag'}</td>
@@ -258,29 +256,29 @@ const ViewPurchaseBill = () => {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan="8" style={{ border: 'none', borderTop: '1px solid #ddd' }}></td>
+              <td colSpan="7" style={{ border: 'none', borderTop: '1px solid #ddd' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>SubTotal</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{billData.totalAmount.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan="8" style={{ border: 'none' }}></td>
+              <td colSpan="7" style={{ border: 'none' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>CGST</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{(billData.taxAmount / 2).toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan="8" style={{ border: 'none' }}></td>
+              <td colSpan="7" style={{ border: 'none' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>SGST</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{(billData.taxAmount / 2).toFixed(2)}</td>
             </tr>
             {billData.grandTotal % 1 !== 0 && (
               <tr>
-                <td colSpan="8" style={{ border: 'none' }}></td>
+                <td colSpan="7" style={{ border: 'none' }}></td>
                 <td style={{ textAlign: 'right', fontWeight: '700' }}>Round Off</td>
                 <td style={{ textAlign: 'right', fontWeight: '700' }}>{ (Math.round(billData.grandTotal) - billData.grandTotal).toFixed(2) }</td>
               </tr>
             )}
             <tr style={{ background: '#f8fafc' }}>
-              <td colSpan="8" style={{ textAlign: 'right', border: 'none', fontWeight: '900', fontSize: '14px' }}>Total</td>
+              <td colSpan="7" style={{ textAlign: 'right', border: 'none', fontWeight: '900', fontSize: '14px' }}>Total</td>
               <td style={{ border: 'none', borderTop: '2px solid #333' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '900', fontSize: '16px', borderTop: '2px solid #333' }}>₹{Math.round(billData.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             </tr>
