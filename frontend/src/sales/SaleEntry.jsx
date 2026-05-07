@@ -116,11 +116,11 @@ const SaleEntry = () => {
           u.taxAmount = 0;
         }
       }
-      
+
       // Use 1 as default quantity for calculation if empty or <= 0
       const rawQty = parseFloat(field === 'quantity' ? value : u.quantity);
       const qty = (isNaN(rawQty) || rawQty <= 0) ? 1 : rawQty;
-      
+
       const rate = parseFloat(field === 'saleRate' ? value : u.saleRate) || 0;
       const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
       const rowSub = qty * rate;
@@ -280,19 +280,19 @@ const SaleEntry = () => {
                           />
                         </td>
                         <td>
-                          <input 
-                            type="number" 
-                            className="form-control" 
-                            style={{ height: '34px', fontSize: '13px' }} 
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '13px' }}
                             ref={el => qtyRefs.current[child.id] = el}
                             value={child.quantity}
-                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} 
+                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
                             onBlur={(e) => {
                               if (!e.target.value || parseFloat(e.target.value) <= 0) {
                                 handleChildChange(child.id, 'quantity', '1');
                               }
                             }}
-                            onKeyDown={(e) => handleEnterNavigation(e, idx)} 
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
                         <td>

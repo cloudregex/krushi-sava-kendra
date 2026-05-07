@@ -59,14 +59,22 @@ const ViewSaleBill = () => {
             .print-only-header { display: none !important; }
           }
           @media print {
+            @page {
+              size: auto;
+              margin: 8mm;
+            }
             .no-print { display: none !important; }
             .agro-container { padding: 0 !important; }
-            .agro-unified-card { box-shadow: none !important; border: none !important; margin: 0 !important; }
+            .agro-unified-card { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
             .agro-header-compact { display: none !important; }
-            .print-only-header { display: block !important; margin-bottom: 25px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; }
-            .print-only-header h1 { margin: 0; font-size: 26px; color: #000; font-weight: 900; }
-            .print-only-header p { margin: 2px 0; font-size: 14px; color: #333; font-weight: 500; }
-            .bill-info-section { grid-template-columns: 1fr 1fr !important; }
+            .print-only-header { display: block !important; margin-bottom: 15px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .print-only-header h1 { margin: 0; font-size: 22px; color: #000; font-weight: 900; }
+            .print-only-header p { margin: 1px 0; font-size: 12px; color: #333; font-weight: 500; }
+            .bill-info-section { grid-template-columns: 1fr 1fr !important; gap: 10px !important; margin-bottom: 10px !important; }
+            .agro-table th, .agro-table td { padding: 6px 10px !important; font-size: 11px !important; }
+            h3 { font-size: 12px !important; margin-bottom: 5px !important; }
+            p { font-size: 11px !important; }
+            .flex-column { gap: 5px !important; }
           }
         `}
       </style>
