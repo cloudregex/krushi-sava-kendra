@@ -66,7 +66,12 @@ const ProductEdit = () => {
   const handleFinalSave = async (e) => {
     e.preventDefault();
     try {
-      await ApiService.update('products', Number(id), formData);
+      const payload = {
+        ...formData,
+        minStock: formData.minStock === '' ? 0 : parseFloat(formData.minStock),
+        currentStock: formData.currentStock === '' ? 0 : parseFloat(formData.currentStock)
+      };
+      await ApiService.update('products', id, payload);
       toast.success("Product updated successfully!");
       navigate('/products');
     } catch (error) {

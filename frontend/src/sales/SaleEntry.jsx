@@ -91,7 +91,7 @@ const SaleEntry = () => {
       subtotal += discountedSub;
       totalTax += rowTax;
     });
-    const disc = parseFloat(discount) || 0;
+    const disc = parseFloat(masterDiscount) || 0;
     const paid = parseFloat(master.paidAmount) || 0;
     const grandTotal = Math.max(0, subtotal + totalTax - disc);
     setMaster(prev => ({
@@ -125,8 +125,12 @@ const SaleEntry = () => {
           u.batchNo = extraData.batchNo || '';
           u.currentStock = extraData.currentStock || 0;
           u.altUnit = extraData.altUnit || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].alternative : '');
-          u.saleRate = parseFloat(extraData.salePrice) || '';
-          u.baseRate = parseFloat(extraData.salePrice) || 0;
+          let extractedBasePrice = '';
+          if (extraData.multiUnits && extraData.multiUnits.length > 0) {
+            extractedBasePrice = parseFloat(extraData.multiUnits[0].amount) || '';
+          }
+          u.saleRate = extractedBasePrice;
+          u.baseRate = extractedBasePrice || 0;
           u.taxPercent = parseFloat(extraData.tax) || '';
           u.multiUnits = extraData.multiUnits || [];
         } else if (!value) {
@@ -156,12 +160,9 @@ const SaleEntry = () => {
       if (field === 'altQuantity' || field === 'quantity' || field === 'productId' || field === 'altUnit') {
         if (qty === 0 && altQty > 0) {
           const mu = u.multiUnits.find(m => String(m.alternative).toLowerCase() === String(u.altUnit).toLowerCase());
-          if (mu) {
-            if (parseFloat(mu.amount) > 0) {
-              rate = parseFloat(mu.amount);
-            } else if (parseFloat(mu.conversion) > 0) {
-              rate = u.baseRate / parseFloat(mu.conversion);
-            }
+          if (mu && parseFloat(mu.conversion) > 0) {
+            // loose rate = base rate / conversion (e.g. 1500 / 50 = 30)
+            rate = u.baseRate / parseFloat(mu.conversion);
           }
           u.saleRate = rate; // Update the UI field so user sees the new rate
         } else if (qty > 0) {

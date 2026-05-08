@@ -57,8 +57,13 @@ const ProductCreate = () => {
   const handleFinalSave = async (e) => {
     e.preventDefault();
     try {
-      console.log("Submitting Product Data:", formData);
-      await ApiService.save('products', formData);
+      const payload = {
+        ...formData,
+        minStock: formData.minStock === '' ? 0 : parseFloat(formData.minStock),
+        currentStock: formData.currentStock === '' ? 0 : parseFloat(formData.currentStock)
+      };
+      console.log("Submitting Product Data:", payload);
+      await ApiService.save('products', payload);
       toast.success("Product saved successfully!");
       navigate('/products');
     } catch (error) {
