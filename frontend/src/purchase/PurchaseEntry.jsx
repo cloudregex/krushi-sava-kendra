@@ -377,7 +377,7 @@ const PurchaseEntry = () => {
                     if (!acc[rate]) {
                       acc[rate] = { rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
                     }
-                    const itemTax = (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * rate) / 100;
+                    const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * rate) / 100;
                     acc[rate].cgstAmount += itemTax / 2;
                     acc[rate].sgstAmount += itemTax / 2;
                     acc[rate].totalTax += itemTax;
@@ -402,10 +402,10 @@ const PurchaseEntry = () => {
                   <tr>
                     <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + (parseFloat(item.purchasePrice) * parseFloat(item.quantity) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>

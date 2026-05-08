@@ -37,7 +37,8 @@ const Product = sequelize.define('Product', {
     },
     unit: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        defaultValue: 'Bag'
     },
     multiUnits: {
         type: DataTypes.JSON,
