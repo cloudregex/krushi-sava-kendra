@@ -120,7 +120,19 @@ const ProductEdit = () => {
               </div>
 
               <div className="agro-grid-2">
-                <SearchableSelect label="Unit" options={units} value={formData.unit} onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))} required />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <SearchableSelect 
+                    label="Unit" 
+                    options={units} 
+                    value={formData.unit} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))} 
+                    required 
+                    disabled={true}
+                  />
+                  <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
+                    Unit cannot be changed after creation
+                  </p>
+                </div>
                 <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required />
               </div>
 
