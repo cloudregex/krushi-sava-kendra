@@ -11,18 +11,28 @@ const newRow = () => ({
   productId: '',
   productName: '',
   batchNo: '',
+  currentStock: 0,
   quantity: 1,
+  unit: '',
+  altQuantity: '',
+  altUnit: '',
   saleRate: '',
+  discountType: 'amount', // 'amount' or 'percent'
+  discountValue: '',
   taxPercent: '',
   taxAmount: 0,
-  amount: 0
+  amount: 0,
+  baseRate: 0,
+  multiUnits: []
 });
+
 
 const SaleEntry = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [units, setUnits] = useState([]);
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
 
@@ -58,18 +68,27 @@ const SaleEntry = () => {
   useEffect(() => {
     ApiService.getAll('customers').then(data => setCustomers(data));
     ApiService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('units').then(data => setUnits(data));
   }, []);
 
-  const calculateTotals = (rows, discount) => {
+  const calculateTotals = (rows, masterDiscount) => {
     let totalQty = 0, subtotal = 0, totalTax = 0;
     rows.forEach(child => {
       const qty = parseFloat(child.quantity) || 0;
+      const altQty = parseFloat(child.altQuantity) || 0;
+      const effectiveQty = qty > 0 ? qty : altQty;
       const rate = parseFloat(child.saleRate) || 0;
+      const discVal = parseFloat(child.discountValue) || 0;
+      
+      let rowSub = effectiveQty * rate;
+      let rowDisc = child.discountType === 'percent' ? (rowSub * discVal) / 100 : discVal;
+      let discountedSub = Math.max(0, rowSub - rowDisc);
+      
       const taxP = parseFloat(child.taxPercent) || 0;
-      const rowSub = qty * rate;
-      const rowTax = (rowSub * taxP) / 100;
+      const rowTax = (discountedSub * taxP) / 100;
+      
       totalQty += qty;
-      subtotal += rowSub;
+      subtotal += discountedSub;
       totalTax += rowTax;
     });
     const disc = parseFloat(discount) || 0;
@@ -104,29 +123,68 @@ const SaleEntry = () => {
         if (extraData) {
           u.productName = extraData.name || '';
           u.batchNo = extraData.batchNo || '';
+          u.currentStock = extraData.currentStock || 0;
+          u.altUnit = extraData.altUnit || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].alternative : '');
           u.saleRate = parseFloat(extraData.salePrice) || '';
+          u.baseRate = parseFloat(extraData.salePrice) || 0;
           u.taxPercent = parseFloat(extraData.tax) || '';
+          u.multiUnits = extraData.multiUnits || [];
         } else if (!value) {
           // Clear everything if product is cleared
           u.productName = '';
           u.batchNo = '';
+          u.currentStock = 0;
+          u.unit = '';
+          u.altUnit = '';
           u.saleRate = '';
           u.taxPercent = '';
+          u.discountValue = '';
           u.amount = 0;
           u.taxAmount = 0;
         }
       }
 
-      // Use 1 as default quantity for calculation if empty or <= 0
+      // Calculations
       const rawQty = parseFloat(field === 'quantity' ? value : u.quantity);
-      const qty = (isNaN(rawQty) || rawQty <= 0) ? 1 : rawQty;
+      const qty = isNaN(rawQty) ? 0 : rawQty;
+      const rawAltQty = parseFloat(field === 'altQuantity' ? value : u.altQuantity);
+      const altQty = isNaN(rawAltQty) ? 0 : rawAltQty;
+      
+      const effectiveQty = qty > 0 ? qty : altQty;
+      // Auto-calculate Rate for loose selling if applicable
+      let rate = parseFloat(field === 'saleRate' ? value : u.saleRate) || 0;
+      if (field === 'altQuantity' || field === 'quantity' || field === 'productId' || field === 'altUnit') {
+        if (qty === 0 && altQty > 0) {
+          const mu = u.multiUnits.find(m => String(m.alternative).toLowerCase() === String(u.altUnit).toLowerCase());
+          if (mu) {
+            if (parseFloat(mu.amount) > 0) {
+              rate = parseFloat(mu.amount);
+            } else if (parseFloat(mu.conversion) > 0) {
+              rate = u.baseRate / parseFloat(mu.conversion);
+            }
+          }
+          u.saleRate = rate; // Update the UI field so user sees the new rate
+        } else if (qty > 0) {
+          // Reset to base rate if they switch back to main qty
+          if (u.saleRate !== u.baseRate && u.baseRate > 0) {
+            rate = u.baseRate;
+            u.saleRate = rate;
+          }
+        }
+      }
 
-      const rate = parseFloat(field === 'saleRate' ? value : u.saleRate) || 0;
+      const discVal = parseFloat(field === 'discountValue' ? value : u.discountValue) || 0;
+      const discType = field === 'discountType' ? value : u.discountType;
+      
+      let rowSub = effectiveQty * rate;
+      let rowDisc = discType === 'percent' ? (rowSub * discVal) / 100 : discVal;
+      let discountedSub = Math.max(0, rowSub - rowDisc);
+      
       const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
-      const rowSub = qty * rate;
-      const rowTax = (rowSub * taxP) / 100;
+      const rowTax = (discountedSub * taxP) / 100;
+      
       u.taxAmount = rowTax;
-      u.amount = rowSub + rowTax;
+      u.amount = discountedSub + rowTax;
       return u;
     });
     setChildren(updated);
@@ -255,19 +313,23 @@ const SaleEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '250px' }}>Product Name</th>
-                      <th style={{ width: '80px' }}>Qty</th>
-                      <th style={{ width: '100px' }}>Rate</th>
-                      <th style={{ width: '70px' }}>Tax %</th>
-                      <th style={{ width: '100px' }}>Tax Amt</th>
-                      <th style={{ width: '100px' }}>Amount</th>
-                      <th style={{ width: '40px' }}></th>
+                      <th style={{ width: '220px', verticalAlign: 'bottom' }}>1) Product Name</th>
+                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>2) Stock</th>
+                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>3) Qty</th>
+                      <th style={{ width: '120px', verticalAlign: 'bottom' }}>4) Unit</th>
+                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>5) Alt Qty</th>
+                      <th style={{ width: '120px', verticalAlign: 'bottom' }}>6) Alt Unit</th>
+                      <th style={{ width: '90px', verticalAlign: 'bottom' }}>7) Rate</th>
+                      <th style={{ width: '100px', verticalAlign: 'bottom' }}>8) Discount</th>
+                      <th style={{ width: '70px', verticalAlign: 'bottom' }}>9) Tax %</th>
+                      <th style={{ width: '100px', verticalAlign: 'bottom' }}>10) Total</th>
+                      <th style={{ width: '40px', verticalAlign: 'bottom' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
                           <SearchableSelect
                             options={products}
                             value={child.productId}
@@ -278,7 +340,21 @@ const SaleEntry = () => {
                             inputRef={el => rowRefs.current[child.id] = el}
                           />
                         </td>
-                        <td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
+                          <div style={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            background: child.currentStock > 0 ? '#dcfce7' : '#fee2e2',
+                            color: child.currentStock > 0 ? '#16a34a' : '#ef4444',
+                            border: `1px solid ${child.currentStock > 0 ? '#bbf7d0' : '#fecaca'}`
+                          }}>
+                            {child.currentStock} Qty
+                          </div>
+                        </td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -286,23 +362,61 @@ const SaleEntry = () => {
                             ref={el => qtyRefs.current[child.id] = el}
                             value={child.quantity}
                             onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                            onBlur={(e) => {
-                              if (!e.target.value || parseFloat(e.target.value) <= 0) {
-                                handleChildChange(child.id, 'quantity', '1');
-                              }
-                            }}
                             onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
+                          <SearchableSelect
+                            options={units.map(u => ({ id: u.name, name: u.name }))}
+                            value={child.unit}
+                            onChange={(val) => handleChildChange(child.id, 'unit', val)}
+                            placeholder="Unit"
+                            height="34px"
+                            padding="0 8px"
+                          />
+                        </td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
+                          <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.altQuantity} onChange={(e) => handleChildChange(child.id, 'altQuantity', e.target.value)} />
+                        </td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
+                          <SearchableSelect
+                            options={units.map(u => ({ id: u.name, name: u.name }))}
+                            value={child.altUnit}
+                            onChange={(val) => handleChildChange(child.id, 'altUnit', val)}
+                            placeholder="Alt Unit"
+                            height="34px"
+                            padding="0 8px"
+                          />
+                        </td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
                           <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} />
                         </td>
-                        <td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            <select 
+                              className="form-control" 
+                              style={{ height: '34px', fontSize: '12px', padding: '0 2px', width: '38px', borderRadius: '6px 0 0 6px', background: '#f8fafc', borderRight: 'none' }} 
+                              value={child.discountType} 
+                              onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                            >
+                              <option value="amount">₹</option>
+                              <option value="percent">%</option>
+                            </select>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ height: '34px', fontSize: '13px', flex: 1, borderRadius: '0 6px 6px 0' }} 
+                              value={child.discountValue} 
+                              onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)} 
+                              placeholder="0" 
+                            />
+                          </div>
+                        </td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
                           <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} />
                         </td>
-                        <td style={{ fontSize: '13px' }}>₹{child.taxAmount.toFixed(2)}</td>
-                        <td style={{ fontSize: '13px', fontWeight: '700' }}>₹{child.amount.toFixed(2)}</td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ verticalAlign: 'top', paddingTop: '15px', fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>₹{child.amount.toFixed(2)}</td>
+                        <td style={{ verticalAlign: 'top', paddingTop: '12px', textAlign: 'center' }}>
                           <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
                         </td>
                       </tr>
