@@ -78,6 +78,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
     (opt.code && opt.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (opt.batchNo && opt.batchNo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  
+  const displayOptions = searchTerm ? filteredOptions : filteredOptions.slice(0, 4);
 
   const selectOption = (opt) => {
     const result = onChange(opt.id, opt);
@@ -92,15 +94,15 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
     if (!isOpen) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex(i => Math.min(i + 1, filteredOptions.length - 1));
+      setHighlightedIndex(i => Math.min(i + 1, displayOptions.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
-      if (filteredOptions[highlightedIndex]) {
-        selectOption(filteredOptions[highlightedIndex]);
+      if (displayOptions[highlightedIndex]) {
+        selectOption(displayOptions[highlightedIndex]);
         // After selection, call the parent's enter handler (e.g. add new row)
         if (onEnterSelect) setTimeout(() => onEnterSelect(), 100);
       }
@@ -136,8 +138,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
         borderRadius: '12px',
       }}
     >
-      {filteredOptions.length > 0 ? (
-        filteredOptions.map((opt, idx) => (
+      {displayOptions.length > 0 ? (
+        displayOptions.map((opt, idx) => (
           <div
             key={opt.id}
             style={{
