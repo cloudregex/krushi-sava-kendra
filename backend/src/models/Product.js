@@ -35,6 +35,15 @@ const Product = sequelize.define('Product', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    unit: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    multiUnits: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
+    },
 
     minStock: {
         type: DataTypes.FLOAT,

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-const SearchableSelect = ({ label, options, value, onChange, placeholder, required, limitInitial }) => {
+const SearchableSelect = ({ label, options, value, onChange, placeholder, required, limitInitial, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -64,8 +64,8 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
   };
 
   const handleKeyDown = (e) => {
-    if (!isOpen) {
-      if (e.key === 'ArrowDown') setIsOpen(true);
+    if (!isOpen || disabled) {
+      if (e.key === 'ArrowDown' && !disabled) setIsOpen(true);
       return;
     }
 
@@ -156,23 +156,25 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
             setIsOpen(true);
             setSelectedIndex(0);
           }}
-          onFocus={() => { setIsOpen(true); setSearchTerm(''); }}
-          onClick={() => { setIsOpen(true); setSearchTerm(''); }}
+          onFocus={() => { if (!disabled) { setIsOpen(true); setSearchTerm(''); } }}
+          onClick={() => { if (!disabled) { setIsOpen(true); setSearchTerm(''); } }}
           onKeyDown={handleKeyDown}
           required={required}
+          disabled={disabled}
           style={{ 
             paddingRight: '60px', 
             borderRadius: '12px',
             borderColor: isOpen ? 'var(--primary)' : 'var(--border)',
             boxShadow: isOpen ? '0 0 0 4px var(--primary-soft)' : 'none',
-            background: '#f9fafb',
+            background: disabled ? '#f3f4f6' : '#f9fafb',
             transition: 'all 0.3s',
-            cursor: 'text'
+            cursor: disabled ? 'not-allowed' : 'text',
+            color: disabled ? '#6b7280' : 'inherit'
           }}
         />
         
         <div 
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
           style={{ 
             position: 'absolute', 
             right: '15px', 
@@ -180,10 +182,10 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
             gap: '10px', 
             alignItems: 'center', 
             color: isOpen ? 'var(--primary)' : 'var(--text-muted)',
-            cursor: 'pointer'
+            cursor: disabled ? 'not-allowed' : 'pointer'
           }}
         >
-          {searchTerm && <X size={16} onClick={(e) => { e.stopPropagation(); handleClear(); }} style={{ cursor: 'pointer' }} />}
+          {searchTerm && !disabled && <X size={16} onClick={(e) => { e.stopPropagation(); handleClear(); }} style={{ cursor: 'pointer' }} />}
           <ChevronDown size={18} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
         </div>
       </div>
