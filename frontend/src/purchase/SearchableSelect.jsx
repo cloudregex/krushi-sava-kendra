@@ -21,7 +21,9 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
     }
   }, [forwardedRef]);
 
-  const selectedOption = options.find(opt => String(opt.id) === String(value));
+  const selectedOption = options.find(opt => 
+    String(opt.id).trim() === String(value).trim()
+  );
 
   const getDisplayValue = (opt) => {
     if (!opt) return '';
@@ -80,12 +82,10 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
   );
 
   const selectOption = (opt) => {
-    const result = onChange(opt.id, opt);
-    if (result !== false) {
-      setIsOpen(false);
-      setSearchTerm('');
-      setHighlightedIndex(0);
-    }
+    onChange(opt.id, opt);
+    setIsOpen(false);
+    setSearchTerm('');
+    setHighlightedIndex(0);
   };
 
   const handleKeyDown = (e) => {
@@ -151,8 +151,10 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
             }}
             onMouseEnter={() => setHighlightedIndex(idx)}
             onMouseLeave={() => {}}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => selectOption(opt)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              selectOption(opt);
+            }}
           >
             <div style={{ fontWeight: '600', fontSize: '0.9rem', color: String(value) === String(opt.id) ? 'var(--primary)' : textColor }}>
               {opt.name}
@@ -215,7 +217,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
           }}
           onFocus={handleOpen}
           onBlur={() => {
-            setTimeout(() => setIsOpen(false), 150);
+            setTimeout(() => setIsOpen(false), 200);
           }}
           onKeyDown={handleKeyDown}
           autoComplete="off"

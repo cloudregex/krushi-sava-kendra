@@ -62,7 +62,6 @@ const ProductCreate = () => {
         minStock: formData.minStock === '' ? 0 : parseFloat(formData.minStock),
         currentStock: formData.currentStock === '' ? 0 : parseFloat(formData.currentStock)
       };
-      console.log("Submitting Product Data:", payload);
       await ApiService.save('products', payload);
       toast.success("Product saved successfully!");
       navigate('/products');
@@ -292,7 +291,17 @@ const ProductCreate = () => {
 
               <div className="agro-grid-2">
                 <FormField label="Current Stock" name="currentStock" type="number" value={formData.currentStock} onChange={handleChange} required placeholder="0" />
-                <FormField label="Low Stock Alert" name="minStock" type="number" value={formData.minStock} onChange={handleChange} required placeholder="5" />
+                <FormField
+                  label="Low Stock Alert"
+                  name="minStock"
+                  type="number"
+                  value={formData.minStock}
+                  onChange={handleChange}
+                  required
+                  placeholder="5"
+                  hint={formData.currentStock !== "" && formData.minStock !== "" ? (Number(formData.currentStock) < Number(formData.minStock) ? `Low by ${Number(formData.minStock) - Number(formData.currentStock)}` : "Stock Sufficient") : ""}
+                  hintColor={formData.currentStock !== "" && formData.minStock !== "" ? (Number(formData.currentStock) < Number(formData.minStock) ? "#ef4444" : "#16a34a") : ""}
+                />
               </div>
             </div>
 
