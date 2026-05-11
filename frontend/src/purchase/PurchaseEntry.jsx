@@ -183,6 +183,10 @@ const PurchaseEntry = () => {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
       calculateTotals(updated, master.discount);
+    } else {
+      // If it's the last row, just clear it
+      setChildren([newRow()]);
+      calculateTotals([newRow()], master.discount);
     }
   };
 
@@ -418,7 +422,7 @@ const PurchaseEntry = () => {
                           ₹{child.totalAmount.toFixed(2)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                          <button type="button" onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}>
                             <Trash2 size={16} />
                           </button>
                         </td>
