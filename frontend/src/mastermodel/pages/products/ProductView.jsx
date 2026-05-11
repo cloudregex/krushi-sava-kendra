@@ -119,6 +119,23 @@ const ProductView = () => {
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Safety Stock Threshold: {formData.minStock}</div>
               </div>
             </div>
+
+            {formData.multiUnits && formData.multiUnits.length > 0 && (
+              <div style={{ marginTop: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+                  <Layers size={18} color="var(--primary)" />
+                  <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>Unit Conversions</h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
+                  {formData.multiUnits.map((u, idx) => (
+                    <div key={idx} style={{ padding: '12px 15px', background: 'white', borderRadius: '10px', border: '1px solid var(--border-light)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>{u.alternative}</label>
+                      <div style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: '700' }}>{u.productName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

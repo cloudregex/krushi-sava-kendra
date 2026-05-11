@@ -96,7 +96,7 @@ const ProductCreate = () => {
 
         <div style={{ padding: '15px 20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            
+
             {/* Basic Info Section */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '0', color: 'var(--primary)' }}>
@@ -117,12 +117,16 @@ const ProductCreate = () => {
               <div className="agro-grid-2">
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>Primary Value</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
+                  <input
+                    type="number"
+                    className="form-control"
                     style={{ padding: '8px 12px', fontSize: '14px' }}
-                    value={formData.unitValue} 
-                    onChange={(e) => setFormData(prev => ({ ...prev, unitValue: e.target.value }))} 
+                    value={formData.unitValue}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      unitValue: e.target.value,
+                      multiUnits: [] // Reset conversions when primary value changes
+                    }))}
                     placeholder="e.g. 50"
                   />
                   <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
@@ -130,18 +134,17 @@ const ProductCreate = () => {
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <SearchableSelect 
-                    label="Primary Unit" 
-                    options={units} 
-                    value={formData.unit} 
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
+                  <SearchableSelect
+                    label="Primary Unit"
+                    options={units}
+                    value={formData.unit}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
                       unit: e.target.value,
                       multiUnits: [] // Reset conversions when primary unit changes
-                    }))} 
-                    required 
-                    placeholder="Select Primary Unit" 
-                    disabled={formData.unit !== ''} // Lock after selection
+                    }))}
+                    required
+                    placeholder="Select Primary Unit"
                   />
                   <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
                     Primary Unit cannot be changed once set.
@@ -176,20 +179,20 @@ const ProductCreate = () => {
                     <tr>
                       <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--text-muted)' }}>1</td>
                       <td>
-                        <input 
-                          type="number" 
-                          className="form-control" 
+                        <input
+                          type="number"
+                          className="form-control"
                           style={{ padding: '8px 12px', fontSize: '14px' }}
-                          value={tempUnit.conversion} 
-                          onChange={(e) => setTempUnit(prev => ({ ...prev, conversion: e.target.value }))} 
+                          value={tempUnit.conversion}
+                          onChange={(e) => setTempUnit(prev => ({ ...prev, conversion: e.target.value }))}
                           placeholder="e.g. 50"
                         />
                       </td>
                       <td>
-                        <select 
-                          className="form-control" 
+                        <select
+                          className="form-control"
                           style={{ padding: '8px 12px', fontSize: '14px' }}
-                          value={tempUnit.alternative} 
+                          value={tempUnit.alternative}
                           onChange={(e) => setTempUnit(prev => ({ ...prev, alternative: e.target.value }))}
                         >
                           <option value="">- Select Unit -</option>
@@ -197,24 +200,32 @@ const ProductCreate = () => {
                             .filter(u => u !== formData.unit && !formData.multiUnits.find(mu => mu.alternative === u))
                             .map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
+                        {tempUnit.alternative && tempUnit.conversion && (
+                          <div style={{ fontSize: '10px', color: 'var(--primary)', marginTop: '4px', fontWeight: '600' }}>
+                            Preview: {tempUnit.conversion} {tempUnit.alternative} = {formData.unitValue} {formData.unit}
+                          </div>
+                        )}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button 
-                          type="button" 
-                          className="btn-agro btn-primary" 
+                        <button
+                          type="button"
+                          className="btn-agro btn-primary"
                           style={{ height: '38px', padding: '0 15px', borderRadius: '8px' }}
                           onClick={() => {
-                            if (tempUnit.alternative && formData.unit) {
-                              const finalValue = parseFloat(formData.unitValue) || 1;
+                            const inputVal = parseFloat(tempUnit.conversion);
+                            if (tempUnit.alternative && formData.unit && inputVal > 0) {
+                              const primaryVal = parseFloat(formData.unitValue) || 1;
+                              const actualConversionFactor = primaryVal / inputVal;
 
                               const newUnit = {
                                 ...tempUnit,
                                 primary: formData.unit,
-                                multiplier: 1, 
-                                productName: `1 ${tempUnit.alternative} = ${finalValue} ${formData.unit}`,
+                                multiplier: 1,
+                                productName: `${inputVal} ${tempUnit.alternative} = ${primaryVal} ${formData.unit}`,
                                 tax: formData.tax || '0',
                                 amount: '0',
-                                conversion: finalValue
+                                conversion: actualConversionFactor,
+                                displayValue: inputVal // Store for display
                               };
                               setFormData(prev => ({
                                 ...prev,
@@ -222,7 +233,9 @@ const ProductCreate = () => {
                               }));
                               setTempUnit({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
                             } else if (!formData.unit) {
-                              toast.error("Please select a Primary Unit for the product first");
+                              toast.error("Please select a Primary Unit first");
+                            } else if (!inputVal || inputVal <= 0) {
+                              toast.error("Please enter a valid Value");
                             } else {
                               toast.error("Please select a Unit");
                             }
@@ -250,7 +263,7 @@ const ProductCreate = () => {
                         {formData.multiUnits.map((u, idx) => (
                           <tr key={idx}>
                             <td style={{ fontWeight: '600' }}>{u.alternative}</td>
-                            <td>1 {u.alternative} = {u.conversion} {u.primary}</td>
+                            <td>{u.productName}</td>
                             <td style={{ textAlign: 'right' }}>
                               <button type="button" className="action-btn btn-delete" onClick={() => {
                                 setFormData(prev => ({
