@@ -53,9 +53,15 @@ const startServer = async () => {
         await sequelize.sync();
         console.log('✅ Database models synced successfully.');
 
-        app.listen(port, () => {
+        const server = app.listen(port, () => {
             console.log(`🚀 Server is running at http://localhost:${port}`);
         });
+
+        // Error handling for server
+        server.on('error', (err) => {
+            console.error('❌ Server error:', err);
+        });
+
     } catch (error) {
         console.error('❌ Failed to start server:', error);
     }
