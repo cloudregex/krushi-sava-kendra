@@ -44,7 +44,10 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const [updated] = await Product.update(req.body, {
+        // Prevent changing unit and unitValue after creation to maintain stock integrity
+        const { unit, unitValue, ...updateData } = req.body;
+
+        const [updated] = await Product.update(updateData, {
             where: { id: req.params.id }
         });
         if (updated) {

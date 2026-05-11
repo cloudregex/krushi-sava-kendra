@@ -40,6 +40,11 @@ const Product = sequelize.define('Product', {
         allowNull: false,
         defaultValue: 'Bag'
     },
+    unitValue: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 1
+    },
     multiUnits: {
         type: DataTypes.JSON,
         allowNull: true,

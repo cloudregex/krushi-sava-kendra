@@ -18,7 +18,7 @@ const ProductEdit = () => {
 
   const [formData, setFormData] = useState({
     name: '', marathiName: '', hsnCode: '', category: '', tax: '',
-    company: '', unit: '', multiUnits: [],
+    company: '', unit: '', unitValue: 1, multiUnits: [],
     minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
   });
@@ -125,6 +125,20 @@ const ProductEdit = () => {
               </div>
 
               <div className="agro-grid-2">
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>Primary Value</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    style={{ padding: '8px 12px', fontSize: '14px' }}
+                    value={formData.unitValue} 
+                    disabled={true}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unitValue: e.target.value }))} 
+                  />
+                  <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
+                    Value cannot be changed once set.
+                  </p>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <SearchableSelect 
                     label="Primary Unit" 
@@ -135,16 +149,14 @@ const ProductEdit = () => {
                     disabled={true}
                   />
                   <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
-                    This unit cannot be changed once set. Your stock will be calculated based on this primary unit.
+                    Primary Unit cannot be changed once set.
                   </p>
                 </div>
-                <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required />
               </div>
 
               <div className="agro-grid-2">
-                <div style={{ gridColumn: 'span 2' }}>
-                  <FormField label="Company" name="company" value={formData.company} onChange={handleChange} />
-                </div>
+                <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required />
+                <FormField label="Company" name="company" value={formData.company} onChange={handleChange} />
               </div>
             </div>
 
@@ -186,7 +198,9 @@ const ProductEdit = () => {
                           onChange={(e) => setTempUnit(prev => ({ ...prev, alternative: e.target.value }))}
                         >
                           <option value="">- Select Unit -</option>
-                          {units.map(u => <option key={u} value={u}>{u}</option>)}
+                          {units
+                            .filter(u => u !== formData.unit && !(formData.multiUnits || []).find(mu => mu.alternative === u))
+                            .map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -195,13 +209,17 @@ const ProductEdit = () => {
                           className="btn-agro btn-primary" 
                           style={{ height: '38px', padding: '0 15px', borderRadius: '8px' }}
                           onClick={() => {
-                            if (tempUnit.alternative && tempUnit.conversion && formData.unit) {
+                            if (tempUnit.alternative && formData.unit) {
+                              const finalValue = parseFloat(formData.unitValue) || 1;
+
                               const newUnit = {
                                 ...tempUnit,
                                 primary: formData.unit,
-                                productName: `1 ${tempUnit.alternative} (${tempUnit.conversion} ${formData.unit})`,
+                                multiplier: 1,
+                                productName: `1 ${tempUnit.alternative} = ${finalValue} ${formData.unit}`,
                                 tax: formData.tax || '0',
-                                amount: '0'
+                                amount: '0',
+                                conversion: finalValue
                               };
                               setFormData(prev => ({
                                 ...prev,
@@ -209,7 +227,7 @@ const ProductEdit = () => {
                               }));
                               setTempUnit({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
                             } else {
-                              toast.error("Please fill Value and Unit");
+                              toast.error("Please select a Unit");
                             }
                           }}
                         >
