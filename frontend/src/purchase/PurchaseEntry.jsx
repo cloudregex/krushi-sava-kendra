@@ -10,15 +10,14 @@ const newRow = () => ({
   id: Date.now() + Math.random(),
   productId: '',
   productName: '',
+  currentStock: 0,
   hsnCode: '',
   batchNo: '',
-  altQuantity: 1,
-  unit: 'Bag',
   quantity: 1,
-  altUnit: 'MT',
+  unit: 'Bag',
   purchasePrice: '',
-  salePrice: '',
-  mrp: '',
+  discountType: 'Amt', // 'Amt' or '%'
+  discountValue: 0,
   taxPercent: '',
   taxAmount: 0,
   totalAmount: 0,
@@ -61,21 +60,29 @@ const PurchaseEntry = () => {
     }
   }, [children]);
 
+  const [units, setUnits] = useState([]);
+
   useEffect(() => {
     ApiService.getAll('suppliers').then(data => setSuppliers(data));
     ApiService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('units').then(data => setUnits(data));
   }, []);
 
   const calculateTotals = (rows, discount) => {
     let totalQty = 0, subtotal = 0, totalTax = 0;
     rows.forEach(child => {
-      const qty = parseFloat(child.altQuantity) || 0;
+      const qty = parseFloat(child.quantity) || 0;
       const price = parseFloat(child.purchasePrice) || 0;
       const taxP = parseFloat(child.taxPercent) || 0;
-      const rowSub = qty * price;
-      const rowTax = (rowSub * taxP) / 100;
+      const discVal = parseFloat(child.discountValue) || 0;
+
+      let rowSub = qty * price;
+      let discountAmount = child.discountType === '%' ? (rowSub * discVal / 100) : discVal;
+      let taxableAmount = Math.max(0, rowSub - discountAmount);
+      let rowTax = (taxableAmount * taxP) / 100;
+
       totalQty += qty;
-      subtotal += rowSub;
+      subtotal += taxableAmount;
       totalTax += rowTax;
     });
     const disc = parseFloat(discount) || 0;
@@ -108,22 +115,27 @@ const PurchaseEntry = () => {
       if (field === 'productId') {
         if (extraData) {
           u.productName = extraData.name || '';
-          u.batchNo = extraData.batchNo || '';
-          u.hsnCode = extraData.hsnCode || '31021000';
+          u.currentStock = extraData.currentStock || 0;
+          u.hsnCode = extraData.hsnCode || '';
           u.purchasePrice = parseFloat(extraData.purchasePrice) || '';
-          u.salePrice = parseFloat(extraData.salePrice) || '';
-          u.mrp = parseFloat(extraData.mrp) || '';
           u.taxPercent = parseFloat(extraData.tax) || '';
+          u.unit = extraData.unit || 'Bag';
         }
       }
-      
-      const qty = parseFloat(field === 'altQuantity' ? value : u.altQuantity) || 0;
+
+      const qty = parseFloat(field === 'quantity' ? value : u.quantity) || 0;
       const price = parseFloat(field === 'purchasePrice' ? value : u.purchasePrice) || 0;
       const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
-      const rowSub = qty * price;
-      const rowTax = (rowSub * taxP) / 100;
+      const discVal = parseFloat(field === 'discountValue' ? value : u.discountValue) || 0;
+      const discType = field === 'discountType' ? value : u.discountType;
+
+      let rowSub = qty * price;
+      let discountAmount = discType === '%' ? (rowSub * discVal / 100) : discVal;
+      let taxableAmount = Math.max(0, rowSub - discountAmount);
+      let rowTax = (taxableAmount * taxP) / 100;
+
       u.taxAmount = rowTax;
-      u.totalAmount = rowSub + rowTax;
+      u.totalAmount = taxableAmount + rowTax;
       return u;
     });
     setChildren(updated);
@@ -175,6 +187,31 @@ const PurchaseEntry = () => {
       updated.dueAmount = updated.grandTotal - paid;
     }
     setMaster(updated);
+  };
+
+  const handleSubmit = async () => {
+    if (!master.supplierId) {
+      toast.error("Please select a supplier");
+      return;
+    }
+    const validRows = children.filter(c => c.productId && parseFloat(c.quantity) > 0);
+    if (validRows.length === 0) {
+      toast.error("Please add at least one valid product");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...master,
+        items: validRows
+      };
+      await ApiService.save('purchases', payload);
+      toast.success("Purchase Bill saved successfully!");
+      navigate('/purchase/bills');
+    } catch (error) {
+      console.error("Save Error:", error);
+      toast.error("Failed to save bill. Please try again.");
+    }
   };
 
   return (
@@ -238,20 +275,21 @@ const PurchaseEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '200px' }}>PRODUCT NAME</th>
-                      <th style={{ width: '90px' }}>HSN</th>
-                      <th style={{ width: '100px' }}>QUANTITY</th>
-                      <th style={{ width: '80px' }}>UNIT</th>
-                      <th style={{ width: '100px' }}>RATE</th>
-                      <th style={{ width: '80px' }}>TAX%</th>
-                      <th style={{ width: '120px' }}>AMOUNT</th>
+                      <th style={{ width: '180px', fontSize: '11px' }}>PRODUCT NAME</th>
+                      <th style={{ width: '80px', fontSize: '11px' }}>STOCK</th>
+                      <th style={{ width: '100px', fontSize: '11px' }}>STOCK INCREMENT</th>
+                      <th style={{ width: '100px', fontSize: '11px' }}>UNIT</th>
+                      <th style={{ width: '100px', fontSize: '11px' }}>RATE</th>
+                      <th style={{ width: '110px', fontSize: '11px' }}>DISCOUNT</th>
+                      <th style={{ width: '80px', fontSize: '11px' }}>TAX %</th>
+                      <th style={{ width: '100px', fontSize: '11px' }}>TOTAL</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td>
+                        <td style={{ minWidth: '180px' }}>
                           <SearchableSelect
                             options={products}
                             value={child.productId}
@@ -262,29 +300,89 @@ const PurchaseEntry = () => {
                             inputRef={el => rowRefs.current[child.id] = el}
                           />
                         </td>
-                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.hsnCode} onChange={(e) => handleChildChange(child.id, 'hsnCode', e.target.value)} /></td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            background: child.currentStock <= 0 ? '#fee2e2' : '#dcfce7',
+                            color: child.currentStock <= 0 ? '#991b1b' : '#166534',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '700'
+                          }}>
+                            {child.currentStock} Qty
+                          </span>
+                        </td>
                         <td>
-                          <input 
-                            type="number" 
-                            className="form-control" 
-                            style={{ height: '34px', fontSize: '12px' }} 
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px' }}
                             ref={el => qtyRefs.current[child.id] = el}
-                            value={child.altQuantity} 
-                            onChange={(e) => handleChildChange(child.id, 'altQuantity', e.target.value)} 
+                            value={child.quantity}
+                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
                             onBlur={(e) => {
                               if (!e.target.value || parseFloat(e.target.value) <= 0) {
-                                handleChildChange(child.id, 'altQuantity', '1');
+                                handleChildChange(child.id, 'quantity', '1');
                               }
                             }}
-                            onKeyDown={(e) => handleEnterNavigation(e, idx)} 
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td><input type="text" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.unit} onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)} /></td>
-                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.purchasePrice} onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '12px' }} value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
-                        <td style={{ fontSize: '13px', fontWeight: '700' }}>₹{child.totalAmount.toFixed(2)}</td>
+                        <td>
+                          <SearchableSelect
+                            options={units.map(u => ({ id: u.name, name: u.name }))}
+                            value={child.unit}
+                            onChange={(val) => handleChildChange(child.id, 'unit', val)}
+                            placeholder="Unit"
+                            height="34px"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px' }}
+                            value={child.purchasePrice}
+                            onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
+                          />
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            <select
+                              className="form-control"
+                              style={{ width: '45px', height: '34px', fontSize: '10px', padding: '0 2px' }}
+                              value={child.discountType}
+                              onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                            >
+                              <option value="Amt">₹</option>
+                              <option value="%">%</option>
+                            </select>
+                            <input
+                              type="number"
+                              className="form-control"
+                              style={{ height: '34px', fontSize: '12px', flex: 1 }}
+                              value={child.discountValue}
+                              onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px' }}
+                            value={child.taxPercent}
+                            onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e', textAlign: 'right' }}>
+                          ₹{child.totalAmount.toFixed(2)}
+                        </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                          <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -344,7 +442,7 @@ const PurchaseEntry = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/bills')} style={{ flex: 1, height: '38px', fontSize: '13px' }}>Cancel</button>
-                    <button className="btn-agro btn-primary" style={{ flex: 1, height: '38px', fontSize: '13px', background: 'var(--primary)' }}><Save size={18} /> Save Bill</button>
+                    <button className="btn-agro btn-primary" onClick={handleSubmit} style={{ flex: 1, height: '38px', fontSize: '13px', background: 'var(--primary)' }}><Save size={18} /> Save Bill</button>
                   </div>
                 </div>
               </div>
@@ -377,7 +475,7 @@ const PurchaseEntry = () => {
                     if (!acc[rate]) {
                       acc[rate] = { rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
                     }
-                    const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * rate) / 100;
+                    const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * rate) / 100;
                     acc[rate].cgstAmount += itemTax / 2;
                     acc[rate].sgstAmount += itemTax / 2;
                     acc[rate].totalTax += itemTax;
@@ -402,10 +500,10 @@ const PurchaseEntry = () => {
                   <tr>
                     <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.altQuantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
