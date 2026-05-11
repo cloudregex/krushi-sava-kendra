@@ -73,17 +73,17 @@ const PurchaseEntry = () => {
   const calculateTotals = (rows, discount) => {
     let totalQty = 0, subtotal = 0, totalTax = 0;
     rows.forEach(child => {
-      const qty = parseFloat(child.quantity) || 0;
+      const qtyFin = parseFloat(child.purchaseQty) || 0;
       const price = parseFloat(child.purchasePrice) || 0;
       const taxP = parseFloat(child.taxPercent) || 0;
       const discVal = parseFloat(child.discountValue) || 0;
 
-      let rowSub = qty * price;
+      let rowSub = qtyFin * price;
       let discountAmount = child.discountType === '%' ? (rowSub * discVal / 100) : discVal;
       let taxableAmount = Math.max(0, rowSub - discountAmount);
       let rowTax = (taxableAmount * taxP) / 100;
 
-      totalQty += qty;
+      totalQty += qtyFin;
       subtotal += taxableAmount;
       totalTax += rowTax;
     });
@@ -111,6 +111,16 @@ const PurchaseEntry = () => {
       toast.success(`${extraData?.name || 'Product'} added`);
     }
 
+    const getStockIncrement = (unitStr, qty, uVal) => {
+      const u = (unitStr || '').trim().toLowerCase();
+      const q = parseFloat(qty) || 0;
+      const uv = parseFloat(uVal) || 1;
+      if (u === 'kg' || u === 'kilogram' || u === 'kgs') return q;
+      if (u.includes('quintal') || u === 'qtl' || u === 'qntl') return q; // Treat input as KG, conversion happens in display
+      if (u === 'bag' || u === 'bags') return q * uv;
+      return q * uv;
+    };
+
     const updated = children.map(child => {
       if (child.id !== id) return child;
       let u = { ...child, [field]: value };
@@ -124,7 +134,7 @@ const PurchaseEntry = () => {
           u.unit = extraData.unit || 'Bag';
           u.unitValue = parseFloat(extraData.unitValue) || 1;
           u.purchaseQty = 1;
-          u.quantity = u.unitValue; // Total Increment
+          u.quantity = getStockIncrement(u.unit, 1, u.unitValue);
         } else {
           // Clear info if product is discarded
           u.productName = '';
@@ -139,20 +149,21 @@ const PurchaseEntry = () => {
         }
       }
 
-      if (field === 'purchaseQty') {
-        u.quantity = (parseFloat(value) || 0) * (parseFloat(u.unitValue) || 1);
-      }
-      if (field === 'quantity') {
-        u.purchaseQty = (parseFloat(value) || 0) / (parseFloat(u.unitValue) || 1);
+      if (field === 'purchaseQty' || field === 'unit') {
+        u.quantity = getStockIncrement(
+          field === 'unit' ? value : u.unit,
+          field === 'purchaseQty' ? value : u.purchaseQty,
+          u.unitValue
+        );
       }
 
-      const qty = parseFloat(field === 'quantity' ? value : u.quantity) || 0;
+      const qtyForTotal = parseFloat(field === 'purchaseQty' ? value : u.purchaseQty) || 0;
       const price = parseFloat(field === 'purchasePrice' ? value : u.purchasePrice) || 0;
       const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
       const discVal = parseFloat(field === 'discountValue' ? value : u.discountValue) || 0;
       const discType = field === 'discountType' ? value : u.discountType;
 
-      let rowSub = qty * price;
+      let rowSub = qtyForTotal * price;
       let discountAmount = discType === '%' ? (rowSub * discVal / 100) : discVal;
       let taxableAmount = Math.max(0, rowSub - discountAmount);
       let rowTax = (taxableAmount * taxP) / 100;
@@ -317,15 +328,13 @@ const PurchaseEntry = () => {
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ minWidth: '220px' }}>
+                        <td style={{ width: '250px' }}>
                           <SearchableSelect
                             options={products}
                             value={child.productId}
                             onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
-                            onEnterSelect={handleProductEnterSelect}
                             placeholder="Search Product..."
                             height="34px"
-                            inputRef={el => rowRefs.current[child.id] = el}
                           />
                         </td>
                         <td style={{ textAlign: 'center', width: '90px' }}>
@@ -350,28 +359,37 @@ const PurchaseEntry = () => {
                           />
                         </td>
                         <td style={{ width: '110px' }}>
-                          <SearchableSelect
-                            options={units.map(u => ({ id: u.name, name: u.name }))}
+                          <select
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px', padding: '0 5px' }}
                             value={child.unit}
-                            onChange={(val) => handleChildChange(child.id, 'unit', val)}
-                            placeholder="Unit"
-                            height="34px"
-                          />
+                            onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
+                          >
+                            {units.map((u, i) => (
+                              <option key={i} value={u.name}>{u.name}</option>
+                            ))}
+                          </select>
                         </td>
                         <td style={{ width: '130px' }}>
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <input
-                              type="number"
+                              type="text"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', paddingRight: '40px', background: '#f8fafc', textAlign: 'center' }}
-                              value={child.quantity}
+                              style={{ height: '34px', fontSize: '12px', paddingRight: '45px', background: '#f8fafc', textAlign: 'center' }}
+                              value={
+                                (child.unit || '').trim().toLowerCase().includes('quintal') ||
+                                  (child.unit || '').trim().toLowerCase() === 'qtl' ||
+                                  (child.unit || '').trim().toLowerCase() === 'qntl'
+                                  ? (parseFloat(child.quantity) / 100).toFixed(2)
+                                  : Math.floor(parseFloat(child.quantity))
+                              }
                               readOnly
                             />
-                            <span style={{ 
-                              position: 'absolute', 
-                              right: '10px', 
-                              fontSize: '11px', 
-                              color: '#64748b', 
+                            <span style={{
+                              position: 'absolute',
+                              right: '8px',
+                              fontSize: '10px',
+                              color: '#64748b',
                               fontWeight: '700',
                               pointerEvents: 'none'
                             }}>
@@ -517,7 +535,7 @@ const PurchaseEntry = () => {
                     if (!acc[rate]) {
                       acc[rate] = { rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
                     }
-                    const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * rate) / 100;
+                    const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * rate) / 100;
                     acc[rate].cgstAmount += itemTax / 2;
                     acc[rate].sgstAmount += itemTax / 2;
                     acc[rate].totalTax += itemTax;
@@ -542,10 +560,10 @@ const PurchaseEntry = () => {
                   <tr>
                     <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.quantity) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
