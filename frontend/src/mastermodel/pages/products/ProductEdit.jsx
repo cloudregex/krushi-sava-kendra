@@ -127,7 +127,7 @@ const ProductEdit = () => {
               <div className="agro-grid-2">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <SearchableSelect 
-                    label="Unit" 
+                    label="Primary Unit" 
                     options={units} 
                     value={formData.unit} 
                     onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))} 
@@ -135,7 +135,7 @@ const ProductEdit = () => {
                     disabled={true}
                   />
                   <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
-                    Unit cannot be changed after creation
+                    This unit cannot be changed once set. Your stock will be calculated based on this primary unit.
                   </p>
                 </div>
                 <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required />
@@ -155,58 +155,88 @@ const ProductEdit = () => {
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Unit Management</h3>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-light)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 100px 80px auto', gap: '10px', alignItems: 'end' }}>
-                  <FormField label="Product Name" value={tempUnit.productName} onChange={(e) => setTempUnit(prev => ({ ...prev, productName: e.target.value }))} placeholder="e.g. Bag, Box" />
-                  <SearchableSelect label="Primary Unit" options={units} value={tempUnit.primary} onChange={(e) => setTempUnit(prev => ({ ...prev, primary: e.target.value }))} placeholder="Select" />
-                  <SearchableSelect label="Alt Unit" options={units} value={tempUnit.alternative} onChange={(e) => setTempUnit(prev => ({ ...prev, alternative: e.target.value }))} placeholder="Select" />
-                  <SearchableSelect label="Tax" options={taxes} value={tempUnit.tax} onChange={(e) => setTempUnit(prev => ({ ...prev, tax: e.target.value }))} placeholder="Tax %" />
-                  <FormField label="Amount" type="number" value={tempUnit.amount} onChange={(e) => setTempUnit(prev => ({ ...prev, amount: e.target.value }))} placeholder="Price" />
-                  <FormField label="Qty" type="number" value={tempUnit.conversion} onChange={(e) => setTempUnit(prev => ({ ...prev, conversion: e.target.value }))} placeholder="Qty" />
-                  <button 
-                    type="button" 
-                    className="btn-agro btn-primary" 
-                    style={{ height: '42px', padding: '0 15px', borderRadius: '10px', marginBottom: '8px' }}
-                    onClick={() => {
-                      if (tempUnit.primary && tempUnit.alternative && tempUnit.conversion) {
-                        setFormData(prev => ({
-                          ...prev,
-                          multiUnits: [...(prev.multiUnits || []), { ...tempUnit }]
-                        }));
-                        setTempUnit({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
-                      } else {
-                        toast.error("Please fill required fields (Units & Qty)");
-                      }
-                    }}
-                  >
-                    Add
-                  </button>
-                </div>
+              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '16px', border: '1px solid var(--border-light)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                <table className="agro-table" style={{ width: '100%', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px', textAlign: 'center' }}>#</th>
+                      <th style={{ textAlign: 'left' }}>VALUE</th>
+                      <th style={{ textAlign: 'left' }}>UNIT</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--text-muted)' }}>1</td>
+                      <td>
+                        <input 
+                          type="number" 
+                          className="form-control" 
+                          style={{ padding: '8px 12px', fontSize: '14px' }}
+                          value={tempUnit.conversion} 
+                          onChange={(e) => setTempUnit(prev => ({ ...prev, conversion: e.target.value }))} 
+                          placeholder="e.g. 50"
+                        />
+                      </td>
+                      <td>
+                        <select 
+                          className="form-control" 
+                          style={{ padding: '8px 12px', fontSize: '14px' }}
+                          value={tempUnit.alternative} 
+                          onChange={(e) => setTempUnit(prev => ({ ...prev, alternative: e.target.value }))}
+                        >
+                          <option value="">- Select Unit -</option>
+                          {units.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button 
+                          type="button" 
+                          className="btn-agro btn-primary" 
+                          style={{ height: '38px', padding: '0 15px', borderRadius: '8px' }}
+                          onClick={() => {
+                            if (tempUnit.alternative && tempUnit.conversion && formData.unit) {
+                              const newUnit = {
+                                ...tempUnit,
+                                primary: formData.unit,
+                                productName: `1 ${tempUnit.alternative} (${tempUnit.conversion} ${formData.unit})`,
+                                tax: formData.tax || '0',
+                                amount: '0'
+                              };
+                              setFormData(prev => ({
+                                ...prev,
+                                multiUnits: [...(prev.multiUnits || []), newUnit]
+                              }));
+                              setTempUnit({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
+                            } else {
+                              toast.error("Please fill Value and Unit");
+                            }
+                          }}
+                        >
+                          Add
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
                 {formData.multiUnits && formData.multiUnits.length > 0 && (
-                  <div style={{ marginTop: '15px', overflowX: 'auto' }}>
+                  <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Defined Conversions</div>
                     <table className="agro-table" style={{ width: '100%', fontSize: '12px' }}>
                       <thead>
                         <tr>
-                          <th>Product Name</th>
-                          <th>Primary Unit</th>
-                          <th>Alt Unit</th>
-                          <th>Conversion</th>
-                          <th>Amount</th>
-                          <th>Tax</th>
-                          <th>Action</th>
+                          <th>Unit Name</th>
+                          <th>Conversion Logic</th>
+                          <th style={{ textAlign: 'right' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {formData.multiUnits.map((u, idx) => (
                           <tr key={idx}>
-                            <td>{u.productName}</td>
-                            <td>{u.primary}</td>
-                            <td>{u.alternative}</td>
+                            <td style={{ fontWeight: '600' }}>{u.alternative}</td>
                             <td>1 {u.alternative} = {u.conversion} {u.primary}</td>
-                            <td>₹{u.amount}</td>
-                            <td>{u.tax}%</td>
-                            <td>
+                            <td style={{ textAlign: 'right' }}>
                               <button type="button" className="action-btn btn-delete" onClick={() => {
                                 setFormData(prev => ({
                                   ...prev,
