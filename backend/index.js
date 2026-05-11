@@ -52,7 +52,7 @@ const startServer = async () => {
     try {
         await connectDB();
         // Sync models
-        await sequelize.sync({ alter: true });
+        await sequelize.sync();
         console.log('✅ Database models synced successfully.');
 
         const server = app.listen(port, () => {
