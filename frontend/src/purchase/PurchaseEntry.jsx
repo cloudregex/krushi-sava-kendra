@@ -371,7 +371,7 @@ const PurchaseEntry = () => {
                               fontWeight: '700',
                               pointerEvents: 'none'
                             }}>
-                              {child.unit}
+                              kg
                             </span>
                           </div>
                         </td>
