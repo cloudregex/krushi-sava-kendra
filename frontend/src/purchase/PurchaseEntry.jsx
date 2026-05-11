@@ -13,7 +13,9 @@ const newRow = () => ({
   currentStock: 0,
   hsnCode: '',
   batchNo: '',
-  quantity: 1,
+  purchaseQty: 1,
+  unitValue: 1,
+  quantity: 1, // This will be the total increment
   unit: 'Bag',
   purchasePrice: '',
   discountType: 'Amt', // 'Amt' or '%'
@@ -113,14 +115,35 @@ const PurchaseEntry = () => {
       if (child.id !== id) return child;
       let u = { ...child, [field]: value };
       if (field === 'productId') {
-        if (extraData) {
+        if (value && extraData) {
           u.productName = extraData.name || '';
           u.currentStock = extraData.currentStock || 0;
           u.hsnCode = extraData.hsnCode || '';
           u.purchasePrice = parseFloat(extraData.purchasePrice) || '';
           u.taxPercent = parseFloat(extraData.tax) || '';
           u.unit = extraData.unit || 'Bag';
+          u.unitValue = parseFloat(extraData.unitValue) || 1;
+          u.purchaseQty = 1;
+          u.quantity = u.unitValue; // Total Increment
+        } else {
+          // Clear info if product is discarded
+          u.productName = '';
+          u.currentStock = 0;
+          u.hsnCode = '';
+          u.purchasePrice = '';
+          u.taxPercent = '';
+          u.unit = 'Bag';
+          u.unitValue = 1;
+          u.purchaseQty = 1;
+          u.quantity = 1;
         }
+      }
+
+      if (field === 'purchaseQty') {
+        u.quantity = (parseFloat(value) || 0) * (parseFloat(u.unitValue) || 1);
+      }
+      if (field === 'quantity') {
+        u.purchaseQty = (parseFloat(value) || 0) / (parseFloat(u.unitValue) || 1);
       }
 
       const qty = parseFloat(field === 'quantity' ? value : u.quantity) || 0;
@@ -275,21 +298,22 @@ const PurchaseEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '180px', fontSize: '11px' }}>PRODUCT NAME</th>
-                      <th style={{ width: '80px', fontSize: '11px' }}>STOCK</th>
-                      <th style={{ width: '100px', fontSize: '11px' }}>STOCK INCREMENT</th>
-                      <th style={{ width: '100px', fontSize: '11px' }}>UNIT</th>
-                      <th style={{ width: '100px', fontSize: '11px' }}>RATE</th>
-                      <th style={{ width: '110px', fontSize: '11px' }}>DISCOUNT</th>
-                      <th style={{ width: '80px', fontSize: '11px' }}>TAX %</th>
-                      <th style={{ width: '100px', fontSize: '11px' }}>TOTAL</th>
+                      <th style={{ width: '220px', fontSize: '11px' }}>PRODUCT NAME</th>
+                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>STOCK</th>
+                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>QTY (Bags)</th>
+                      <th style={{ width: '110px', fontSize: '11px', textAlign: 'center' }}>UNIT</th>
+                      <th style={{ width: '130px', fontSize: '11px', textAlign: 'center' }}>STOCK INCREMENT</th>
+                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>RATE</th>
+                      <th style={{ width: '120px', fontSize: '11px', textAlign: 'center' }}>DISCOUNT</th>
+                      <th style={{ width: '80px', fontSize: '11px', textAlign: 'center' }}>TAX %</th>
+                      <th style={{ width: '110px', fontSize: '11px', textAlign: 'right', paddingRight: '15px' }}>TOTAL</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ minWidth: '180px' }}>
+                        <td style={{ minWidth: '220px' }}>
                           <SearchableSelect
                             options={products}
                             value={child.productId}
@@ -300,7 +324,7 @@ const PurchaseEntry = () => {
                             inputRef={el => rowRefs.current[child.id] = el}
                           />
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'center', width: '90px' }}>
                           <span style={{
                             background: child.currentStock <= 0 ? '#fee2e2' : '#dcfce7',
                             color: child.currentStock <= 0 ? '#991b1b' : '#166534',
@@ -312,23 +336,16 @@ const PurchaseEntry = () => {
                             {child.currentStock} Qty
                           </span>
                         </td>
-                        <td>
+                        <td style={{ width: '90px' }}>
                           <input
                             type="number"
                             className="form-control"
-                            style={{ height: '34px', fontSize: '12px' }}
-                            ref={el => qtyRefs.current[child.id] = el}
-                            value={child.quantity}
-                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                            onBlur={(e) => {
-                              if (!e.target.value || parseFloat(e.target.value) <= 0) {
-                                handleChildChange(child.id, 'quantity', '1');
-                              }
-                            }}
-                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
+                            value={child.purchaseQty}
+                            onChange={(e) => handleChildChange(child.id, 'purchaseQty', e.target.value)}
                           />
                         </td>
-                        <td>
+                        <td style={{ width: '110px' }}>
                           <SearchableSelect
                             options={units.map(u => ({ id: u.name, name: u.name }))}
                             value={child.unit}
@@ -337,17 +354,38 @@ const PurchaseEntry = () => {
                             height="34px"
                           />
                         </td>
-                        <td>
+                        <td style={{ width: '130px' }}>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              style={{ height: '34px', fontSize: '12px', paddingRight: '40px', background: '#f8fafc', textAlign: 'center' }}
+                              value={child.quantity}
+                              readOnly
+                            />
+                            <span style={{ 
+                              position: 'absolute', 
+                              right: '10px', 
+                              fontSize: '11px', 
+                              color: '#64748b', 
+                              fontWeight: '700',
+                              pointerEvents: 'none'
+                            }}>
+                              {child.unit}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ width: '100px' }}>
                           <input
                             type="number"
                             className="form-control"
-                            style={{ height: '34px', fontSize: '12px' }}
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.purchasePrice}
                             onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)}
                             onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td>
+                        <td style={{ width: '120px' }}>
                           <div style={{ display: 'flex', gap: '2px' }}>
                             <select
                               className="form-control"
@@ -361,22 +399,22 @@ const PurchaseEntry = () => {
                             <input
                               type="number"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', flex: 1 }}
+                              style={{ height: '34px', fontSize: '12px', flex: 1, textAlign: 'center' }}
                               value={child.discountValue}
                               onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)}
                             />
                           </div>
                         </td>
-                        <td>
+                        <td style={{ width: '80px' }}>
                           <input
                             type="number"
                             className="form-control"
-                            style={{ height: '34px', fontSize: '12px' }}
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.taxPercent}
                             onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)}
                           />
                         </td>
-                        <td style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e', textAlign: 'right' }}>
+                        <td style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '110px' }}>
                           ₹{child.totalAmount.toFixed(2)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
