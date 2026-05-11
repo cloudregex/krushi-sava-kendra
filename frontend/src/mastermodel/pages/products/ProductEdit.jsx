@@ -132,11 +132,14 @@ const ProductEdit = () => {
                     className="form-control"
                     style={{ padding: '8px 12px', fontSize: '14px' }}
                     value={formData.unitValue}
-                    disabled={true}
-                    onChange={(e) => setFormData(prev => ({ ...prev, unitValue: e.target.value }))}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      unitValue: e.target.value,
+                      multiUnits: [] // Reset conversions when primary value changes
+                    }))}
                   />
                   <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
-                    Value cannot be changed once set.
+                    Changing this will reset your unit conversions.
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
