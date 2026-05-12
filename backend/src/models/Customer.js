@@ -36,6 +36,10 @@ const Customer = sequelize.define('Customer', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    balance: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

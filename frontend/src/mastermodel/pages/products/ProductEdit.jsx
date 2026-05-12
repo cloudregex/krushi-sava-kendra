@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, X, Tag, DollarSign, Package, Layers, Calendar, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Tag, DollarSign, Package, Layers, Calendar, Trash2, Plus } from 'lucide-react';
 import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -18,11 +18,11 @@ const ProductEdit = () => {
 
   const [formData, setFormData] = useState({
     name: '', marathiName: '', hsnCode: '', category: '', tax: '',
-    company: '', unit: '', unitValue: 1, multiUnits: [],
-    minStock: '', currentStock: '',
+    company: '', unit: '', unitValue: 1, minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
   });
 
+  const [unitRows, setUnitRows] = useState([{ id: 'primary-row', value: 1, unit: '' }]);
   const [tempUnit, setTempUnit] = useState({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
 
   useEffect(() => {
@@ -37,6 +37,21 @@ const ProductEdit = () => {
 
         if (item) {
           setFormData(item);
+          // Initialize unitRows from existing product data
+          const rows = [{ id: 'primary-row', value: item.unitValue, unit: item.unit }];
+          if (item.multiUnits && item.multiUnits.length > 0) {
+            item.multiUnits.forEach((mu, idx) => {
+              // Convert multiplier/conversion back to display value if possible
+              // logic: primaryVal / conversion = displayValue
+              const displayVal = mu.conversion ? (parseFloat(item.unitValue) / parseFloat(mu.conversion)).toFixed(2) : 1;
+              rows.push({
+                id: Date.now() + idx,
+                value: displayVal,
+                unit: mu.alternative
+              });
+            });
+          }
+          setUnitRows(rows);
         }
         setCategories(catData.filter(c => c.isActive).map(c => c.name));
         setTaxes(taxData.filter(t => t.isActive).map(t => t.rate.toString()));
@@ -66,8 +81,28 @@ const ProductEdit = () => {
   const handleFinalSave = async (e) => {
     e.preventDefault();
     try {
+      if (!formData.unit) {
+        toast.error("Please select a Primary Unit");
+        return;
+      }
+
+      const multiUnits = unitRows
+        .filter(r => r.id !== 'primary-row' && r.unit && r.value)
+        .map(r => {
+          const conversionFactor = parseFloat(formData.unitValue) / parseFloat(r.value);
+          return {
+            alternative: r.unit,
+            conversion: conversionFactor,
+            productName: `${r.value} ${r.unit} = ${formData.unitValue} ${formData.unit}`,
+            tax: formData.tax || '0',
+            amount: '0'
+          };
+        });
+
       const payload = {
         ...formData,
+        unitValue: parseFloat(formData.unitValue),
+        multiUnits: multiUnits,
         minStock: formData.minStock === '' ? 0 : parseFloat(formData.minStock),
         currentStock: formData.currentStock === '' ? 0 : parseFloat(formData.currentStock)
       };
@@ -80,6 +115,38 @@ const ProductEdit = () => {
       const finalMsg = Array.isArray(serverMsg) ? serverMsg.join(', ') : (serverMsg || "Failed to update product");
       toast.error(finalMsg);
     }
+  };
+
+  const addUnitRow = () => {
+    setUnitRows([...unitRows, { id: Date.now(), value: 1, unit: '' }]);
+  };
+
+  const removeUnitRow = (id) => {
+    setUnitRows(unitRows.filter(r => r.id !== id));
+  };
+
+  const handleUnitRowChange = (id, field, value) => {
+    setUnitRows(unitRows.map(row => {
+      if (row.id === id) {
+        if (id === 'primary-row') {
+          if (field === 'value') setFormData(prev => ({ ...prev, unitValue: value }));
+          if (field === 'unit') setFormData(prev => ({ ...prev, unit: value }));
+        }
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
+  };
+
+  const handlePrimaryChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setUnitRows(prevRows => {
+      const newRows = [...prevRows];
+      if (newRows.length > 0) {
+        newRows[0] = { ...newRows[0], [field === 'unitValue' ? 'value' : 'unit']: value };
+      }
+      return newRows;
+    });
   };
 
   if (loading) return <div className="agro-container">Loading...</div>;
@@ -124,7 +191,7 @@ const ProductEdit = () => {
                 <SearchableSelect label="Category" options={categories} value={formData.category} onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))} required />
               </div>
 
-              <div className="agro-grid-2">
+              <div className="agro-grid-2" style={{ marginTop: '-4px' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>Primary Value</label>
                   <input
@@ -132,26 +199,19 @@ const ProductEdit = () => {
                     className="form-control"
                     style={{ padding: '8px 12px', fontSize: '14px' }}
                     value={formData.unitValue}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      unitValue: e.target.value,
-                      multiUnits: [] // Reset conversions when primary value changes
-                    }))}
+                    onChange={(e) => handlePrimaryChange('unitValue', e.target.value)}
                   />
-                  <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
-                    Changing this will reset your unit conversions.
-                  </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <SearchableSelect
                     label="Primary Unit"
                     options={units}
                     value={formData.unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                    onChange={(e) => handlePrimaryChange('unit', e.target.value)}
                     required
                     disabled={true}
                   />
-                  <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px', marginLeft: '2px' }}>
+                  <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '-3px', marginLeft: '2px', fontWeight: '500' }}>
                     Primary Unit cannot be changed once set.
                   </p>
                 </div>
@@ -163,126 +223,96 @@ const ProductEdit = () => {
               </div>
             </div>
 
-            {/* Multi-Unit Management Section */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '15px', borderTop: '1px dashed var(--border-light)' }}>
-              <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px', color: 'var(--primary)' }}>
+            {/* Unit Management Section - Table Based UI */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingTop: '2px', borderTop: '1px dashed var(--border-light)', marginTop: '-12px' }}>
+              <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '0px', color: 'var(--primary)' }}>
                 <Layers size={14} />
-                <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Unit Management</h3>
+                <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Add Unit</h3>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '16px', border: '1px solid var(--border-light)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                <table className="agro-table" style={{ width: '100%', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <div style={{ background: 'white', padding: '0', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <table className="agro-table" style={{ width: '100%', fontSize: '12px', margin: 0 }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '60px', textAlign: 'center' }}>#</th>
+                      <th style={{ width: '50px', textAlign: 'center' }}>#</th>
                       <th style={{ textAlign: 'left' }}>VALUE</th>
                       <th style={{ textAlign: 'left' }}>UNIT</th>
                       <th style={{ width: '100px', textAlign: 'center' }}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--text-muted)' }}>1</td>
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control"
-                          style={{ padding: '8px 12px', fontSize: '14px' }}
-                          value={tempUnit.conversion}
-                          onChange={(e) => setTempUnit(prev => ({ ...prev, conversion: e.target.value }))}
-                          placeholder="e.g. 50"
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="form-control"
-                          style={{ padding: '8px 12px', fontSize: '14px' }}
-                          value={tempUnit.alternative}
-                          onChange={(e) => setTempUnit(prev => ({ ...prev, alternative: e.target.value }))}
-                        >
-                          <option value="">- Select Unit -</option>
-                          {units
-                            .filter(u => u !== formData.unit && !(formData.multiUnits || []).find(mu => mu.alternative === u))
-                            .map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
-                        {tempUnit.alternative && tempUnit.conversion && (
-                          <div style={{ fontSize: '10px', color: 'var(--primary)', marginTop: '4px', fontWeight: '600' }}>
-                            Preview: {tempUnit.conversion} {tempUnit.alternative} = {formData.unitValue} {formData.unit}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn-agro btn-primary"
-                          style={{ height: '38px', padding: '0 15px', borderRadius: '8px' }}
-                          onClick={() => {
-                            const inputVal = parseFloat(tempUnit.conversion);
-                            if (tempUnit.alternative && formData.unit && inputVal > 0) {
-                              const primaryVal = parseFloat(formData.unitValue) || 1;
-                              const actualConversionFactor = primaryVal / inputVal;
-
-                              const newUnit = {
-                                ...tempUnit,
-                                primary: formData.unit,
-                                multiplier: 1,
-                                productName: `${inputVal} ${tempUnit.alternative} = ${primaryVal} ${formData.unit}`,
-                                tax: formData.tax || '0',
-                                amount: '0',
-                                conversion: actualConversionFactor,
-                                displayValue: inputVal
-                              };
-                              setFormData(prev => ({
-                                ...prev,
-                                multiUnits: [...(prev.multiUnits || []), newUnit]
-                              }));
-                              setTempUnit({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
-                            } else if (!inputVal || inputVal <= 0) {
-                              toast.error("Please enter a valid Value");
-                            } else {
-                              toast.error("Please select a Unit");
-                            }
-                          }}
-                        >
-                          Add
-                        </button>
-                      </td>
-                    </tr>
+                    {unitRows.map((row, index) => (
+                      <tr key={row.id}>
+                        <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                        <td>
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ padding: '10px 14px', fontSize: '14px' }}
+                            value={row.value}
+                            onChange={(e) => handleUnitRowChange(row.id, 'value', e.target.value)}
+                            placeholder="Value"
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="form-control"
+                            style={{ padding: '10px 14px', fontSize: '14px' }}
+                            value={row.unit}
+                            onChange={(e) => handleUnitRowChange(row.id, 'unit', e.target.value)}
+                          >
+                            <option value="">- Select Unit -</option>
+                            {units
+                              .filter(u => {
+                                // Allow if it's the primary unit and this is the first row
+                                if (index === 0 && u === formData.unit) return true;
+                                // Always hide primary unit for other rows
+                                if (index !== 0 && u === formData.unit) return false;
+                                // Hide if already selected in ANY other row
+                                const isSelectedElsewhere = unitRows.some((r, i) => i !== index && r.unit === u);
+                                return !isSelectedElsewhere;
+                              })
+                              .map(u => <option key={u} value={u}>{u}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-agro"
+                            style={{ 
+                                background: '#f43f5e', 
+                                color: 'white', 
+                                border: 'none', 
+                                padding: '6px 12px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                margin: '0 auto',
+                                opacity: index === 0 ? 0.4 : 1,
+                                cursor: index === 0 ? 'not-allowed' : 'pointer'
+                              }}
+                              onClick={() => index !== 0 && removeUnitRow(row.id)}
+                              disabled={index === 0}
+                          >
+                            <Trash2 size={12} /> Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-
-                {formData.multiUnits && formData.multiUnits.length > 0 && (
-                  <div style={{ marginTop: '20px', overflowX: 'auto' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Defined Conversions</div>
-                    <table className="agro-table" style={{ width: '100%', fontSize: '12px' }}>
-                      <thead>
-                        <tr>
-                          <th>Unit Name</th>
-                          <th>Conversion Logic</th>
-                          <th style={{ textAlign: 'right' }}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {formData.multiUnits.map((u, idx) => (
-                          <tr key={idx}>
-                            <td style={{ fontWeight: '600' }}>{u.alternative}</td>
-                            <td>{u.productName}</td>
-                            <td style={{ textAlign: 'right' }}>
-                              <button type="button" className="action-btn btn-delete" onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  multiUnits: prev.multiUnits.filter((_, i) => i !== idx)
-                                }));
-                              }}>
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+              </div>
+              <div>
+                <button
+                  type="button"
+                  className="btn-agro btn-primary"
+                  style={{ padding: '6px 15px', fontSize: '12px', borderRadius: '6px' }}
+                  onClick={addUnitRow}
+                >
+                  <Plus size={14} /> Add Unit
+                </button>
               </div>
             </div>
 

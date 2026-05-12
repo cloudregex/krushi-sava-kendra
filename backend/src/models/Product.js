@@ -65,6 +65,14 @@ const Product = sequelize.define('Product', {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    isSaleable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    isPurchasable: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

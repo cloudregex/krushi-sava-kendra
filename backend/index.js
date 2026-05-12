@@ -18,6 +18,7 @@ const unitRoutes = require('./src/routes/unitRoutes');
 const activityRoutes = require('./src/routes/activityRoutes');
 const translateRoutes = require('./src/routes/translateRoutes');
 const purchaseRoutes = require('./src/routes/purchaseRoutes');
+const saleRoutes = require('./src/routes/saleRoutes');
 
 // Load Associations
 require('./src/models/associations');
@@ -44,6 +45,7 @@ app.use('/api/units', unitRoutes);
 app.use('/api/activity-logs', activityRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/purchases', purchaseRoutes);
+app.use('/api/sales', saleRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -55,8 +57,8 @@ const startServer = async () => {
     try {
         await connectDB();
         // Sync models
-        await sequelize.sync();
-        console.log('✅ Database models synced successfully.');
+        await sequelize.sync({ alter: true });
+        console.log('✅ Database models synced successfully with alter.');
 
         const server = app.listen(port, () => {
             console.log(`🚀 Server is running at http://localhost:${port}`);

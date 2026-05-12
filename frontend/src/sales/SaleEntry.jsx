@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft, Calendar, User, CreditCard, IndianRupee, Package } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Calendar, User, CreditCard, IndianRupee, Package, Search, Info, Printer } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
@@ -10,22 +10,22 @@ const newRow = () => ({
   id: Date.now() + Math.random(),
   productId: '',
   productName: '',
+  primaryUnit: '',
+  hsnCode: '',
   batchNo: '',
+  expiryDate: '',
   currentStock: 0,
   quantity: 1,
+  freeQuantity: 0,
   unit: '',
-  altQuantity: '',
-  altUnit: '',
   saleRate: '',
-  discountType: 'amount', // 'amount' or 'percent'
-  discountValue: '',
-  taxPercent: '',
+  discount: 0,
+  taxPercent: 0,
   taxAmount: 0,
   amount: 0,
-  baseRate: 0,
-  multiUnits: []
+  stockIncrement: 0,
+  conversionFactor: 1
 });
-
 
 const SaleEntry = () => {
   const navigate = useNavigate();
@@ -37,448 +37,447 @@ const SaleEntry = () => {
   const qtyRefs = useRef({});
 
   const [master, setMaster] = useState({
-    customerId: location.state?.quotationData?.customerId || '',
+    invoiceNo: '',
+    customerId: '',
     billDate: new Date().toISOString().split('T')[0],
-    totalQuantity: 0,
-    subtotal: location.state?.quotationData?.totalAmount || 0,
-    discount: 0,
+    subtotal: 0,
     taxAmount: 0,
-    grandTotal: location.state?.quotationData?.totalAmount || 0,
-    paymentType: 'Cash',
-    paidAmount: 0,
-    dueAmount: location.state?.quotationData?.totalAmount || 0
+    discountAmount: 0,
+    grandTotal: 0,
+    cashPaid: 0,
+    upiPaid: 0,
+    swipePaid: 0,
+    pendingAmount: 0,
+    notes: '',
+    customerBalance: 0
   });
 
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
 
-  // Focus the new row automatically after it renders
   useEffect(() => {
-    if (rowToFocus.current) {
-      setTimeout(() => {
-        const el = rowRefs.current[rowToFocus.current];
-        if (el) {
-          el.focus();
-          rowToFocus.current = null;
-        }
-      }, 100);
-    }
-  }, [children]);
-
-  useEffect(() => {
-    ApiService.getAll('customers').then(data => setCustomers(data));
-    ApiService.getAll('products').then(data => setProducts(data));
-    ApiService.getAll('units').then(data => setUnits(data));
+    const fetchData = async () => {
+      try {
+        const [custData, prodData, unitData, invData] = await Promise.all([
+          ApiService.getAll('customers'),
+          ApiService.getAll('products'),
+          ApiService.getAll('units'),
+          ApiService.getAll('sales/next-invoice')
+        ]);
+        setCustomers(custData);
+        // Only show saleable products
+        setProducts(prodData.filter(p => p.isSaleable));
+        setUnits(unitData);
+        setMaster(prev => ({ ...prev, invoiceNo: invData.invoiceNo }));
+      } catch (error) {
+        console.error("Fetch error:", error);
+      }
+    };
+    fetchData();
   }, []);
 
-  const calculateTotals = (rows, masterDiscount) => {
-    let totalQty = 0, subtotal = 0, totalTax = 0;
+  const calculateTotals = (rows, masterDiscount, cashP, upiP, swipeP) => {
+    let subtotal = 0, totalTax = 0, totalRowDiscount = 0;
+    
     rows.forEach(child => {
       const qty = parseFloat(child.quantity) || 0;
-      const altQty = parseFloat(child.altQuantity) || 0;
-      const effectiveQty = qty > 0 ? qty : altQty;
       const rate = parseFloat(child.saleRate) || 0;
-      const discVal = parseFloat(child.discountValue) || 0;
-      
-      let rowSub = effectiveQty * rate;
-      let rowDisc = child.discountType === 'percent' ? (rowSub * discVal) / 100 : discVal;
-      let discountedSub = Math.max(0, rowSub - rowDisc);
-      
+      const disc = parseFloat(child.discount) || 0;
       const taxP = parseFloat(child.taxPercent) || 0;
+      
+      const rowSub = qty * rate;
+      const discountedSub = Math.max(0, rowSub - disc);
       const rowTax = (discountedSub * taxP) / 100;
       
-      totalQty += qty;
-      subtotal += discountedSub;
+      subtotal += rowSub;
+      totalRowDiscount += disc;
       totalTax += rowTax;
     });
-    const disc = parseFloat(masterDiscount) || 0;
-    const paid = parseFloat(master.paidAmount) || 0;
-    const grandTotal = Math.max(0, subtotal + totalTax - disc);
-    setMaster(prev => ({
-      ...prev,
-      totalQuantity: totalQty,
-      subtotal,
-      taxAmount: totalTax,
-      grandTotal,
-      dueAmount: grandTotal - paid,
-      discount: disc
-    }));
+
+    const totalPaid = (parseFloat(cashP) || 0) + (parseFloat(upiP) || 0) + (parseFloat(swipeP) || 0);
+
+    setMaster(prev => {
+      const finalDiscount = totalRowDiscount + (parseFloat(masterDiscount) || 0);
+      const finalGrandTotal = Math.max(0, subtotal - totalRowDiscount + totalTax - (parseFloat(masterDiscount) || 0));
+      
+      return {
+        ...prev,
+        subtotal: subtotal,
+        taxAmount: totalTax,
+        discountAmount: finalDiscount,
+        grandTotal: finalGrandTotal,
+        pendingAmount: Math.max(0, finalGrandTotal - totalPaid)
+      };
+    });
   };
 
   const handleChildChange = (id, field, value, extraData) => {
-    // Check for duplicate products
-    if (field === 'productId' && value) {
-      const isDuplicate = children.some(child => String(child.productId) === String(value) && child.id !== id);
-      if (isDuplicate) {
-        toast.error("This product is already added in the list!");
-        return false;
-      }
-      toast.success(`${extraData?.name || 'Product'} added`);
-    }
-
     const updated = children.map(child => {
       if (child.id !== id) return child;
+      
       let u = { ...child, [field]: value };
-      if (field === 'productId') {
-        if (extraData) {
-          u.productName = extraData.name || '';
-          u.batchNo = extraData.batchNo || '';
-          u.currentStock = extraData.currentStock || 0;
-          u.altUnit = extraData.altUnit || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].alternative : '');
-          let extractedBasePrice = '';
-          if (extraData.multiUnits && extraData.multiUnits.length > 0) {
-            extractedBasePrice = parseFloat(extraData.multiUnits[0].amount) || '';
-          }
-          u.saleRate = extractedBasePrice;
-          u.baseRate = extractedBasePrice || 0;
-          u.taxPercent = parseFloat(extraData.tax) || '';
-          u.multiUnits = extraData.multiUnits || [];
-        } else if (!value) {
-          // Clear everything if product is cleared
-          u.productName = '';
-          u.batchNo = '';
-          u.currentStock = 0;
-          u.unit = '';
-          u.altUnit = '';
-          u.saleRate = '';
-          u.taxPercent = '';
-          u.discountValue = '';
-          u.amount = 0;
-          u.taxAmount = 0;
-        }
+      
+      // If product changes, auto-fill details
+      if (field === 'productId' && extraData) {
+        u.productName = extraData.name || '';
+        u.hsnCode = extraData.hsnCode || '';
+        u.currentStock = extraData.currentStock || 0;
+        u.unit = extraData.unit || '';
+        u.primaryUnit = extraData.unit || '';
+        u.taxPercent = parseFloat(extraData.tax) || 0;
+        u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
+        u.multiUnits = extraData.multiUnits || [];
+        u.conversionFactor = 1;
+        u.batchNo = extraData.latestBatch || 'B-101'; 
+        u.expiryDate = extraData.expiryDate || '';
       }
 
-      // Calculations
-      const rawQty = parseFloat(field === 'quantity' ? value : u.quantity);
-      const qty = isNaN(rawQty) ? 0 : rawQty;
-      const rawAltQty = parseFloat(field === 'altQuantity' ? value : u.altQuantity);
-      const altQty = isNaN(rawAltQty) ? 0 : rawAltQty;
-      
-      const effectiveQty = qty > 0 ? qty : altQty;
-      // Auto-calculate Rate for loose selling if applicable
-      let rate = parseFloat(field === 'saleRate' ? value : u.saleRate) || 0;
-      if (field === 'altQuantity' || field === 'quantity' || field === 'productId' || field === 'altUnit') {
-        if (qty === 0 && altQty > 0) {
-          const mu = u.multiUnits.find(m => String(m.alternative).toLowerCase() === String(u.altUnit).toLowerCase());
-          if (mu && parseFloat(mu.conversion) > 0) {
-            // loose rate = base rate / conversion (e.g. 1500 / 50 = 30)
-            rate = u.baseRate / parseFloat(mu.conversion);
-          }
-          u.saleRate = rate; // Update the UI field so user sees the new rate
-        } else if (qty > 0) {
-          // Reset to base rate if they switch back to main qty
-          if (u.saleRate !== u.baseRate && u.baseRate > 0) {
-            rate = u.baseRate;
-            u.saleRate = rate;
-          }
-        }
+      // If unit changes, update conversion factor
+      if (field === 'unit') {
+        const mu = u.multiUnits.find(m => m.alternative === value);
+        u.conversionFactor = mu ? (parseFloat(mu.conversion) || 1) : 1;
       }
 
-      const discVal = parseFloat(field === 'discountValue' ? value : u.discountValue) || 0;
-      const discType = field === 'discountType' ? value : u.discountType;
-      
-      let rowSub = effectiveQty * rate;
-      let rowDisc = discType === 'percent' ? (rowSub * discVal) / 100 : discVal;
-      let discountedSub = Math.max(0, rowSub - rowDisc);
-      
-      const taxP = parseFloat(field === 'taxPercent' ? value : u.taxPercent) || 0;
+      // Extract current values for math
+      const qty = parseFloat(u.quantity) || 0;
+      const freeQty = parseFloat(u.freeQuantity) || 0;
+      const rate = parseFloat(u.saleRate) || 0;
+      const disc = parseFloat(u.discount) || 0;
+      const taxP = parseFloat(u.taxPercent) || 0;
+      const factor = parseFloat(u.conversionFactor) || 1;
+
+      // Auto-calculate stockIncrement in primary unit
+      if (['quantity', 'freeQuantity', 'unit', 'productId'].includes(field)) {
+        u.stockIncrement = (qty + freeQty) / factor;
+      }
+
+      // Calculate Amount
+      const rowSub = qty * rate;
+      const discountedSub = Math.max(0, rowSub - disc);
       const rowTax = (discountedSub * taxP) / 100;
       
       u.taxAmount = rowTax;
       u.amount = discountedSub + rowTax;
       return u;
     });
-    setChildren(updated);
-    calculateTotals(updated, master.discount);
 
-    // Auto-focus quantity field after selecting a product
+    setChildren(updated);
+    calculateTotals(updated, master.discountAmount, master.cashPaid, master.upiPaid, master.swipePaid);
+
     if (field === 'productId' && value) {
-      setTimeout(() => {
-        if (qtyRefs.current[id]) qtyRefs.current[id].focus();
-      }, 50);
+      setTimeout(() => qtyRefs.current[id]?.focus(), 50);
     }
     return true;
   };
 
-  const addChildRow = (focusAfter = true) => {
-    const r = newRow();
-    if (focusAfter) {
-      rowToFocus.current = r.id;
+  const handleMasterChange = (field, value) => {
+    if (field === 'customerId' && value) {
+      const customer = customers.find(c => String(c.id) === String(value));
+      setMaster(prev => ({ ...prev, customerId: value, customerBalance: customer?.balance || 0 }));
+    } else if (['cashPaid', 'upiPaid', 'swipePaid'].includes(field)) {
+      const val = parseFloat(value) || 0;
+      setMaster(prev => ({ ...prev, [field]: val }));
+      
+      // Get current values to pass to calculateTotals
+      const cash = field === 'cashPaid' ? val : master.cashPaid;
+      const upi = field === 'upiPaid' ? val : master.upiPaid;
+      const swipe = field === 'swipePaid' ? val : master.swipePaid;
+      calculateTotals(children, master.discountAmount, cash, upi, swipe);
+    } else {
+      setMaster(prev => ({ ...prev, [field]: value }));
+      if (field === 'discountAmount') {
+        calculateTotals(children, value, master.cashPaid, master.upiPaid, master.swipePaid);
+      }
     }
-    setChildren(prev => [...prev, r]);
-    return r.id;
+  };
+
+  const addChildRow = () => {
+    const r = newRow();
+    setChildren([...children, r]);
+    rowToFocus.current = r.id;
   };
 
   const removeChildRow = (id) => {
     if (children.length > 1) {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
-      calculateTotals(updated, master.discount);
+      calculateTotals(updated, master.discountAmount, master.paymentMode);
     }
   };
 
-  // Called when product is selected via Enter key — add new row and focus it
-  const handleProductEnterSelect = (rowId) => {
-    addChildRow(true);
-  };
+  const handleSaveSale = async () => {
+    if (!master.customerId) return toast.error("Please select a customer");
+    if (children.some(c => !c.productId)) return toast.error("Please select products for all rows");
 
-  // On Enter, focus next row's Product Name. If last row, add new row.
-  const handleEnterNavigation = (e, index) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (index === children.length - 1) {
-        addChildRow(true);
-      } else {
-        const nextId = children[index + 1].id;
-        const el = rowRefs.current[nextId];
-        if (el) el.focus();
-      }
+    try {
+      const payload = {
+        ...master,
+        items: children.map(c => ({
+          productId: c.productId,
+          batchNo: c.batchNo,
+          expiryDate: c.expiryDate,
+          quantity: c.quantity,
+          freeQuantity: c.freeQuantity,
+          unit: c.unit,
+          rate: c.saleRate,
+          discount: c.discount,
+          taxPercent: c.taxPercent,
+          taxAmount: c.taxAmount,
+          totalAmount: c.amount,
+          stockIncrement: c.stockIncrement,
+          conversionFactor: c.conversionFactor
+        }))
+      };
+      await ApiService.add('sales', payload);
+      toast.success("Sale saved successfully!");
+      navigate('/sales/bills');
+    } catch (error) {
+      toast.error("Failed to save sale");
     }
-  };
-
-  const handleMasterChange = (field, value) => {
-    const updated = { ...master, [field]: value };
-    if (field === 'discount' || field === 'paidAmount') {
-      const disc = parseFloat(field === 'discount' ? value : master.discount) || 0;
-      const paid = parseFloat(field === 'paidAmount' ? value : master.paidAmount) || 0;
-      updated.grandTotal = Math.max(0, updated.subtotal + updated.taxAmount - disc);
-      updated.dueAmount = updated.grandTotal - paid;
-    }
-    setMaster(updated);
   };
 
   return (
     <div className="agro-container">
-      <div className="agro-unified-card">
-        <div className="agro-header-compact" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 20px',
-          borderBottom: '1px solid var(--border-light)',
-          background: 'white'
-        }}>
+      <div className="agro-unified-card" style={{ padding: '20px' }}>
+        
+        {/* Header Section */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           <div>
-            <h2 style={{ fontSize: '18px', marginBottom: '1px' }}>New Sale Entry</h2>
-            <p style={{ fontSize: '12px', margin: 0 }}>Create a new sales invoice</p>
+            <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', margin: 0 }}>Professional Sale Bill</h1>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>Krushi Seva Kendra Billing System</p>
           </div>
-          <button className="btn-agro btn-outline" onClick={() => navigate(location.state?.quotationData ? '/sales/quotations' : '/sales/bills')} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
-            <ArrowLeft size={16} /> Back
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')}>
+              <ArrowLeft size={18} /> Back
+            </button>
+          </div>
+        </div>
+
+        {/* 1️⃣ Invoice Details Section */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>CUSTOMER SEARCH</label>
+            <SearchableSelect
+              options={customers}
+              value={master.customerId}
+              onChange={(val) => handleMasterChange('customerId', val)}
+              placeholder="Search Customer..."
+              height="42px"
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>BALANCE STATUS</label>
+            <div style={{ 
+              height: '42px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '0 15px', 
+              borderRadius: '10px', 
+              fontSize: '14px',
+              fontWeight: '800',
+              background: !master.customerId ? '#f1f5f9' : (master.customerBalance > 0 ? '#fee2e2' : '#dcfce7'),
+              color: !master.customerId ? '#94a3b8' : (master.customerBalance > 0 ? '#ef4444' : '#16a34a'),
+              border: `1px solid ${!master.customerId ? '#e2e8f0' : (master.customerBalance > 0 ? '#fecaca' : '#bbf7d0')}`
+            }}>
+              {!master.customerId ? 'Select Customer' : (master.customerBalance > 0 ? `Pending: ₹${master.customerBalance}` : master.customerBalance < 0 ? `Available: ₹${Math.abs(master.customerBalance)}` : 'No Dues')}
+            </div>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>INVOICE NUMBER</label>
+            <input type="text" className="form-control" value={master.invoiceNo} readOnly style={{ height: '42px', fontWeight: '700', background: '#fff' }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>SALE DATE</label>
+            <input type="date" className="form-control" value={master.billDate} onChange={(e) => handleMasterChange('billDate', e.target.value)} style={{ height: '42px' }} />
+          </div>
+        </div>
+
+        {/* 2️⃣ Products Section */}
+        <div style={{ marginBottom: '25px', borderRadius: '15px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div style={{ background: '#f8fafc', padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '800', margin: 0, color: 'var(--primary)' }}>PRODUCT DETAILS</h3>
+            <button className="btn-agro btn-primary" onClick={addChildRow} style={{ height: '32px', padding: '0 15px', fontSize: '12px' }}>
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="agro-table" style={{ width: '100%', minWidth: '1350px' }}>
+              <thead style={{ background: '#f1f5f9' }}>
+                <tr>
+                  <th style={{ width: '350px', textAlign: 'center' }}>PRODUCT NAME</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>BATCH</th>
+                  <th style={{ width: '150px', textAlign: 'center' }}>EXPIRY</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>QTY</th>
+                  <th style={{ width: '110px', textAlign: 'center' }}>FREE QTY</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>UNIT</th>
+                  <th style={{ width: '140px', textAlign: 'center' }}>STOCK INC</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>SALE RATE</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>DISC</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>TAX %</th>
+                  <th style={{ width: '140px', textAlign: 'center' }}>TOTAL</th>
+                  <th style={{ width: '50px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {children.map((child, idx) => (
+                  <tr key={child.id}>
+                    <td style={{ verticalAlign: 'top' }}>
+                      <SearchableSelect
+                        options={products}
+                        value={child.productId}
+                        onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
+                        placeholder="Select Product"
+                        height="36px"
+                      />
+                      {child.productId && (
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '10px', fontWeight: '700' }}>
+                          <span style={{ color: '#64748b' }}>HSN: <span style={{ color: '#0f172a' }}>{child.hsnCode}</span></span>
+                          <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
+                        </div>
+                      )}
+                    </td>
+                    <td><input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                    <td><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                    <td>
+                      <input 
+                        ref={el => qtyRefs.current[child.id] = el}
+                        type="number" className="form-control" value={child.quantity} 
+                        onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} 
+                        style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} 
+                      />
+                    </td>
+                    <td><input type="number" className="form-control" value={child.freeQuantity} onChange={(e) => handleChildChange(child.id, 'freeQuantity', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
+                    <td>
+                      <select 
+                        className="form-control" 
+                        value={child.unit} 
+                        onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
+                        style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
+                      >
+                        {/* Always show the primary unit first */}
+                        <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
+                        
+                        {/* Show alternative units if they are not the same as primary */}
+                        {child.multiUnits && child.multiUnits.map((mu, i) => (
+                          mu.alternative !== (child.primaryUnit || child.unit) && (
+                            <option key={i} value={mu.alternative}>{mu.alternative}</option>
+                          )
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input 
+                          type="number" 
+                          className="form-control" 
+                          value={child.stockIncrement} 
+                          onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)} 
+                          style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }} 
+                        />
+                        {child.primaryUnit && (
+                          <span style={{ 
+                            position: 'absolute', 
+                            right: '4px', 
+                            fontSize: '10px', 
+                            fontWeight: '800', 
+                            color: 'var(--primary)',
+                            background: '#eff6ff',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            pointerEvents: 'none',
+                            border: '1px solid #dbeafe'
+                          }}>
+                            {child.primaryUnit}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td><input type="number" className="form-control" value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                    <td><input type="number" className="form-control" value={child.discount} onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
+                    <td><input type="number" className="form-control" value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                    <td style={{ fontWeight: '800', color: 'var(--primary)', textAlign: 'right', paddingRight: '15px' }}>₹{child.amount.toFixed(2)}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button onClick={() => removeChildRow(child.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Bottom Section: 3️⃣ Payment, 4️⃣ Summary, 5️⃣ Tax Breakdown */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
+          
+          {/* 3️⃣ Payment Info Section */}
+          <div className="agro-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '20px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCard size={18} /> PAYMENT INFO
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
+              <div className="form-group">
+                <label>CASH (₹)</label>
+                <input type="number" className="form-control" value={master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+              </div>
+              <div className="form-group">
+                <label>UPI (₹)</label>
+                <input type="number" className="form-control" value={master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+              </div>
+              <div className="form-group">
+                <label>SWIPE (₹)</label>
+                <input type="number" className="form-control" value={master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+              </div>
+              <div className="form-group">
+                <label style={{ color: '#ef4444' }}>PENDING (₹)</label>
+                <div style={{ height: '45px', background: '#fef2f2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '800', color: '#ef4444', border: '1px solid #fee2e2' }}>
+                  {master.pendingAmount.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>NOTES / REMARK</label>
+              <textarea className="form-control" value={master.notes} onChange={(e) => handleMasterChange('notes', e.target.value)} placeholder="Add any notes here..." rows="2" style={{ resize: 'none' }}></textarea>
+            </div>
+          </div>
+
+          {/* 4️⃣ Bill Summary Section */}
+          <div style={{ background: 'var(--primary)', color: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '10px' }}>BILL SUMMARY</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Subtotal</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{master.subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Tax Amount</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{master.taxAmount.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Discount Amount</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{master.discountAmount.toFixed(2)}</span>
+              </div>
+              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px solid rgba(255,255,255,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
+                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{master.grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+          <button className="btn-agro btn-outline" style={{ height: '45px', padding: '0 25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Printer size={20} /> Print Bill
+          </button>
+          <button className="btn-agro btn-primary" onClick={handleSaveSale} style={{ height: '45px', padding: '0 40px', fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Save size={20} /> Save Sale
           </button>
         </div>
 
-        <div style={{ padding: '15px 20px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {/* Invoice Details Section */}
-            <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: 'var(--primary)' }}>
-                <User size={16} />
-                <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Invoice Details</h3>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px' }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '12px', marginBottom: '3px' }}>Customer</label>
-                  <SearchableSelect
-                    options={customers}
-                    value={master.customerId}
-                    onChange={(val) => handleMasterChange('customerId', val)}
-                    placeholder="Search Customer..."
-                    height="36px"
-                  />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '12px', marginBottom: '3px' }}>Bill Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    style={{ height: '36px', fontSize: '13px' }}
-                    value={master.billDate}
-                    onChange={(e) => handleMasterChange('billDate', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Product Table Section */}
-            <div style={{ border: '1px solid var(--border-light)', borderRadius: '12px', overflow: 'hidden' }}>
-              <div style={{ padding: '10px 15px', background: '#f8fafc', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)' }}>
-                  <Package size={16} />
-                  <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Products</h3>
-                </div>
-                <button className="btn-agro btn-primary" onClick={addChildRow} style={{ height: '28px', padding: '0 10px', fontSize: '11px' }}>
-                  <Plus size={14} /> Add Row
-                </button>
-              </div>
-              <div className="agro-table-wrapper-simple" style={{ overflowX: 'auto' }}>
-                <table className="agro-table" style={{ border: 'none' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '220px', verticalAlign: 'bottom' }}>1) Product Name</th>
-                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>2) Stock</th>
-                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>3) Qty</th>
-                      <th style={{ width: '120px', verticalAlign: 'bottom' }}>4) Unit</th>
-                      <th style={{ width: '80px', verticalAlign: 'bottom' }}>5) Alt Qty</th>
-                      <th style={{ width: '120px', verticalAlign: 'bottom' }}>6) Alt Unit</th>
-                      <th style={{ width: '90px', verticalAlign: 'bottom' }}>7) Rate</th>
-                      <th style={{ width: '100px', verticalAlign: 'bottom' }}>8) Discount</th>
-                      <th style={{ width: '70px', verticalAlign: 'bottom' }}>9) Tax %</th>
-                      <th style={{ width: '100px', verticalAlign: 'bottom' }}>10) Total</th>
-                      <th style={{ width: '40px', verticalAlign: 'bottom' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {children.map((child, idx) => (
-                      <tr key={child.id}>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <SearchableSelect
-                            options={products}
-                            value={child.productId}
-                            onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
-                            onEnterSelect={() => handleProductEnterSelect(child.id)}
-                            placeholder="Search Product..."
-                            height="34px"
-                            inputRef={el => rowRefs.current[child.id] = el}
-                          />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
-                          <div style={{
-                            display: 'inline-block',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            background: child.currentStock > 0 ? '#dcfce7' : '#fee2e2',
-                            color: child.currentStock > 0 ? '#16a34a' : '#ef4444',
-                            border: `1px solid ${child.currentStock > 0 ? '#bbf7d0' : '#fecaca'}`
-                          }}>
-                            {child.currentStock} Qty
-                          </div>
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <input
-                            type="number"
-                            className="form-control"
-                            style={{ height: '34px', fontSize: '13px' }}
-                            ref={el => qtyRefs.current[child.id] = el}
-                            value={child.quantity}
-                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
-                          />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <SearchableSelect
-                            options={units.map(u => ({ id: u.name, name: u.name }))}
-                            value={child.unit}
-                            onChange={(val) => handleChildChange(child.id, 'unit', val)}
-                            placeholder="Unit"
-                            height="34px"
-                            padding="0 8px"
-                          />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.altQuantity} onChange={(e) => handleChildChange(child.id, 'altQuantity', e.target.value)} />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <SearchableSelect
-                            options={units.map(u => ({ id: u.name, name: u.name }))}
-                            value={child.altUnit}
-                            onChange={(val) => handleChildChange(child.id, 'altUnit', val)}
-                            placeholder="Alt Unit"
-                            height="34px"
-                            padding="0 8px"
-                          />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <div style={{ display: 'flex', gap: '2px' }}>
-                            <select 
-                              className="form-control" 
-                              style={{ height: '34px', fontSize: '12px', padding: '0 2px', width: '38px', borderRadius: '6px 0 0 6px', background: '#f8fafc', borderRight: 'none' }} 
-                              value={child.discountType} 
-                              onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
-                            >
-                              <option value="amount">₹</option>
-                              <option value="percent">%</option>
-                            </select>
-                            <input 
-                              type="number" 
-                              className="form-control" 
-                              style={{ height: '34px', fontSize: '13px', flex: 1, borderRadius: '0 6px 6px 0' }} 
-                              value={child.discountValue} 
-                              onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)} 
-                              placeholder="0" 
-                            />
-                          </div>
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '6px' }}>
-                          <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} />
-                        </td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '15px', fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>₹{child.amount.toFixed(2)}</td>
-                        <td style={{ verticalAlign: 'top', paddingTop: '12px', textAlign: 'center' }}>
-                          <button onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Summary Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-                <h3 style={{ fontSize: '13px', margin: '0 0 10px 0', fontWeight: '700', color: 'var(--primary)' }}>Payment Info</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Payment Type</label>
-                    <select className="form-control" style={{ width: '120px', height: '36px', fontSize: '13px', padding: '0 10px' }} value={master.paymentType} onChange={(e) => handleMasterChange('paymentType', e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Swipe">Swipe</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Credit">Credit</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Discount (₹)</label>
-                    <input type="number" className="form-control" style={{ width: '120px', height: '32px', fontSize: '12px' }} value={master.discount} onChange={(e) => handleMasterChange('discount', e.target.value)} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Paid Amount (₹)</label>
-                    <input type="number" className="form-control" style={{ width: '120px', height: '32px', fontSize: '12px' }} value={master.paidAmount} onChange={(e) => handleMasterChange('paidAmount', e.target.value)} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontWeight: '700', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
-                    <label style={{ fontSize: '12px' }}>Balance Due</label>
-                    <span style={{ fontSize: '14px' }}>₹{(parseFloat(master.dueAmount) || 0).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ padding: '15px', background: 'var(--primary-soft)', borderRadius: '12px', border: '1px solid #dcfce7' }}>
-                <h3 style={{ fontSize: '13px', margin: '0 0 10px 0', fontWeight: '700', color: 'var(--primary)' }}>Bill Summary</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span>Subtotal</span>
-                    <span>₹{(parseFloat(master.subtotal) || 0).toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span>Total Tax</span>
-                    <span>₹{(parseFloat(master.taxAmount) || 0).toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '800', color: 'var(--primary)', borderTop: '1px solid #dcfce7', paddingTop: '10px', marginTop: '10px' }}>
-                    <span>Grand Total</span>
-                    <span>₹{(parseFloat(master.grandTotal) || 0).toFixed(2)}</span>
-                  </div>
-                  <button className="btn-agro btn-primary" style={{ width: '100%', marginTop: '15px', height: '40px', fontSize: '14px' }}>
-                    <Save size={18} /> Complete Sale
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
