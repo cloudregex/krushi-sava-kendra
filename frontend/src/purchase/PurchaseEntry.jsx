@@ -520,7 +520,7 @@ const PurchaseEntry = () => {
                             value={child.unit}
                             onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
                           >
-                            {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag']).map((uName, i) => (
+                            {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag', 'Quintal', 'kg']).map((uName, i) => (
                               <option key={i} value={uName}>{uName}</option>
                             ))}
                           </select>
