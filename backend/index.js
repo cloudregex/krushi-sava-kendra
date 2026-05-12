@@ -20,6 +20,9 @@ const translateRoutes = require('./src/routes/translateRoutes');
 const purchaseRoutes = require('./src/routes/purchaseRoutes');
 const saleRoutes = require('./src/routes/saleRoutes');
 
+// Load Associations
+require('./src/models/associations');
+
 const app = express();
 const port = process.env.PORT || 4000;
 
