@@ -23,8 +23,22 @@ const SupplierCreate = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await handleSave(formData);
-    navigate('/suppliers');
+
+    // Sanitize data: convert empty strings for optional fields to null
+    const sanitizedData = {
+      ...formData,
+      email: formData.email.trim() === '' ? null : formData.email.trim(),
+      gstNo: formData.gstNo.trim() === '' ? null : formData.gstNo.trim(),
+      altMobileNo: formData.altMobileNo.trim() === '' ? null : formData.altMobileNo.trim(),
+      mobile: formData.mobile.trim()
+    };
+
+    try {
+      await handleSave(sanitizedData);
+      navigate('/suppliers');
+    } catch (error) {
+      console.error("Save error:", error);
+    }
   };
 
   return (

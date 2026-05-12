@@ -38,8 +38,22 @@ const SupplierEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await ApiService.update('suppliers', Number(id), formData);
-    navigate('/suppliers');
+
+    // Sanitize data: convert empty strings for optional fields to null
+    const sanitizedData = {
+      ...formData,
+      email: formData.email?.trim() === '' ? null : formData.email?.trim(),
+      gstNo: formData.gstNo?.trim() === '' ? null : formData.gstNo?.trim(),
+      altMobileNo: formData.altMobileNo?.trim() === '' ? null : formData.altMobileNo?.trim(),
+      mobile: formData.mobile?.trim()
+    };
+
+    try {
+      await ApiService.update('suppliers', Number(id), sanitizedData);
+      navigate('/suppliers');
+    } catch (error) {
+      console.error("Update error:", error);
+    }
   };
 
   if (loading) return <div className="agro-container">Loading...</div>;

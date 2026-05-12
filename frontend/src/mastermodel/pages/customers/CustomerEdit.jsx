@@ -38,8 +38,21 @@ const CustomerEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await ApiService.update('customers', Number(id), formData);
-    navigate('/customers');
+
+    // Sanitize data: convert empty strings for optional fields to null
+    const sanitizedData = {
+      ...formData,
+      email: formData.email?.trim() === '' ? null : formData.email?.trim(),
+      gstNo: formData.gstNo?.trim() === '' ? null : formData.gstNo?.trim(),
+      mobile: formData.mobile?.trim()
+    };
+
+    try {
+      await ApiService.update('customers', Number(id), sanitizedData);
+      navigate('/customers');
+    } catch (error) {
+      console.error("Update error:", error);
+    }
   };
 
   if (loading) return <div className="agro-container">Loading...</div>;

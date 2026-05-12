@@ -24,7 +24,11 @@ const newRow = () => ({
   taxAmount: 0,
   totalAmount: 0,
   purchaseDate: '',
-  expiryDate: ''
+  expiryDate: '',
+  availableUnits: [],
+  multiUnits: [],
+  primaryUnit: 'Bag',
+  baseUnitValue: 1
 });
 
 const PurchaseEntry = () => {
@@ -133,8 +137,21 @@ const PurchaseEntry = () => {
           u.taxPercent = parseFloat(extraData.tax) || '';
           u.unit = extraData.unit || 'Bag';
           u.unitValue = parseFloat(extraData.unitValue) || 1;
+          u.baseUnitValue = parseFloat(extraData.unitValue) || 1;
+          u.primaryUnit = extraData.unit || 'Bag';
+          u.multiUnits = extraData.multiUnits || [];
           u.purchaseQty = 1;
           u.quantity = getStockIncrement(u.unit, 1, u.unitValue);
+          
+          const prodUnits = [extraData.unit];
+          if (extraData.multiUnits && Array.isArray(extraData.multiUnits)) {
+            extraData.multiUnits.forEach(mu => {
+              if (mu.alternative && !prodUnits.includes(mu.alternative)) {
+                prodUnits.push(mu.alternative);
+              }
+            });
+          }
+          u.availableUnits = prodUnits.filter(Boolean);
         } else {
           // Clear info if product is discarded
           u.productName = '';
@@ -144,16 +161,32 @@ const PurchaseEntry = () => {
           u.taxPercent = '';
           u.unit = 'Bag';
           u.unitValue = 1;
+          u.baseUnitValue = 1;
+          u.primaryUnit = 'Bag';
+          u.multiUnits = [];
           u.purchaseQty = 1;
           u.quantity = 1;
+          u.availableUnits = [];
         }
       }
 
       if (field === 'purchaseQty' || field === 'unit') {
+        let currentUnitValue = u.unitValue;
+        if (field === 'unit') {
+          const selectedUnit = value;
+          if (selectedUnit === u.primaryUnit) {
+            currentUnitValue = u.baseUnitValue;
+          } else {
+            const mu = u.multiUnits.find(m => m.alternative === selectedUnit);
+            if (mu) currentUnitValue = parseFloat(mu.conversion) || 1;
+          }
+          u.unitValue = currentUnitValue;
+        }
+
         u.quantity = getStockIncrement(
           field === 'unit' ? value : u.unit,
           field === 'purchaseQty' ? value : u.purchaseQty,
-          u.unitValue
+          currentUnitValue
         );
       }
 
@@ -365,8 +398,8 @@ const PurchaseEntry = () => {
                             value={child.unit}
                             onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
                           >
-                            {units.map((u, i) => (
-                              <option key={i} value={u.name}>{u.name}</option>
+                            {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag']).map((uName, i) => (
+                              <option key={i} value={uName}>{uName}</option>
                             ))}
                           </select>
                         </td>

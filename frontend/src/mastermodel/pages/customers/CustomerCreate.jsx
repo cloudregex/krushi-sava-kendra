@@ -23,8 +23,22 @@ const CustomerCreate = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await handleSave(formData);
-    navigate('/customers');
+    
+    // Sanitize data: convert empty strings for optional fields to null
+    const sanitizedData = {
+      ...formData,
+      email: formData.email.trim() === '' ? null : formData.email.trim(),
+      gstNo: formData.gstNo.trim() === '' ? null : formData.gstNo.trim(),
+      mobile: formData.mobile.trim()
+    };
+
+    try {
+      await handleSave(sanitizedData);
+      navigate('/customers');
+    } catch (error) {
+      // Error handling is managed by useCRUD/ApiService toast
+      console.error("Save error:", error);
+    }
   };
 
   return (
