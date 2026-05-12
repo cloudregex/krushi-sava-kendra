@@ -41,7 +41,16 @@ const Customer = sequelize.define('Customer', {
         defaultValue: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    hooks: {
+        beforeValidate: (customer) => {
+            if (customer.email === '') customer.email = null;
+            if (customer.gstNo === '') customer.gstNo = null;
+            if (typeof customer.mobile === 'string') {
+                customer.mobile = customer.mobile.trim().replace(/\s/g, '');
+            }
+        }
+    }
 });
 
 module.exports = Customer;

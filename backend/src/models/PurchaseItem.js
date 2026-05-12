@@ -19,13 +19,33 @@ const PurchaseItem = sequelize.define('PurchaseItem', {
         type: DataTypes.FLOAT,
         allowNull: false
     },
+    purchaseQty: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    freeQty: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
     unit: {
         type: DataTypes.STRING,
+        allowNull: true
+    },
+    batchNo: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    expiryDate: {
+        type: DataTypes.DATEONLY,
         allowNull: true
     },
     purchasePrice: {
         type: DataTypes.FLOAT,
         allowNull: false
+    },
+    salePrice: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
     },
     taxPercent: {
         type: DataTypes.FLOAT,

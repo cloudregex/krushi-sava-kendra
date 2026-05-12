@@ -207,6 +207,9 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
             width: '100%',
             height: '100%',
             fontSize: '0.9rem',
+            lineHeight: height,
+            padding: '0',
+            margin: '0',
             fontWeight: selectedOption ? '700' : '500'
           }}
           placeholder={placeholder}

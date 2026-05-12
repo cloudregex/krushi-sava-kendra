@@ -43,6 +43,11 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
     try {
         const items = await Purchase.findAll({
+            include: [{
+                model: require('../models/Supplier'),
+                as: 'Supplier',
+                attributes: ['name']
+            }],
             order: [['createdAt', 'DESC']]
         });
         res.status(200).json(items);

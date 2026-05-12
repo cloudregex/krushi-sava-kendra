@@ -15,6 +15,14 @@ const Purchase = sequelize.define('Purchase', {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
+    supplierInvoiceNumber: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    remark: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     totalQuantity: {
         type: DataTypes.FLOAT,
         defaultValue: 0
@@ -39,6 +47,9 @@ const Purchase = sequelize.define('Purchase', {
         type: DataTypes.STRING,
         defaultValue: 'Cash'
     },
+    cashAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    upiAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    swipeAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
     paidAmount: {
         type: DataTypes.FLOAT,
         defaultValue: 0

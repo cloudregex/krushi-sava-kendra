@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, X, User } from 'lucide-react';
 import { ApiService } from '../../services/ApiService';
 import FormField from '../../components/FormField';
+import toast from 'react-hot-toast';
 import '../../styles/MasterModel.css';
 
 const SupplierEdit = () => {
@@ -30,6 +31,14 @@ const SupplierEdit = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Restrict mobile to digits only and 10 chars max
+    if (name === 'mobile' || name === 'altMobileNo') {
+      const numericValue = value.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({ ...prev, [name]: numericValue }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -38,8 +47,34 @@ const SupplierEdit = () => {
 
   const handleFinalSave = async (e) => {
     e.preventDefault();
-    await ApiService.update('suppliers', Number(id), formData);
-    navigate('/suppliers');
+
+    // Validate primary mobile
+    if (formData.mobile.length !== 10) {
+      toast.error("Primary mobile number must be exactly 10 digits");
+      return;
+    }
+
+    // Validate alt mobile if provided
+    if (formData.altMobileNo && formData.altMobileNo.length > 0 && formData.altMobileNo.length !== 10) {
+      toast.error("Alternative mobile number must be 10 digits");
+      return;
+    }
+
+    // Sanitize data: convert empty strings for optional fields to null
+    const sanitizedData = {
+      ...formData,
+      email: formData.email?.trim() === '' ? null : formData.email?.trim(),
+      gstNo: formData.gstNo?.trim() === '' ? null : formData.gstNo?.trim(),
+      altMobileNo: formData.altMobileNo?.trim() === '' ? null : formData.altMobileNo?.trim(),
+      mobile: formData.mobile?.trim()
+    };
+
+    try {
+      await ApiService.update('suppliers', Number(id), sanitizedData);
+      navigate('/suppliers');
+    } catch (error) {
+      console.error("Update error:", error);
+    }
   };
 
   if (loading) return <div className="agro-container">Loading...</div>;

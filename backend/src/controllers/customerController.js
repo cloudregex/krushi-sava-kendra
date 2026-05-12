@@ -32,6 +32,11 @@ exports.create = async (req, res) => {
         
         res.status(201).json(newItem);
     } catch (error) {
+        console.error("Customer creation error:", error);
+        if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+            const messages = error.errors.map(e => e.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
         res.status(400).json({ message: error.message });
     }
 };
@@ -52,6 +57,11 @@ exports.update = async (req, res) => {
             res.status(404).json({ message: 'Customer not found' });
         }
     } catch (error) {
+        console.error("Customer update error:", error);
+        if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+            const messages = error.errors.map(e => e.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
         res.status(400).json({ message: error.message });
     }
 };

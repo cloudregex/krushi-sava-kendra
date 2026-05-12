@@ -45,7 +45,16 @@ const Supplier = sequelize.define('Supplier', {
         defaultValue: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    hooks: {
+        beforeValidate: (supplier) => {
+            if (supplier.email === '') supplier.email = null;
+            if (supplier.gstNo === '') supplier.gstNo = null;
+            if (typeof supplier.mobile === 'string') {
+                supplier.mobile = supplier.mobile.trim().replace(/\s/g, '');
+            }
+        }
+    }
 });
 
 module.exports = Supplier;
