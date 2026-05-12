@@ -172,6 +172,17 @@
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
 }
 
+/* Remove number input arrows/spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 select.form-control {
   padding-top: 0;
   padding-bottom: 0;

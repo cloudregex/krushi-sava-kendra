@@ -1,26 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Search, Plus, Calendar, FileText, IndianRupee, CheckCircle, Clock } from 'lucide-react';
-
-const initialBills = [
-  { id: 'PUR-001', supplierId: 'SUP-101', supplierName: 'Agro Traders Pvt Ltd', billDate: '2026-04-18', grandTotal: 18500.00, paidAmount: 18500.00, dueAmount: 0, paymentType: 'Swipe', status: 'Paid' },
-  { id: 'PUR-002', supplierId: 'SUP-102', supplierName: 'Green Farms Supply', billDate: '2026-04-22', grandTotal: 42000.50, paidAmount: 20000, dueAmount: 22000.50, paymentType: 'Credit', status: 'Partial' },
-  { id: 'PUR-003', supplierId: 'SUP-103', supplierName: 'Kisan Agro Mart', billDate: '2026-04-28', grandTotal: 9800.00, paidAmount: 0, dueAmount: 9800.00, paymentType: 'Credit', status: 'Unpaid' },
-];
-
+import { ApiService } from '../mastermodel/services/ApiService';
 import '../mastermodel/styles/MasterModel.css';
 
 const PurchaseBill = () => {
   const navigate = useNavigate();
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const filteredBills = initialBills.filter(b => {
+  useEffect(() => {
+    fetchBills();
+  }, []);
+
+  const fetchBills = async () => {
+    try {
+      const data = await ApiService.getAll('purchases');
+      setBills(data);
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatus = (bill) => {
+    const paid = parseFloat(bill.paidAmount) || 0;
+    const due = parseFloat(bill.dueAmount) || 0;
+    if (due <= 0) return 'Paid';
+    if (paid > 0) return 'Partial';
+    return 'Unpaid';
+  };
+
+  const filteredBills = bills.filter(b => {
+    const sName = b.Supplier?.name || 'N/A';
     const matchesSearch =
-      b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.supplierId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
+      String(b.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(b.supplierInvoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const status = getStatus(b);
+    const matchesStatus = statusFilter === 'All' || status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -28,9 +50,7 @@ const PurchaseBill = () => {
     switch (status) {
       case 'Paid': return <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={12} /> Paid</span>;
       case 'Partial': return <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> Partial</span>;
-      case 'Paid': return <span className="badge badge-success"><CheckCircle size={12} /> Paid</span>;
-      case 'Partial': return <span className="badge badge-warning"><Clock size={12} /> Partial</span>;
-      case 'Unpaid': return <span className="badge badge-danger"><Clock size={12} /> Unpaid</span>;
+      case 'Unpaid': return <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> Unpaid</span>;
       default: return <span className="badge">{status}</span>;
     }
   };
@@ -86,6 +106,7 @@ const PurchaseBill = () => {
               <thead>
                 <tr>
                   <th>Bill ID</th>
+                  <th>Inv No</th>
                   <th>Supplier</th>
                   <th>Date</th>
                   <th>Total</th>
@@ -97,21 +118,24 @@ const PurchaseBill = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBills.map((bill) => (
+                {loading ? (
+                  <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px' }}>Loading bills...</td></tr>
+                ) : filteredBills.map((bill) => (
                   <tr key={bill.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>{bill.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>#PUR-{bill.id}</td>
+                    <td style={{ fontSize: '12px' }}>{bill.supplierInvoiceNumber || '-'}</td>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{bill.supplierName}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{bill.supplierId}</div>
+                      <div style={{ fontWeight: '600' }}>{bill.Supplier?.name || 'N/A'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {bill.supplierId}</div>
                     </td>
                     <td>{bill.billDate}</td>
-                    <td style={{ fontWeight: '700' }}>₹{bill.grandTotal.toFixed(2)}</td>
-                    <td style={{ color: '#16a34a', fontWeight: '600' }}>₹{bill.paidAmount.toFixed(2)}</td>
-                    <td style={{ color: bill.dueAmount > 0 ? '#ef4444' : 'inherit', fontWeight: '600' }}>₹{bill.dueAmount.toFixed(2)}</td>
+                    <td style={{ fontWeight: '700' }}>₹{(parseFloat(bill.grandTotal) || 0).toFixed(2)}</td>
+                    <td style={{ color: '#16a34a', fontWeight: '600' }}>₹{(parseFloat(bill.paidAmount) || 0).toFixed(2)}</td>
+                    <td style={{ color: (parseFloat(bill.dueAmount) || 0) > 0 ? '#ef4444' : 'inherit', fontWeight: '600' }}>₹{(parseFloat(bill.dueAmount) || 0).toFixed(2)}</td>
                     <td>
-                      <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '5px', fontSize: '11px' }}>{bill.paymentType}</span>
+                      <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '5px', fontSize: '11px' }}>{bill.paymentType || 'Mixed'}</span>
                     </td>
-                    <td>{getStatusBadge(bill.status)}</td>
+                    <td>{getStatusBadge(getStatus(bill))}</td>
                     <td style={{ textAlign: 'left' }}>
                       <button
                         className="btn-agro btn-outline"
@@ -123,8 +147,8 @@ const PurchaseBill = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredBills.length === 0 && (
-                  <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
+                {!loading && filteredBills.length === 0 && (
+                  <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>
             </table>

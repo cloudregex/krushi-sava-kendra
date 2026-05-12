@@ -14,16 +14,18 @@ const newRow = () => ({
   hsnCode: '',
   batchNo: '',
   purchaseQty: 1,
+  freeQty: 1,
   unitValue: 1,
   quantity: 1, // This will be the total increment
   unit: 'Bag',
   purchasePrice: '',
-  discountType: 'Amt', // 'Amt' or '%'
+  salePrice: '',
+  discountType: '%', // 'Amt' or '%'
   discountValue: 0,
   taxPercent: '',
   taxAmount: 0,
   totalAmount: 0,
-  purchaseDate: '',
+  purchaseDate: new Date().toISOString().split('T')[0],
   expiryDate: '',
   availableUnits: [],
   multiUnits: [],
@@ -40,15 +42,20 @@ const PurchaseEntry = () => {
 
   const [master, setMaster] = useState({
     supplierId: '',
+    supplierInvoiceNumber: '',
     billDate: new Date().toISOString().split('T')[0],
     totalQuantity: 0,
     subtotal: 0,
     totalTaxAmount: 0,
     discount: 0,
     grandTotal: 0,
-    paymentType: 'Cash',
+    cashAmount: 0,
+    upiAmount: 0,
+    swipeAmount: 0,
+    creditAmount: 0,
     paidAmount: 0,
-    dueAmount: 0
+    dueAmount: 0,
+    remark: ''
   });
 
   const [children, setChildren] = useState([newRow()]);
@@ -69,12 +76,21 @@ const PurchaseEntry = () => {
   const [units, setUnits] = useState([]);
 
   useEffect(() => {
-    ApiService.getAll('suppliers').then(data => setSuppliers(data));
-    ApiService.getAll('products').then(data => setProducts(data));
-    ApiService.getAll('units').then(data => setUnits(data));
+    ApiService.getAll('suppliers').then(data => {
+      console.log("Fetched Suppliers:", data);
+      if (Array.isArray(data)) setSuppliers(data);
+    }).catch(err => console.error("Supplier fetch error:", err));
+
+    ApiService.getAll('products').then(data => {
+      if (Array.isArray(data)) setProducts(data);
+    }).catch(err => console.error("Product fetch error:", err));
+
+    ApiService.getAll('units').then(data => {
+      if (Array.isArray(data)) setUnits(data);
+    }).catch(err => console.error("Unit fetch error:", err));
   }, []);
 
-  const calculateTotals = (rows, discount) => {
+  const calculateTotals = (rows, discount, paymentFields = {}) => {
     let totalQty = 0, subtotal = 0, totalTax = 0;
     rows.forEach(child => {
       const qtyFin = parseFloat(child.purchaseQty) || 0;
@@ -91,17 +107,29 @@ const PurchaseEntry = () => {
       subtotal += taxableAmount;
       totalTax += rowTax;
     });
+
     const disc = parseFloat(discount) || 0;
-    const paid = parseFloat(master.paidAmount) || 0;
     const grandTotal = Math.max(0, subtotal + totalTax - disc);
+
+    // Use passed values or current master values
+    const cash = parseFloat(paymentFields.cashAmount !== undefined ? paymentFields.cashAmount : master.cashAmount) || 0;
+    const upi = parseFloat(paymentFields.upiAmount !== undefined ? paymentFields.upiAmount : master.upiAmount) || 0;
+    const swipe = parseFloat(paymentFields.swipeAmount !== undefined ? paymentFields.swipeAmount : master.swipeAmount) || 0;
+    
+    const totalPaid = cash + upi + swipe;
+    const due = grandTotal - totalPaid;
+
     setMaster(prev => ({
       ...prev,
       totalQuantity: totalQty,
       subtotal,
       totalTaxAmount: totalTax,
       grandTotal,
-      dueAmount: grandTotal - paid,
-      discount: disc
+      paidAmount: totalPaid,
+      dueAmount: due,
+      creditAmount: due > 0 ? due : 0,
+      discount: disc,
+      ...paymentFields
     }));
   };
 
@@ -141,7 +169,8 @@ const PurchaseEntry = () => {
           u.primaryUnit = extraData.unit || 'Bag';
           u.multiUnits = extraData.multiUnits || [];
           u.purchaseQty = 1;
-          u.quantity = getStockIncrement(u.unit, 1, u.unitValue);
+          u.freeQty = 1;
+          u.quantity = getStockIncrement(u.unit, u.purchaseQty + u.freeQty, u.unitValue);
           
           const prodUnits = [extraData.unit];
           if (extraData.multiUnits && Array.isArray(extraData.multiUnits)) {
@@ -158,6 +187,7 @@ const PurchaseEntry = () => {
           u.currentStock = 0;
           u.hsnCode = '';
           u.purchasePrice = '';
+          u.salePrice = '';
           u.taxPercent = '';
           u.unit = 'Bag';
           u.unitValue = 1;
@@ -165,12 +195,13 @@ const PurchaseEntry = () => {
           u.primaryUnit = 'Bag';
           u.multiUnits = [];
           u.purchaseQty = 1;
+          u.freeQty = 0;
           u.quantity = 1;
           u.availableUnits = [];
         }
       }
 
-      if (field === 'purchaseQty' || field === 'unit') {
+      if (field === 'purchaseQty' || field === 'freeQty' || field === 'unit') {
         let currentUnitValue = u.unitValue;
         if (field === 'unit') {
           const selectedUnit = value;
@@ -183,9 +214,12 @@ const PurchaseEntry = () => {
           u.unitValue = currentUnitValue;
         }
 
+        const totalQtyForIncrement = (parseFloat(field === 'purchaseQty' ? value : u.purchaseQty) || 0) + 
+                                     (parseFloat(field === 'freeQty' ? value : u.freeQty) || 0);
+
         u.quantity = getStockIncrement(
           field === 'unit' ? value : u.unit,
-          field === 'purchaseQty' ? value : u.purchaseQty,
+          totalQtyForIncrement,
           currentUnitValue
         );
       }
@@ -228,7 +262,6 @@ const PurchaseEntry = () => {
       setChildren(updated);
       calculateTotals(updated, master.discount);
     } else {
-      // If it's the last row, just clear it
       setChildren([newRow()]);
       calculateTotals([newRow()], master.discount);
     }
@@ -250,14 +283,12 @@ const PurchaseEntry = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    const updated = { ...master, [field]: value };
-    if (field === 'discount' || field === 'paidAmount') {
-      const disc = parseFloat(field === 'discount' ? value : master.discount) || 0;
-      const paid = parseFloat(field === 'paidAmount' ? value : master.paidAmount) || 0;
-      updated.grandTotal = Math.max(0, updated.subtotal + updated.totalTaxAmount - disc);
-      updated.dueAmount = updated.grandTotal - paid;
+    if (['discount', 'cashAmount', 'upiAmount', 'swipeAmount'].includes(field)) {
+      const newFields = { [field]: value };
+      calculateTotals(children, field === 'discount' ? value : master.discount, newFields);
+    } else {
+      setMaster(prev => ({ ...prev, [field]: value }));
     }
-    setMaster(updated);
   };
 
   const handleSubmit = async () => {
@@ -272,16 +303,54 @@ const PurchaseEntry = () => {
     }
 
     try {
-      const payload = {
-        ...master,
-        items: validRows
+      // Map master data with type casting
+      const masterData = {
+        supplierId: Number(master.supplierId),
+        billDate: master.billDate,
+        supplierInvoiceNumber: master.supplierInvoiceNumber || '',
+        totalQuantity: parseFloat(master.totalQuantity) || 0,
+        subtotal: parseFloat(master.subtotal) || 0,
+        totalTaxAmount: parseFloat(master.totalTaxAmount) || 0,
+        discount: parseFloat(master.discount) || 0,
+        grandTotal: parseFloat(master.grandTotal) || 0,
+        cashAmount: parseFloat(master.cashAmount) || 0,
+        upiAmount: parseFloat(master.upiAmount) || 0,
+        swipeAmount: parseFloat(master.swipeAmount) || 0,
+        paidAmount: parseFloat(master.paidAmount) || 0,
+        dueAmount: parseFloat(master.dueAmount) || 0,
+        remark: master.remark || ''
       };
+
+      // Map item data with type casting
+      const itemsData = validRows.map(row => ({
+        productId: Number(row.productId),
+        quantity: parseFloat(row.quantity) || 0, // Stock increment (Qty + Free)
+        purchaseQty: parseFloat(row.purchaseQty) || 0,
+        freeQty: parseFloat(row.freeQty) || 0,
+        unit: row.unit,
+        batchNo: row.batchNo || '',
+        expiryDate: row.expiryDate || null,
+        purchasePrice: parseFloat(row.purchasePrice) || 0,
+        salePrice: parseFloat(row.salePrice) || 0,
+        taxPercent: parseFloat(row.taxPercent) || 0,
+        taxAmount: parseFloat(row.taxAmount) || 0,
+        discountValue: parseFloat(row.discountValue) || 0,
+        totalAmount: parseFloat(row.totalAmount) || 0
+      }));
+
+      const payload = {
+        ...masterData,
+        items: itemsData
+      };
+
+      console.log("Saving Purchase Payload:", payload);
       await ApiService.save('purchases', payload);
       toast.success("Purchase Bill saved successfully!");
       navigate('/purchase/bills');
     } catch (error) {
       console.error("Save Error:", error);
-      toast.error("Failed to save bill. Please try again.");
+      const msg = error.response?.data?.message || "Failed to save bill. Please try again.";
+      toast.error(msg);
     }
   };
 
@@ -313,7 +382,7 @@ const PurchaseEntry = () => {
                 <Truck size={16} />
                 <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Supplier Details</h3>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '15px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Supplier</label>
                   <SearchableSelect
@@ -323,6 +392,10 @@ const PurchaseEntry = () => {
                     placeholder="Search Supplier..."
                     height="36px"
                   />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Supplier Inv No.</label>
+                  <input type="text" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.supplierInvoiceNumber} onChange={(e) => handleMasterChange('supplierInvoiceNumber', e.target.value)} placeholder="Enter Invoice No." />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Bill Date</label>
@@ -347,48 +420,79 @@ const PurchaseEntry = () => {
                   <thead>
                     <tr>
                       <th style={{ width: '220px', fontSize: '11px' }}>PRODUCT NAME</th>
-                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>STOCK</th>
-                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>QTY (Bags)</th>
-                      <th style={{ width: '110px', fontSize: '11px', textAlign: 'center' }}>UNIT</th>
-                      <th style={{ width: '130px', fontSize: '11px', textAlign: 'center' }}>STOCK INCREMENT</th>
-                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>RATE</th>
-                      <th style={{ width: '120px', fontSize: '11px', textAlign: 'center' }}>DISCOUNT</th>
-                      <th style={{ width: '80px', fontSize: '11px', textAlign: 'center' }}>TAX %</th>
-                      <th style={{ width: '110px', fontSize: '11px', textAlign: 'right', paddingRight: '15px' }}>TOTAL</th>
+                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>BATCH NO</th>
+                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>EXPIRY DATE</th>
+                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>QTY</th>
+                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>FREE QTY</th>
+                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>UNIT</th>
+                      <th style={{ width: '120px', fontSize: '11px', textAlign: 'center' }}>STOCK INCR.</th>
+                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>PURCHASE RATE</th>
+                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>SALE RATE</th>
+                      <th style={{ width: '140px', fontSize: '11px', textAlign: 'center' }}>DISCOUNT</th>
+                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>TAX %</th>
+                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'right', paddingRight: '15px' }}>TOTAL</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ width: '250px' }}>
-                          <SearchableSelect
-                            options={products}
-                            value={child.productId}
-                            onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
-                            placeholder="Search Product..."
-                            height="34px"
+                        <td style={{ width: '350px', verticalAlign: 'middle', padding: '4px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ flex: 1 }}>
+                              <SearchableSelect
+                                options={products}
+                                value={child.productId}
+                                onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
+                                placeholder="Search Product..."
+                                height="34px"
+                              />
+                            </div>
+                            {child.productId && (
+                              <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '8px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                 <span>STK: <span style={{ color: child.currentStock <= 0 ? '#ef4444' : '#166534' }}>{child.currentStock}</span></span>
+                                 <span style={{ color: '#cbd5e1' }}>|</span>
+                                 <span>HSN: {child.hsnCode || 'N/A'}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ width: '100px' }}>
+                          <input
+                            type="text"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
+                            value={child.batchNo}
+                            onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)}
+                            placeholder="Batch No"
                           />
                         </td>
-                        <td style={{ textAlign: 'center', width: '90px' }}>
-                          <span style={{
-                            background: child.currentStock <= 0 ? '#fee2e2' : '#dcfce7',
-                            color: child.currentStock <= 0 ? '#991b1b' : '#166534',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: '700'
-                          }}>
-                            {child.currentStock} Qty
-                          </span>
+                        <td style={{ width: '100px' }}>
+                          <input
+                            type="date"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '11px', textAlign: 'center' }}
+                            value={child.expiryDate}
+                            onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)}
+                          />
                         </td>
-                        <td style={{ width: '90px' }}>
+                        <td style={{ width: '70px' }}>
                           <input
                             type="number"
                             className="form-control"
-                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center', padding: '0' }}
                             value={child.purchaseQty}
                             onChange={(e) => handleChildChange(child.id, 'purchaseQty', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ width: '70px' }}>
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center', background: '#fffbeb', padding: '0' }}
+                            value={child.freeQty}
+                            onChange={(e) => handleChildChange(child.id, 'freeQty', e.target.value)}
+                            placeholder="0"
                           />
                         </td>
                         <td style={{ width: '110px' }}>
@@ -403,12 +507,12 @@ const PurchaseEntry = () => {
                             ))}
                           </select>
                         </td>
-                        <td style={{ width: '130px' }}>
+                        <td style={{ width: '120px' }}>
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <input
                               type="text"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', paddingRight: '45px', background: '#f8fafc', textAlign: 'center' }}
+                              style={{ height: '34px', fontSize: '12px', paddingRight: '35px', background: '#f8fafc', textAlign: 'center' }}
                               value={
                                 (child.unit || '').trim().toLowerCase().includes('quintal') ||
                                   (child.unit || '').trim().toLowerCase() === 'qtl' ||
@@ -420,8 +524,8 @@ const PurchaseEntry = () => {
                             />
                             <span style={{
                               position: 'absolute',
-                              right: '8px',
-                              fontSize: '10px',
+                              right: '6px',
+                              fontSize: '9px',
                               color: '#64748b',
                               fontWeight: '700',
                               pointerEvents: 'none'
@@ -430,31 +534,40 @@ const PurchaseEntry = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ width: '100px' }}>
+                        <td style={{ width: '90px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.purchasePrice}
                             onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ width: '90px' }}>
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
+                            value={child.salePrice}
+                            onChange={(e) => handleChildChange(child.id, 'salePrice', e.target.value)}
                             onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '120px' }}>
+                        <td style={{ width: '140px' }}>
                           <div style={{ display: 'flex', gap: '2px' }}>
                             <select
                               className="form-control"
-                              style={{ width: '45px', height: '34px', fontSize: '10px', padding: '0 2px' }}
+                              style={{ width: '50px', height: '34px', fontSize: '11px', padding: '0 5px' }}
                               value={child.discountType}
                               onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
                             >
-                              <option value="Amt">₹</option>
                               <option value="%">%</option>
+                              <option value="Amt">₹</option>
                             </select>
                             <input
                               type="number"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', flex: 1, textAlign: 'center' }}
+                              style={{ height: '34px', fontSize: '12px', width: '80px', textAlign: 'center', padding: '0 5px' }}
                               value={child.discountValue}
                               onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)}
                             />
@@ -469,7 +582,7 @@ const PurchaseEntry = () => {
                             onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)}
                           />
                         </td>
-                        <td style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '110px' }}>
+                        <td style={{ fontSize: '13px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '100px' }}>
                           ₹{child.totalAmount.toFixed(2)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
@@ -488,27 +601,46 @@ const PurchaseEntry = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
                 <h3 style={{ fontSize: '13px', margin: '0 0 10px 0', fontWeight: '700', color: 'var(--primary)' }}>Payment Info</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Payment Type</label>
-                    <select className="form-control" style={{ width: '120px', height: '36px', fontSize: '13px', padding: '0 10px' }} value={master.paymentType} onChange={(e) => handleMasterChange('paymentType', e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Swipe">Swipe</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Credit">Credit</option>
-                    </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Discount (₹)</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.discount} onChange={(e) => handleMasterChange('discount', e.target.value)} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Cash Amount</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.cashAmount} onChange={(e) => handleMasterChange('cashAmount', e.target.value)} />
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Discount (₹)</label>
-                    <input type="number" className="form-control" style={{ width: '120px', height: '32px', fontSize: '12px' }} value={master.discount} onChange={(e) => handleMasterChange('discount', e.target.value)} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>UPI Amount</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.upiAmount} onChange={(e) => handleMasterChange('upiAmount', e.target.value)} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Swipe Amount</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.swipeAmount} onChange={(e) => handleMasterChange('swipeAmount', e.target.value)} />
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '12px' }}>Paid Amount (₹)</label>
-                    <input type="number" className="form-control" style={{ width: '120px', height: '32px', fontSize: '12px' }} value={master.paidAmount} onChange={(e) => handleMasterChange('paidAmount', e.target.value)} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Credit/Pending</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px', background: '#f8fafc' }} value={master.creditAmount} readOnly />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Paid Amount</label>
+                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px', background: '#f8fafc' }} value={master.paidAmount} readOnly />
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontWeight: '700', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
-                    <label style={{ fontSize: '12px' }}>Balance Due</label>
-                    <span style={{ fontSize: '14px' }}>₹{(parseFloat(master.dueAmount) || 0).toFixed(2)}</span>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Remark</label>
+                    <textarea 
+                      className="form-control" 
+                      style={{ height: '60px', fontSize: '12px', padding: '8px' }} 
+                      value={master.remark} 
+                      onChange={(e) => handleMasterChange('remark', e.target.value)}
+                      placeholder="Add any internal notes here..."
+                    />
                   </div>
                 </div>
               </div>
@@ -549,6 +681,7 @@ const PurchaseEntry = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-light)' }}>
                   <tr>
+                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid var(--border-light)' }}>HSN/SAC</th>
                     <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid var(--border-light)' }}>Tax Rate</th>
                     <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>CGST</th>
                     <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>SGST / UTGST</th>
@@ -565,16 +698,19 @@ const PurchaseEntry = () => {
                   {Object.values(children.reduce((acc, item) => {
                     if (!item.productId) return acc;
                     const rate = parseFloat(item.taxPercent) || 0;
-                    if (!acc[rate]) {
-                      acc[rate] = { rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
+                    const hsn = item.hsnCode || 'N/A';
+                    const key = `${hsn}-${rate}`;
+                    if (!acc[key]) {
+                      acc[key] = { hsn, rate, cgstAmount: 0, sgstAmount: 0, totalTax: 0 };
                     }
                     const itemTax = ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * rate) / 100;
-                    acc[rate].cgstAmount += itemTax / 2;
-                    acc[rate].sgstAmount += itemTax / 2;
-                    acc[rate].totalTax += itemTax;
+                    acc[key].cgstAmount += itemTax / 2;
+                    acc[key].sgstAmount += itemTax / 2;
+                    acc[key].totalTax += itemTax;
                     return acc;
                   }, {})).map((tax, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>{tax.hsn}</td>
                       <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>{tax.rate}%</td>
                       <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>{(tax.rate / 2).toFixed(2)}%</td>
                       <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(tax.cgstAmount).toFixed(2)}</td>
@@ -592,6 +728,7 @@ const PurchaseEntry = () => {
                 <tfoot style={{ background: '#f8fafc', fontWeight: '800' }}>
                   <tr>
                     <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
+                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
                     <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
                     <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
