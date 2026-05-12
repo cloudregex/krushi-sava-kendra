@@ -179,6 +179,27 @@ select.form-control {
   align-items: center;
 }
 
+/* Remove Number Input Spin Buttons */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.agro-table th {
+  text-align: center !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+}
+
+.agro-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
