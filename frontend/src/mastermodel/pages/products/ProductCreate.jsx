@@ -247,7 +247,7 @@ const ProductCreate = () => {
                           <input
                             type="number"
                             className="form-control"
-                            style={{ padding: '10px 14px', fontSize: '14px' }}
+                            style={{ padding: '8px 12px', fontSize: '14px' }}
                             value={row.value}
                             onChange={(e) => handleUnitRowChange(row.id, 'value', e.target.value)}
                             placeholder="Value"
@@ -256,7 +256,7 @@ const ProductCreate = () => {
                         <td>
                           <select
                             className="form-control"
-                            style={{ padding: '10px 14px', fontSize: '14px' }}
+                            style={{ padding: '8px 12px', fontSize: '14px' }}
                             value={row.unit}
                             onChange={(e) => handleUnitRowChange(row.id, 'unit', e.target.value)}
                           >
