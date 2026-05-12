@@ -598,50 +598,53 @@ const PurchaseEntry = () => {
             </div>
 
             {/* Footer Summary Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-                <h3 style={{ fontSize: '13px', margin: '0 0 10px 0', fontWeight: '700', color: 'var(--primary)' }}>Payment Info</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Discount (₹)</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.discount} onChange={(e) => handleMasterChange('discount', e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Cash Amount</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.cashAmount} onChange={(e) => handleMasterChange('cashAmount', e.target.value)} />
-                    </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px', marginTop: '20px' }}>
+              <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                <h3 style={{ fontSize: '14px', margin: '0 0 15px 0', fontWeight: '700', color: 'var(--primary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                  Payment Info
+                </h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px 25px' }}>
+                  {/* Row 1 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', minWidth: '90px' }}>Discount (₹)</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={master.discount} onChange={(e) => handleMasterChange('discount', e.target.value)} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>UPI Amount</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.upiAmount} onChange={(e) => handleMasterChange('upiAmount', e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Swipe Amount</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.swipeAmount} onChange={(e) => handleMasterChange('swipeAmount', e.target.value)} />
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', minWidth: '90px' }}>Cash Amt</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={master.cashAmount} onChange={(e) => handleMasterChange('cashAmount', e.target.value)} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Credit/Pending</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px', background: '#f8fafc' }} value={master.creditAmount} readOnly />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Paid Amount</label>
-                      <input type="number" className="form-control" style={{ height: '36px', fontSize: '13px', background: '#f8fafc' }} value={master.paidAmount} readOnly />
-                    </div>
+
+                  {/* Row 2 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', minWidth: '90px' }}>UPI Amt</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={master.upiAmount} onChange={(e) => handleMasterChange('upiAmount', e.target.value)} />
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Remark</label>
-                    <textarea 
-                      className="form-control" 
-                      style={{ height: '60px', fontSize: '12px', padding: '8px' }} 
-                      value={master.remark} 
-                      onChange={(e) => handleMasterChange('remark', e.target.value)}
-                      placeholder="Add any internal notes here..."
-                    />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', minWidth: '90px' }}>Swipe Amt</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={master.swipeAmount} onChange={(e) => handleMasterChange('swipeAmount', e.target.value)} />
                   </div>
+
+                  {/* Row 3 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444', minWidth: '90px' }}>Pending</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px', background: '#fff1f2', border: '1px solid #fecaca', fontWeight: '700' }} value={master.dueAmount} readOnly />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#16a34a', minWidth: '90px' }}>Paid Amt</label>
+                    <input type="number" className="form-control" style={{ height: '34px', fontSize: '13px', background: '#f0fdf4', border: '1px solid #bbf7d0', fontWeight: '700' }} value={master.paidAmount} readOnly />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '20px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '5px', display: 'block' }}>Remark / Internal Notes</label>
+                  <textarea 
+                    className="form-control" 
+                    style={{ height: '50px', fontSize: '12px', padding: '8px', borderRadius: '8px' }} 
+                    value={master.remark} 
+                    onChange={(e) => handleMasterChange('remark', e.target.value)}
+                    placeholder="Enter any specific details about this purchase..."
+                  />
                 </div>
               </div>
 
