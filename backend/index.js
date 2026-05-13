@@ -1,27 +1,27 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { connectDB, sequelize } = require('./src/config/db');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { connectDB, sequelize } = require("./src/config/db");
 
 // Import Auth & User Routes
-const authRoutes = require('./src/routes/authRoutes');
-const roleRoutes = require('./src/routes/roleRoutes');
-const userRoutes = require('./src/routes/userRoutes');
+const authRoutes = require("./src/routes/authRoutes");
+const roleRoutes = require("./src/routes/roleRoutes");
+const userRoutes = require("./src/routes/userRoutes");
 
 // Import Master Model Routes
-const categoryRoutes = require('./src/routes/categoryRoutes');
-const customerRoutes = require('./src/routes/customerRoutes');
-const productRoutes = require('./src/routes/productRoutes');
-const supplierRoutes = require('./src/routes/supplierRoutes');
-const taxRoutes = require('./src/routes/taxRoutes');
-const unitRoutes = require('./src/routes/unitRoutes');
-const activityRoutes = require('./src/routes/activityRoutes');
-const translateRoutes = require('./src/routes/translateRoutes');
-const purchaseRoutes = require('./src/routes/purchaseRoutes');
-const saleRoutes = require('./src/routes/saleRoutes');
+const categoryRoutes = require("./src/routes/categoryRoutes");
+const customerRoutes = require("./src/routes/customerRoutes");
+const productRoutes = require("./src/routes/productRoutes");
+const supplierRoutes = require("./src/routes/supplierRoutes");
+const taxRoutes = require("./src/routes/taxRoutes");
+const unitRoutes = require("./src/routes/unitRoutes");
+const activityRoutes = require("./src/routes/activityRoutes");
+const translateRoutes = require("./src/routes/translateRoutes");
+const purchaseRoutes = require("./src/routes/purchaseRoutes");
+const saleRoutes = require("./src/routes/saleRoutes");
 
 // Load Associations
-require('./src/models/associations');
+require("./src/models/associations");
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -30,67 +30,59 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/users', userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/users", userRoutes);
 
-app.use('/api/categories', categoryRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/taxes', taxRoutes);
-app.use('/api/units', unitRoutes);
-app.use('/api/activity-logs', activityRoutes);
-app.use('/api/translate', translateRoutes);
-app.use('/api/purchases', purchaseRoutes);
-app.use('/api/sales', saleRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/suppliers", supplierRoutes);
+app.use("/api/taxes", taxRoutes);
+app.use("/api/units", unitRoutes);
+app.use("/api/activity-logs", activityRoutes);
+app.use("/api/translate", translateRoutes);
+app.use("/api/purchases", purchaseRoutes);
+app.use("/api/sales", saleRoutes);
 
 // Basic Route
-app.get('/', (req, res) => {
-    res.send('Krushi Seva Kendra API is running...');
+app.get("/", (req, res) => {
+  res.send("Krushi Seva Kendra API is running...");
 });
 
 // Database Connection and Server Start
 const startServer = async () => {
+  try {
+    await connectDB();
+
+    // Clean up any stale backup tables
     try {
-        await connectDB();
-        
-        // Clean up any stale backup tables
-        try {
-            await sequelize.query('DROP TABLE IF EXISTS `Products_backup`;');
-            await sequelize.query('DROP TABLE IF EXISTS `Admins_backup`;');
-        } catch(e) {}
+      await sequelize.query("DROP TABLE IF EXISTS `Products_backup`;");
+      await sequelize.query("DROP TABLE IF EXISTS `Admins_backup`;");
+    } catch (e) {}
 
-        // Disable FK checks so Sequelize can alter referenced tables
-        await sequelize.query('PRAGMA foreign_keys = OFF;');
+    // Disable FK checks so Sequelize can alter referenced tables
+    await sequelize.query("PRAGMA foreign_keys = OFF;");
 
-        // Sync models
-<<<<<<< HEAD
-        await sequelize.sync({ alter: true });
+    // Sync models
+    await sequelize.sync({ alter: true });
 
-        // Re-enable FK checks
-        await sequelize.query('PRAGMA foreign_keys = ON;');
-        console.log('✅ Database models synced successfully with alter.');
-=======
-        await sequelize.sync();
-        console.log('✅ Database models synced successfully.');
->>>>>>> 542eca401c608ff6e8f09ac9b056af44e2cb9ff3
+    // Re-enable FK checks
+    await sequelize.query("PRAGMA foreign_keys = ON;");
+    console.log("✅ Database models synced successfully with alter.");
 
-        const server = app.listen(port, () => {
-            console.log(`🚀 Server is running at http://localhost:${port}`);
-        });
+    const server = app.listen(port, () => {
+      console.log(`🚀 Server is running at http://localhost:${port}`);
+    });
 
-        // Error handling for server
-        server.on('error', (err) => {
-            console.error('❌ Server error:', err);
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to start server:', error);
-    }
+    // Error handling for server
+    server.on("error", (err) => {
+      console.error("❌ Server error:", err);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+  }
 };
 
 startServer();
-
