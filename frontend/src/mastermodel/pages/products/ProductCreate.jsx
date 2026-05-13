@@ -143,7 +143,7 @@ const ProductCreate = () => {
           </div>
           <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')}>
             <ArrowLeft size={16} /> Back
-          </button>
+          </button> 
         </div>
 
         <div style={{ padding: '15px 20px' }}>
@@ -157,8 +157,8 @@ const ProductCreate = () => {
               </div>
 
               <div className="agro-grid-2">
-                <FormField label="Product Name (English)" name="name" value={formData.name} onChange={handleChange} required placeholder="e.g. Urea" />
-                <FormField label="उत्पादनाचे नाव (मराठी)" name="marathiName" value={formData.marathiName} onChange={handleChange} placeholder="उदा. युरिया" />
+                <FormField label="Product Name" name="name" value={formData.name} onChange={handleChange} required placeholder="e.g. Urea" />
+                <FormField label="उत्पादनाचे नाव" name="marathiName" value={formData.marathiName} onChange={handleChange} placeholder="उदा. युरिया" />
               </div>
 
               <div className="agro-grid-2">
