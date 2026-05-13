@@ -32,7 +32,6 @@ const SaleBill = () => {
     }
   };
 
-<<<<<<< HEAD
   const handleDeleteClick = (bill) => {
     setBillToDelete(bill);
     setDeleteModalOpen(true);
@@ -48,36 +47,6 @@ const SaleBill = () => {
       console.error("Delete Error:", error);
     }
   };
-
-=======
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this bill? This will reverse the stock reduction.")) {
-      try {
-        await ApiService.delete('sales', id);
-        toast.success("Bill deleted successfully");
-        fetchBills();
-      } catch (error) {
-        console.error("Error deleting bill:", error);
-        toast.error("Failed to delete bill");
-      }
-    }
-  };
-
-  const handlePrint = (id) => {
-    const iframeId = 'print-iframe';
-    let iframe = document.getElementById(iframeId);
-    if (iframe) {
-      document.body.removeChild(iframe);
-    }
-    iframe = document.createElement('iframe');
-    iframe.id = iframeId;
-    iframe.style.display = 'none';
-    iframe.src = `/sales/bills/view/${id}?print=true&quiet=true`;
-    document.body.appendChild(iframe);
-    toast.loading("Preparing print...", { duration: 2000 });
-  };
-
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
   const getStatus = (bill) => {
     if (bill.balanceAmount <= 0) return 'Paid';
     if (bill.paidAmount > 0) return 'Partial';
@@ -221,7 +190,6 @@ const SaleBill = () => {
                       })()}
                     </td>
                     <td>{getStatusBadge(getStatus(bill))}</td>
-<<<<<<< HEAD
                     <td style={{ textAlign: 'left' }}>
                       {hasPermission('sale', 'view') && (
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -233,7 +201,7 @@ const SaleBill = () => {
                             <Eye size={18} strokeWidth={2} />
                           </button>
                           <button
-                            onClick={() => navigate(`/sales/bills/view/${bill.id}?print=true`)}
+                            onClick={() => navigate(`/print/sale/${bill.id}?print=true`)}
                             style={{ background: 'none', border: 'none', color: '#16a34a', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Print Bill"
                           >
@@ -255,43 +223,6 @@ const SaleBill = () => {
                           </button>
                         </div>
                       )}
-=======
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button
-                          className="action-icon-btn view"
-                          title="View"
-                          onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
-                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn print"
-                          title="Print"
-                          onClick={() => handlePrint(bill.id)}
-                          style={{ color: '#16a34a', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Printer size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn edit"
-                          title="Edit"
-                          onClick={() => navigate(`/sales/entry/${bill.id}`)}
-                          style={{ color: '#eab308', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn delete"
-                          title="Delete"
-                          onClick={() => handleDelete(bill.id)}
-                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
                     </td>
                   </tr>
                 ))}
