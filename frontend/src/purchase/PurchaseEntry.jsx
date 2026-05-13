@@ -287,8 +287,8 @@ const PurchaseEntry = () => {
       let rowTax = (taxableAmount * taxP) / 100;
 
       u.taxAmount = rowTax;
-      // Tax is shown but not added to the total amount as per user request
-      u.totalAmount = taxableAmount;
+      // Row total now excludes discount as per user request
+      u.totalAmount = rowSub;
       return u;
     });
     setChildren(updated);
