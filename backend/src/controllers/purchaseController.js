@@ -70,3 +70,34 @@ exports.getById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+exports.delete = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const purchase = await Purchase.findByPk(id, { transaction: t });
+        if (!purchase) return res.status(404).json({ message: 'Bill not found' });
+
+        const items = await PurchaseItem.findAll({ where: { purchaseId: id }, transaction: t });
+        
+        // Reverse Stock
+        for (const item of items) {
+            const product = await Product.findByPk(item.productId, { transaction: t });
+            if (product) {
+                const newStock = (parseFloat(product.currentStock) || 0) - parseFloat(item.quantity);
+                await product.update({ currentStock: newStock }, { transaction: t });
+            }
+        }
+
+        // Delete items and purchase
+        await PurchaseItem.destroy({ where: { purchaseId: id }, transaction: t });
+        await purchase.destroy({ transaction: t });
+
+        await t.commit();
+        await logActivity(req, 'Purchase', 'DELETE', `Deleted purchase bill ID: ${id}`);
+        res.status(200).json({ message: 'Purchase bill deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error("Purchase delete error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};

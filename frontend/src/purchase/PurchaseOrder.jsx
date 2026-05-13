@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, Filter, Plus, Calendar, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Search, Filter, Plus, Calendar, User, CheckCircle, Clock, AlertCircle, Eye, Printer, Edit, Trash2 } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
+import toast from 'react-hot-toast';
 
 import '../mastermodel/styles/MasterModel.css';
 
@@ -12,12 +13,43 @@ const PurchaseOrder = () => {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = () => {
     ApiService.getAll('purchase-orders')
       .then(data => {
         if (Array.isArray(data)) setOrders(data);
       })
       .catch(err => console.error('Error fetching orders:', err));
-  }, []);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this purchase order?")) {
+      try {
+        await ApiService.delete('purchase-orders', id);
+        toast.success("Purchase order deleted successfully");
+        fetchOrders();
+      } catch (error) {
+        console.error("Error deleting order:", error);
+        toast.error("Failed to delete order");
+      }
+    }
+  };
+
+  const handlePrint = (id) => {
+    const iframeId = 'print-iframe';
+    let iframe = document.getElementById(iframeId);
+    if (iframe) {
+      document.body.removeChild(iframe);
+    }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    iframe.style.display = 'none';
+    iframe.src = `/purchase/orders/view/${id}?print=true&quiet=true`;
+    document.body.appendChild(iframe);
+    toast.loading("Preparing print...", { duration: 2000 });
+  };
 
   const filteredOrders = orders.filter(o => {
     const matchesSearch = String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,7 +123,7 @@ const PurchaseOrder = () => {
                   <th>Order Date</th>
                   <th>Expiry Date</th>
                   <th>Status</th>
-                  <th style={{ textAlign: 'left' }}>Actions</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,14 +134,41 @@ const PurchaseOrder = () => {
                     <td>{order.orderDate}</td>
                     <td>{order.expiryDate}</td>
                     <td>{getStatusBadge(order.status)}</td>
-                    <td style={{ textAlign: 'left' }}>
-                      <button
-                        className="btn-agro btn-outline"
-                        onClick={() => navigate(`/purchase/orders/view/${order.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
-                      >
-                        View
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action view"
+                          title="View"
+                          onClick={() => navigate(`/purchase/orders/view/${order.id}`)}
+                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn-action print"
+                          title="Print"
+                          onClick={() => handlePrint(order.id)}
+                          style={{ color: '#10b981', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button
+                          className="btn-action edit"
+                          title="Edit"
+                          onClick={() => navigate(`/purchase/orders/edit/${order.id}`)}
+                          style={{ color: '#f59e0b', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn-action delete"
+                          title="Delete"
+                          onClick={() => handleDelete(order.id)}
+                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

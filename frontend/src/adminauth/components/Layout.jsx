@@ -128,6 +128,8 @@ const Layout = () => {
   // Determine if current page is a create/entry page that should be fullscreen
   const isFullScreenPage = location.pathname.endsWith('/new') ||
     location.pathname.endsWith('/entry') ||
+    location.pathname.includes('/entry/') ||
+    location.pathname.includes('/edit/') ||
     location.pathname.includes('/view/');
 
   if (shouldRedirect) {

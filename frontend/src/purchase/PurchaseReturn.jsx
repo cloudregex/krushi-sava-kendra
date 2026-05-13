@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, Search, AlertCircle, Calendar, User, FileText, IndianRupee } from 'lucide-react';
+import { RotateCcw, Search, AlertCircle, Calendar, User, FileText, IndianRupee, Eye, Printer, Edit, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import '../mastermodel/styles/MasterModel.css';
 
@@ -11,6 +12,13 @@ const PurchaseReturn = () => {
     { id: 'RET-001', purchaseId: 'PUR-501', supplierId: 'SUP-101', returnDate: '2026-04-28', totalAmount: 1200.50, reason: 'Damaged Products' },
     { id: 'RET-002', purchaseId: 'PUR-505', supplierId: 'SUP-105', returnDate: '2026-04-29', totalAmount: 850.00, reason: 'Expired Stock' },
   ]);
+
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete this purchase return?")) {
+      setReturns(returns.filter(r => r.id !== id));
+      toast.success("Purchase return deleted successfully");
+    }
+  };
 
   const filteredReturns = returns.filter(r =>
     String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +71,7 @@ const PurchaseReturn = () => {
                   <th>Date</th>
                   <th>Total Amount</th>
                   <th>Reason</th>
-                  <th style={{ textAlign: 'left' }}>Actions</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,14 +88,41 @@ const PurchaseReturn = () => {
                         {item.reason}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'left' }}>
-                      <button
-                        className="btn-agro btn-outline"
-                        onClick={() => navigate(`/purchase/returns/view/${item.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
-                      >
-                        View
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action view"
+                          title="View"
+                          onClick={() => navigate(`/purchase/returns/view/${item.id}`)}
+                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn-action print"
+                          title="Print"
+                          onClick={() => navigate(`/purchase/returns/view/${item.id}?print=true`)}
+                          style={{ color: '#10b981', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button
+                          className="btn-action edit"
+                          title="Edit"
+                          onClick={() => navigate(`/purchase/returns/edit/${item.id}`)}
+                          style={{ color: '#f59e0b', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn-action delete"
+                          title="Delete"
+                          onClick={() => handleDelete(item.id)}
+                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

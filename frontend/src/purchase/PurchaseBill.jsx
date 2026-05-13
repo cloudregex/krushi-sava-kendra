@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Search, Plus, Calendar, FileText, IndianRupee, CheckCircle, Clock } from 'lucide-react';
+import { Truck, Search, Plus, Calendar, FileText, IndianRupee, CheckCircle, Clock, Eye, Printer, Edit, Trash2 } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
+import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
 
 const PurchaseBill = () => {
@@ -26,12 +27,41 @@ const PurchaseBill = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this purchase bill? This will also reverse the stock increment.")) {
+      try {
+        await ApiService.delete('purchases', id);
+        toast.success("Purchase bill deleted successfully");
+        fetchBills();
+      } catch (error) {
+        console.error("Error deleting bill:", error);
+        toast.error("Failed to delete bill");
+      }
+    }
+  };
+
   const getStatus = (bill) => {
     const paid = parseFloat(bill.paidAmount) || 0;
     const due = parseFloat(bill.dueAmount) || 0;
     if (due <= 0) return 'Paid';
     if (paid > 0) return 'Partial';
     return 'Unpaid';
+  };
+
+  const handlePrint = (id) => {
+    // Create a hidden iframe for background printing
+    const iframeId = 'print-iframe';
+    let iframe = document.getElementById(iframeId);
+    if (iframe) {
+      document.body.removeChild(iframe);
+    }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    iframe.style.display = 'none';
+    // Use quiet=true to only show the bill content
+    iframe.src = `/purchase/bills/view/${id}?print=true&quiet=true`;
+    document.body.appendChild(iframe);
+    toast.loading("Preparing print...", { duration: 2000 });
   };
 
   const filteredBills = bills.filter(b => {
@@ -114,7 +144,7 @@ const PurchaseBill = () => {
                   <th>Due</th>
                   <th>Payment</th>
                   <th>Status</th>
-                  <th style={{ textAlign: 'left' }}>Actions</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,14 +166,41 @@ const PurchaseBill = () => {
                       <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '5px', fontSize: '11px' }}>{bill.paymentType || 'Mixed'}</span>
                     </td>
                     <td>{getStatusBadge(getStatus(bill))}</td>
-                    <td style={{ textAlign: 'left' }}>
-                      <button
-                        className="btn-agro btn-outline"
-                        onClick={() => navigate(`/purchase/bills/view/${bill.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
-                      >
-                        View
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action view"
+                          title="View"
+                          onClick={() => navigate(`/purchase/bills/view/${bill.id}`)}
+                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn-action print"
+                          title="Print"
+                          onClick={() => handlePrint(bill.id)}
+                          style={{ color: '#10b981', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button
+                          className="btn-action edit"
+                          title="Edit"
+                          onClick={() => navigate(`/purchase/entry/${bill.id}`)}
+                          style={{ color: '#f59e0b', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn-action delete"
+                          title="Delete"
+                          onClick={() => handleDelete(bill.id)}
+                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
