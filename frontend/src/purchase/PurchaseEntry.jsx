@@ -109,13 +109,18 @@ const PurchaseEntry = () => {
     });
 
     const disc = parseFloat(discount) || 0;
-    const grandTotal = Math.max(0, subtotal + totalTax - disc);
+    // Calculate raw total including tax
+    const rawGrandTotal = subtotal + totalTax - disc;
+    // Final grand total is rounded to the nearest integer
+    const grandTotal = Math.round(rawGrandTotal);
+    // Difference for display
+    const roundOff = (grandTotal - rawGrandTotal).toFixed(2);
 
     // Use passed values or current master values
     const cash = parseFloat(paymentFields.cashAmount !== undefined ? paymentFields.cashAmount : master.cashAmount) || 0;
     const upi = parseFloat(paymentFields.upiAmount !== undefined ? paymentFields.upiAmount : master.upiAmount) || 0;
     const swipe = parseFloat(paymentFields.swipeAmount !== undefined ? paymentFields.swipeAmount : master.swipeAmount) || 0;
-    
+
     const totalPaid = cash + upi + swipe;
     const due = grandTotal - totalPaid;
 
@@ -125,6 +130,7 @@ const PurchaseEntry = () => {
       subtotal,
       totalTaxAmount: totalTax,
       grandTotal,
+      roundOff,
       paidAmount: totalPaid,
       dueAmount: due,
       creditAmount: due > 0 ? due : 0,
@@ -171,7 +177,7 @@ const PurchaseEntry = () => {
           u.purchaseQty = 1;
           u.freeQty = 1;
           u.quantity = getStockIncrement(u.unit, u.purchaseQty + u.freeQty, u.unitValue);
-          
+
           const prodUnits = [extraData.unit];
           if (extraData.multiUnits && Array.isArray(extraData.multiUnits)) {
             extraData.multiUnits.forEach(mu => {
@@ -214,8 +220,8 @@ const PurchaseEntry = () => {
           u.unitValue = currentUnitValue;
         }
 
-        const totalQtyForIncrement = (parseFloat(field === 'purchaseQty' ? value : u.purchaseQty) || 0) + 
-                                     (parseFloat(field === 'freeQty' ? value : u.freeQty) || 0);
+        const totalQtyForIncrement = (parseFloat(field === 'purchaseQty' ? value : u.purchaseQty) || 0) +
+          (parseFloat(field === 'freeQty' ? value : u.freeQty) || 0);
 
         u.quantity = getStockIncrement(
           field === 'unit' ? value : u.unit,
@@ -236,7 +242,8 @@ const PurchaseEntry = () => {
       let rowTax = (taxableAmount * taxP) / 100;
 
       u.taxAmount = rowTax;
-      u.totalAmount = taxableAmount + rowTax;
+      // Tax is shown but not added to the total amount as per user request
+      u.totalAmount = taxableAmount;
       return u;
     });
     setChildren(updated);
@@ -419,55 +426,66 @@ const PurchaseEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '220px', fontSize: '11px' }}>PRODUCT NAME</th>
-                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>BATCH NO</th>
-                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>EXPIRY DATE</th>
-                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>QTY</th>
-                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>FREE QTY</th>
-                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'center' }}>UNIT</th>
-                      <th style={{ width: '120px', fontSize: '11px', textAlign: 'center' }}>STOCK INCR.</th>
-                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>PURCHASE RATE</th>
-                      <th style={{ width: '90px', fontSize: '11px', textAlign: 'center' }}>SALE RATE</th>
-                      <th style={{ width: '140px', fontSize: '11px', textAlign: 'center' }}>DISCOUNT</th>
-                      <th style={{ width: '70px', fontSize: '11px', textAlign: 'center' }}>TAX %</th>
-                      <th style={{ width: '100px', fontSize: '11px', textAlign: 'right', paddingRight: '15px' }}>TOTAL</th>
+                      <th style={{ width: '380px', fontSize: '10px', letterSpacing: '0.05em' }}>PRODUCT NAME</th>
+                      <th style={{ width: '80px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>BATCH NO</th>
+                      <th style={{ width: '100px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>EXPIRY DATE</th>
+                      <th style={{ width: '55px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>QTY</th>
+                      <th style={{ width: '55px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>FREE QTY</th>
+                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>UNIT</th>
+                      <th style={{ width: '95px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>STOCK INCR.</th>
+                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>PURCHASE RATE</th>
+                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>SALE RATE</th>
+                      <th style={{ width: '125px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>DISCOUNT</th>
+                      <th style={{ width: '65px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>TAX %</th>
+                      <th style={{ width: '95px', fontSize: '10px', textAlign: 'right', paddingRight: '15px', letterSpacing: '0.05em' }}>TOTAL</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ width: '350px', verticalAlign: 'middle', padding: '4px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ flex: 1 }}>
+                        <td style={{ width: '380px', paddingLeft: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '220px' }}>
                               <SearchableSelect
                                 options={products}
                                 value={child.productId}
-                                onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
+                                onChange={(val, extra) => handleChildChange(child.id, 'productId', val, extra)}
                                 placeholder="Search Product..."
                                 height="34px"
+                                searchKey="name"
                               />
                             </div>
                             {child.productId && (
-                              <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '8px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                 <span>STK: <span style={{ color: child.currentStock <= 0 ? '#ef4444' : '#166534' }}>{child.currentStock}</span></span>
-                                 <span style={{ color: '#cbd5e1' }}>|</span>
-                                 <span>HSN: {child.hsnCode || 'N/A'}</span>
+                              <div style={{
+                                display: 'flex',
+                                gap: '6px',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                color: '#64748b',
+                                whiteSpace: 'nowrap',
+                                background: '#f1f5f9',
+                                padding: '4px 8px',
+                                borderRadius: '6px'
+                              }}>
+                                <span>STK: <span style={{ color: child.currentStock <= 0 ? '#ef4444' : '#166534' }}>{child.currentStock}</span></span>
+                                <span style={{ color: '#cbd5e1' }}>|</span>
+                                <span>HSN: {child.hsnCode || 'N/A'}</span>
                               </div>
                             )}
                           </div>
                         </td>
-                        <td style={{ width: '100px' }}>
+                        <td style={{ width: '80px', padding: '0 4px' }}>
                           <input
                             type="text"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.batchNo}
                             onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)}
-                            placeholder="Batch No"
+                            placeholder="Batch"
                           />
                         </td>
-                        <td style={{ width: '100px' }}>
+                        <td style={{ width: '100px', padding: '0 4px' }}>
                           <input
                             type="date"
                             className="form-control"
@@ -476,7 +494,7 @@ const PurchaseEntry = () => {
                             onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)}
                           />
                         </td>
-                        <td style={{ width: '70px' }}>
+                        <td style={{ width: '55px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -485,34 +503,34 @@ const PurchaseEntry = () => {
                             onChange={(e) => handleChildChange(child.id, 'purchaseQty', e.target.value)}
                           />
                         </td>
-                        <td style={{ width: '70px' }}>
+                        <td style={{ width: '55px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center', background: '#fffbeb', padding: '0' }}
                             value={child.freeQty}
                             onChange={(e) => handleChildChange(child.id, 'freeQty', e.target.value)}
-                            placeholder="0"
+                            placeholder="1"
                           />
                         </td>
-                        <td style={{ width: '110px' }}>
+                        <td style={{ width: '85px', padding: '0 4px' }}>
                           <select
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', padding: '0 5px' }}
                             value={child.unit}
                             onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
                           >
-                            {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag']).map((uName, i) => (
+                            {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag', 'Quintal', 'kg']).map((uName, i) => (
                               <option key={i} value={uName}>{uName}</option>
                             ))}
                           </select>
                         </td>
-                        <td style={{ width: '120px' }}>
+                        <td style={{ width: '95px', padding: '0 4px' }}>
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <input
                               type="text"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', paddingRight: '35px', background: '#f8fafc', textAlign: 'center' }}
+                              style={{ height: '34px', fontSize: '12px', paddingRight: '25px', background: '#f8fafc', textAlign: 'center' }}
                               value={
                                 (child.unit || '').trim().toLowerCase().includes('quintal') ||
                                   (child.unit || '').trim().toLowerCase() === 'qtl' ||
@@ -524,8 +542,8 @@ const PurchaseEntry = () => {
                             />
                             <span style={{
                               position: 'absolute',
-                              right: '6px',
-                              fontSize: '9px',
+                              right: '4px',
+                              fontSize: '8px',
                               color: '#64748b',
                               fontWeight: '700',
                               pointerEvents: 'none'
@@ -534,7 +552,7 @@ const PurchaseEntry = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ width: '90px' }}>
+                        <td style={{ width: '85px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -543,7 +561,7 @@ const PurchaseEntry = () => {
                             onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)}
                           />
                         </td>
-                        <td style={{ width: '90px' }}>
+                        <td style={{ width: '85px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -553,11 +571,11 @@ const PurchaseEntry = () => {
                             onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '140px' }}>
+                        <td style={{ width: '125px', padding: '0 4px' }}>
                           <div style={{ display: 'flex', gap: '2px' }}>
                             <select
                               className="form-control"
-                              style={{ width: '50px', height: '34px', fontSize: '11px', padding: '0 5px' }}
+                              style={{ width: '45px', height: '34px', fontSize: '11px', padding: '0 2px' }}
                               value={child.discountType}
                               onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
                             >
@@ -567,13 +585,13 @@ const PurchaseEntry = () => {
                             <input
                               type="number"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', width: '80px', textAlign: 'center', padding: '0 5px' }}
+                              style={{ height: '34px', fontSize: '12px', width: '70px', textAlign: 'center', padding: '0 2px' }}
                               value={child.discountValue}
                               onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)}
                             />
                           </div>
                         </td>
-                        <td style={{ width: '80px' }}>
+                        <td style={{ width: '65px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -582,7 +600,7 @@ const PurchaseEntry = () => {
                             onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)}
                           />
                         </td>
-                        <td style={{ fontSize: '13px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '100px' }}>
+                        <td style={{ fontSize: '13px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '90px' }}>
                           ₹{child.totalAmount.toFixed(2)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
@@ -603,7 +621,7 @@ const PurchaseEntry = () => {
                 <h3 style={{ fontSize: '14px', margin: '0 0 15px 0', fontWeight: '700', color: 'var(--primary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
                   Payment Info
                 </h3>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px 25px' }}>
                   {/* Row 1 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -638,10 +656,10 @@ const PurchaseEntry = () => {
 
                 <div style={{ marginTop: '20px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '5px', display: 'block' }}>Remark / Internal Notes</label>
-                  <textarea 
-                    className="form-control" 
-                    style={{ height: '50px', fontSize: '12px', padding: '8px', borderRadius: '8px' }} 
-                    value={master.remark} 
+                  <textarea
+                    className="form-control"
+                    style={{ height: '50px', fontSize: '12px', padding: '8px', borderRadius: '8px' }}
+                    value={master.remark}
                     onChange={(e) => handleMasterChange('remark', e.target.value)}
                     placeholder="Enter any specific details about this purchase..."
                   />
@@ -663,6 +681,10 @@ const PurchaseEntry = () => {
                     <span>Discount</span>
                     <span>-₹{(parseFloat(master.discount) || 0).toFixed(2)}</span>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                    <span>Round Off</span>
+                    <span>{parseFloat(master.roundOff) >= 0 ? '+' : ''}{master.roundOff || '0.00'}</span>
+                  </div>
                   <div style={{ height: '1px', background: 'white', margin: '5px 0' }}></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '900', color: 'var(--primary)' }}>
                     <span>Grand Total</span>
@@ -680,21 +702,21 @@ const PurchaseEntry = () => {
           {/* Tax Breakdown Table */}
           <div style={{ marginBottom: '15px' }}>
             <h3 style={{ fontSize: '13px', marginBottom: '8px', fontWeight: '700', color: 'var(--primary)' }}>Tax Breakdown (CGST & SGST)</h3>
-            <div style={{ border: '1px solid var(--border-light)', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ border: '1px solid #94a3b8', borderRadius: '8px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-light)' }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid #94a3b8' }}>
                   <tr>
-                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid var(--border-light)' }}>HSN/SAC</th>
-                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid var(--border-light)' }}>Tax Rate</th>
-                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>CGST</th>
-                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)' }}>SGST / UTGST</th>
+                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid #94a3b8' }}>HSN/SAC</th>
+                    <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid #94a3b8' }}>Tax Rate</th>
+                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', borderBottom: '1px solid #94a3b8' }}>CGST</th>
+                    <th colSpan="2" style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', borderBottom: '1px solid #94a3b8' }}>SGST / UTGST</th>
                     <th rowSpan="2" style={{ padding: '6px 10px', textAlign: 'right' }}>Total Tax</th>
                   </tr>
                   <tr>
-                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Rate</th>
-                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Amount</th>
-                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Rate</th>
-                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid var(--border-light)', fontWeight: '600' }}>Amount</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', fontWeight: '600' }}>Rate</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', fontWeight: '600' }}>Amount</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', fontWeight: '600' }}>Rate</th>
+                    <th style={{ padding: '3px', textAlign: 'center', borderRight: '1px solid #94a3b8', fontWeight: '600' }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -711,14 +733,14 @@ const PurchaseEntry = () => {
                     acc[key].sgstAmount += itemTax / 2;
                     acc[key].totalTax += itemTax;
                     return acc;
-                  }, {})).map((tax, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>{tax.hsn}</td>
-                      <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>{tax.rate}%</td>
-                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>{(tax.rate / 2).toFixed(2)}%</td>
-                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(tax.cgstAmount).toFixed(2)}</td>
-                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>{(tax.rate / 2).toFixed(2)}%</td>
-                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(tax.sgstAmount).toFixed(2)}</td>
+                  }, {})).map((tax, i, arr) => (
+                    <tr key={i} style={{ borderBottom: i === arr.length - 1 ? 'none' : '1px solid #94a3b8' }}>
+                      <td style={{ padding: '6px 10px', borderRight: '1px solid #94a3b8' }}>{tax.hsn}</td>
+                      <td style={{ padding: '6px 10px', borderRight: '1px solid #94a3b8' }}>{tax.rate}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>{(tax.rate / 2).toFixed(2)}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>₹{(tax.cgstAmount).toFixed(2)}</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>{(tax.rate / 2).toFixed(2)}%</td>
+                      <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>₹{(tax.sgstAmount).toFixed(2)}</td>
                       <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: '700' }}>₹{tax.totalTax.toFixed(2)}</td>
                     </tr>
                   ))}
@@ -728,14 +750,14 @@ const PurchaseEntry = () => {
                     </tr>
                   )}
                 </tbody>
-                <tfoot style={{ background: '#f8fafc', fontWeight: '800' }}>
+                <tfoot style={{ background: '#f1f5f9', fontWeight: '800', borderTop: '1px solid #94a3b8' }}>
                   <tr>
-                    <td style={{ padding: '6px 10px', borderRight: '1px solid var(--border-light)' }}>Total</td>
-                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
-                    <td style={{ borderRight: '1px solid var(--border-light)' }}></td>
-                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid var(--border-light)' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ padding: '6px 10px', borderRight: '1px solid #94a3b8' }}>Total</td>
+                    <td style={{ borderRight: '1px solid #94a3b8' }}></td>
+                    <td style={{ borderRight: '1px solid #94a3b8' }}></td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
+                    <td style={{ borderRight: '1px solid #94a3b8' }}></td>
+                    <td style={{ padding: '6px', textAlign: 'center', borderRight: '1px solid #94a3b8' }}>₹{(children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0) / 2).toFixed(2)}</td>
                     <td style={{ padding: '6px 10px', textAlign: 'right' }}>₹{children.reduce((sum, item) => sum + ((parseFloat(item.purchasePrice) || 0) * (parseFloat(item.purchaseQty) || 0) * (parseFloat(item.taxPercent) || 0) / 100), 0).toFixed(2)}</td>
                   </tr>
                 </tfoot>
