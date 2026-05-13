@@ -67,11 +67,16 @@ const startServer = async () => {
         await sequelize.query('PRAGMA foreign_keys = OFF;');
 
         // Sync models
+<<<<<<< HEAD
         await sequelize.sync({ alter: true });
 
         // Re-enable FK checks
         await sequelize.query('PRAGMA foreign_keys = ON;');
         console.log('✅ Database models synced successfully with alter.');
+=======
+        await sequelize.sync();
+        console.log('✅ Database models synced successfully.');
+>>>>>>> 542eca401c608ff6e8f09ac9b056af44e2cb9ff3
 
         const server = app.listen(port, () => {
             console.log(`🚀 Server is running at http://localhost:${port}`);
