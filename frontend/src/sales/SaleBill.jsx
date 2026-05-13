@@ -173,38 +173,34 @@ const SaleBill = () => {
                     <td>{getStatusBadge(getStatus(bill))}</td>
                     <td style={{ textAlign: 'left' }}>
                       {hasPermission('sale', 'view') && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           <button
-                            className="btn-agro btn-outline"
                             onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
-                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#3b82f6', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            style={{ background: 'none', border: 'none', color: '#3b82f6', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="View Bill"
                           >
-                            <Eye size={15} />
+                            <Eye size={18} strokeWidth={2} />
                           </button>
                           <button
-                            className="btn-agro btn-outline"
                             onClick={() => navigate(`/sales/bills/view/${bill.id}?print=true`)}
-                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#16a34a', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            style={{ background: 'none', border: 'none', color: '#16a34a', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Print Bill"
                           >
-                            <Printer size={15} />
+                            <Printer size={18} strokeWidth={2} />
                           </button>
                           <button
-                            className="btn-agro btn-outline"
                             onClick={() => console.log('Edit clicked')}
-                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#eab308', color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            style={{ background: 'none', border: 'none', color: '#eab308', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Edit Bill"
                           >
-                            <Edit size={15} />
+                            <Edit size={18} strokeWidth={2} />
                           </button>
                           <button
-                            className="btn-agro btn-outline"
                             onClick={() => console.log('Delete clicked')}
-                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#ef4444', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Delete Bill"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={18} strokeWidth={2} />
                           </button>
                         </div>
                       )}
