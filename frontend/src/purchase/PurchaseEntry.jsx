@@ -425,11 +425,11 @@ const PurchaseEntry = () => {
             position: "sticky",
             top: 0,
             zIndex: 100,
-            margin: "-20px -20px 20px -20px",
+            margin: "-5px -5px 20px -5px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "12px 20px",
+            padding: "12px 10px",
             borderBottom: "1px solid var(--border-light)",
             background: "white",
             boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
@@ -452,7 +452,7 @@ const PurchaseEntry = () => {
           </button>
         </div>
 
-        <div style={{ padding: "15px 20px" }}>
+        <div style={{ padding: "15px 10px" }}>
           <div
             style={{ display: "flex", flexDirection: "column", gap: "15px" }}
           >

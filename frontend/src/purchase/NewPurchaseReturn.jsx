@@ -111,7 +111,7 @@ const NewPurchaseReturn = () => {
   };
 
   return (
-    <div className="agro-container" style={{ padding: '0 25px' }}>
+    <div className="agro-container" style={{ padding: '0 5px' }}>
       <div className="agro-unified-card" style={{
         background: 'white',
         borderRadius: '16px',
@@ -124,7 +124,7 @@ const NewPurchaseReturn = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '12px 20px',
+          padding: '12px 10px',
           borderBottom: '1px solid var(--border-light)',
           background: 'white'
         }}>
@@ -137,7 +137,7 @@ const NewPurchaseReturn = () => {
           </button>
         </div>
 
-        <div style={{ padding: '15px 20px' }}>
+        <div style={{ padding: '15px 10px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {/* Return Info Section */}
             <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
@@ -173,7 +173,7 @@ const NewPurchaseReturn = () => {
 
             {/* Item Table Section */}
             <div style={{ border: '1px solid var(--border-light)', borderRadius: '12px', overflow: 'hidden' }}>
-              <div style={{ padding: '10px 15px', background: '#f8fafc', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '10px 15px', background: 'white', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)' }}>
                   <Package size={16} />
                   <h3 style={{ fontSize: '13px', margin: 0, fontWeight: '700' }}>Return Items</h3>
@@ -186,11 +186,11 @@ const NewPurchaseReturn = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '250px' }}>Product Name</th>
-                      <th style={{ width: '100px' }}>Quantity</th>
-                      <th style={{ width: '120px' }}>Purchase Price</th>
-                      <th style={{ width: '150px' }}>Amount</th>
-                      <th style={{ width: '40px' }}></th>
+                      <th style={{ width: '250px', background: 'white' }}>Product Name</th>
+                      <th style={{ width: '100px', background: 'white' }}>Quantity</th>
+                      <th style={{ width: '120px', background: 'white' }}>Purchase Price</th>
+                      <th style={{ width: '150px', background: 'white' }}>Amount</th>
+                      <th style={{ width: '40px', background: 'white' }}></th>
                     </tr>
                   </thead>
                   <tbody>
