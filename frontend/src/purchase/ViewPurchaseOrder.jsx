@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingBag, Calendar, User, CheckCircle, Package, Printer, Clock, AlertCircle } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 import '../mastermodel/styles/MasterModel.css';
 
 const ViewPurchaseOrder = () => {
@@ -11,24 +12,19 @@ const ViewPurchaseOrder = () => {
 
   useEffect(() => {
     const fetchOrderData = async () => {
-      const mockMaster = {
-        id: id,
-        supplierId: 'SUP-102',
-        supplierName: 'Green Farms Supply',
-        mobile: '9881122334',
-        orderDate: '2026-04-20',
-        expiryDate: '2026-05-20',
-        status: 'Pending',
-        expectedTotal: 24500.00
-      };
-
-      const mockItems = [
-        { id: 1, productName: 'DAP Fertilizer 50kg', quantity: 20, expectedPrice: 1000.00, amount: 20000.00 },
-        { id: 2, productName: 'Monocrotophos 1L', quantity: 10, expectedPrice: 450.00, amount: 4500.00 }
-      ];
-
-      setOrderData(mockMaster);
-      setItems(mockItems);
+      try {
+        const data = await ApiService.getById('purchase-orders', id);
+        if (data) {
+          setOrderData({
+            ...data,
+            supplierName: data.Supplier?.name || 'N/A',
+            mobile: data.Supplier?.contact || 'N/A'
+          });
+          setItems(data.items || []);
+        }
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+      }
     };
 
     fetchOrderData();

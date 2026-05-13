@@ -6,8 +6,8 @@ const { protect } = require('../middleware/authMiddleware');
 router.get('/', productController.getAll);
 router.get('/:id/latest-batch', productController.getLatestBatch);
 router.get('/:id', productController.getById);
-router.post('/', protect, productController.create);
-router.put('/:id', protect, productController.update);
-router.delete('/:id', protect, productController.delete);
+router.post('/', productController.create);
+router.put('/:id', productController.update);
+router.delete('/:id', productController.delete);
 
 module.exports = router;

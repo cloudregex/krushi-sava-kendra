@@ -21,8 +21,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
     }
   }, [forwardedRef]);
 
-  const selectedOption = options.find(opt => 
-    String(opt.id).trim() === String(value).trim()
+  const selectedOption = (options || []).find(opt => 
+    String(opt?.id || '').trim() === String(value || '').trim()
   );
 
   const getDisplayValue = (opt) => {
@@ -74,11 +74,12 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
     };
   }, [isOpen]);
 
-  const filteredOptions = options.filter(opt =>
-    (opt.name && opt.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (opt.city && opt.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (opt.code && opt.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (opt.batchNo && opt.batchNo.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredOptions = (options || []).filter(opt =>
+    (opt?.name && opt.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (opt?.marathiName && opt.marathiName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (opt?.city && opt.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (opt?.code && opt.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (opt?.batchNo && opt.batchNo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const selectOption = (opt) => {
@@ -157,7 +158,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
             }}
           >
             <div style={{ fontWeight: '600', fontSize: '0.9rem', color: String(value) === String(opt.id) ? 'var(--primary)' : textColor }}>
-              {opt.name}
+              {opt.name} {opt.marathiName && <span style={{ fontWeight: 'normal', fontSize: '0.8rem', color: '#64748b' }}>({opt.marathiName})</span>}
             </div>
             {(opt.city || opt.code || opt.batchNo) && (
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px', display: 'flex', gap: '8px' }}>

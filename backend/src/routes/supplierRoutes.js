@@ -5,8 +5,8 @@ const { protect } = require('../middleware/authMiddleware');
 
 router.get('/', supplierController.getAll);
 router.get('/:id', supplierController.getById);
-router.post('/', protect, supplierController.create);
-router.put('/:id', protect, supplierController.update);
-router.delete('/:id', protect, supplierController.delete);
+router.post('/', supplierController.create);
+router.put('/:id', supplierController.update);
+router.delete('/:id', supplierController.delete);
 
 module.exports = router;

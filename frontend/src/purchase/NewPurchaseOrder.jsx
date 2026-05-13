@@ -12,6 +12,7 @@ const NewPurchaseOrder = () => {
   const [products, setProducts] = useState([]);
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
+  const [units, setUnits] = useState([]);
   const [master, setMaster] = useState({
     supplierId: '',
     orderDate: new Date().toISOString().split('T')[0],
@@ -21,11 +22,15 @@ const NewPurchaseOrder = () => {
 
   useEffect(() => {
     ApiService.getAll('suppliers').then(data => setSuppliers(data));
-    ApiService.getAll('products').then(data => setProducts(data));
+    ApiService.getAll('products').then(data => {
+      console.log('Fetched products:', data);
+      setProducts(data);
+    });
+    ApiService.getAll('units').then(data => setUnits(data));
   }, []);
 
   const [items, setItems] = useState([
-    { id: Date.now(), productId: '', quantity: 1, expectedPrice: 0 }
+    { id: Date.now(), productId: '', productName: '', quantity: 1, unit: '', expectedPrice: 0 }
   ]);
   const rowToFocus = useRef(null);
 
@@ -46,7 +51,7 @@ const NewPurchaseOrder = () => {
     if (focusAfter) {
       rowToFocus.current = id;
     }
-    setItems([...items, { id, productId: '', quantity: 1, expectedPrice: 0 }]);
+    setItems([...items, { id, productId: '', productName: '', quantity: 1, unit: 'Kg', expectedPrice: 0 }]);
   };
 
   const handleProductEnterSelect = () => addItem();
@@ -88,12 +93,13 @@ const NewPurchaseOrder = () => {
           if (extraData) {
             updatedItem.productName = extraData.name || '';
             updatedItem.expectedPrice = parseFloat(extraData.purchasePrice) || 0;
+            // Removed automatic unit selection as per user request
           } else if (!value) {
             updatedItem.productName = '';
             updatedItem.expectedPrice = 0;
           }
         }
-        
+
         // Use 1 as default quantity for calculation if empty or <= 0
         updatedItem.quantity = field === 'quantity' ? value : updatedItem.quantity;
         return updatedItem;
@@ -101,7 +107,7 @@ const NewPurchaseOrder = () => {
       return item;
     });
     setItems(updatedItems);
-    
+
     // Auto-focus quantity field after selecting a product
     if (field === 'productId' && value) {
       setTimeout(() => {
@@ -109,6 +115,37 @@ const NewPurchaseOrder = () => {
       }, 50);
     }
     return true;
+  };
+
+  const handleSaveOrder = async () => {
+    if (!master.supplierId) {
+      toast.error("Please select a supplier");
+      return;
+    }
+    const validItems = items.filter(item => item.productId && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error("Please add at least one valid product");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...master,
+        items: validItems.map(i => ({
+          productId: i.productId,
+          productName: i.productName,
+          quantity: i.quantity,
+          unit: i.unit,
+          expectedPrice: i.expectedPrice
+        }))
+      };
+      await ApiService.save('purchase-orders', payload);
+      toast.success('Purchase Order placed successfully');
+      navigate('/purchase/orders');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to place order');
+    }
   };
 
   return (
@@ -185,6 +222,7 @@ const NewPurchaseOrder = () => {
                     <tr>
                       <th style={{ width: '250px' }}>Product Name</th>
                       <th style={{ width: '100px' }}>Quantity</th>
+                      <th style={{ width: '120px' }}>Unit</th>
                       <th style={{ width: '120px' }}>Expected Rate</th>
                       <th style={{ width: '40px' }}></th>
                     </tr>
@@ -204,19 +242,28 @@ const NewPurchaseOrder = () => {
                           />
                         </td>
                         <td>
-                          <input 
-                            type="number" 
-                            className="form-control" 
-                            style={{ height: '34px', fontSize: '13px' }} 
+                          <input
+                            type="number"
+                            className="form-control"
+                            style={{ height: '34px', fontSize: '13px' }}
                             ref={el => qtyRefs.current[item.id] = el}
-                            value={item.quantity} 
-                            onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} 
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
                             onBlur={(e) => {
                               if (!e.target.value || parseFloat(e.target.value) <= 0) {
                                 handleItemChange(item.id, 'quantity', '1');
                               }
                             }}
-                            onKeyDown={(e) => handleEnterNavigation(e, idx)} 
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
+                          />
+                        </td>
+                        <td>
+                          <SearchableSelect
+                            options={units.map(u => ({ ...u, id: u.name }))}
+                            value={item.unit}
+                            onChange={(val) => handleItemChange(item.id, 'unit', val)}
+                            placeholder="Unit"
+                            height="34px"
                           />
                         </td>
                         <td><input type="number" className="form-control" style={{ height: '34px', fontSize: '13px' }} value={item.expectedPrice} onChange={(e) => handleItemChange(item.id, 'expectedPrice', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} /></td>
@@ -232,7 +279,7 @@ const NewPurchaseOrder = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', padding: '10px 0' }}>
               <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/orders')} style={{ width: '120px', height: '38px', fontSize: '13px' }}>Cancel</button>
-              <button className="btn-agro btn-primary" style={{ width: '150px', height: '38px', fontSize: '13px' }}><Save size={18} /> Place Order</button>
+              <button className="btn-agro btn-primary" onClick={handleSaveOrder} style={{ width: '150px', height: '38px', fontSize: '13px' }}><Save size={18} /> Place Order</button>
             </div>
           </div>
         </div>
