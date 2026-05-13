@@ -15,16 +15,16 @@ const newRow = () => ({
   batchNo: '',
   expiryDate: '',
   currentStock: 0,
-  quantity: 1,
-  freeQuantity: 0,
+  quantity: '',
+  freeQuantity: '',
   unit: '',
   saleRate: '',
-  discount: 0,
+  discount: '',
   discountType: 'fixed',
-  taxPercent: 0,
+  taxPercent: '',
   taxAmount: 0,
   amount: 0,
-  stockIncrement: 0,
+  stockIncrement: '',
   conversionFactor: 1
 });
 
@@ -40,14 +40,14 @@ const SaleEntry = () => {
   const [master, setMaster] = useState({
     invoiceNo: '',
     customerId: '',
-    billDate: new Date().toISOString().split('T')[0],
+    billDate: '',
     subtotal: 0,
     taxAmount: 0,
     discountAmount: 0,
     grandTotal: 0,
-    cashPaid: 0,
-    upiPaid: 0,
-    swipePaid: 0,
+    cashPaid: '',
+    upiPaid: '',
+    swipePaid: '',
     pendingAmount: 0,
     totalDiscount: 0,
     notes: '',
@@ -60,17 +60,15 @@ const SaleEntry = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [custData, prodData, unitData, invData] = await Promise.all([
+        const [custData, prodData, unitData] = await Promise.all([
           ApiService.getAll('customers'),
           ApiService.getAll('products'),
-          ApiService.getAll('units'),
-          ApiService.getAll('sales/next-invoice')
+          ApiService.getAll('units')
         ]);
         setCustomers(custData);
         // Only show saleable products
         setProducts(prodData.filter(p => p.isSaleable));
         setUnits(unitData);
-        setMaster(prev => ({ ...prev, invoiceNo: invData.invoiceNo }));
       } catch (error) {
         console.error("Fetch error:", error);
       }
@@ -80,16 +78,16 @@ const SaleEntry = () => {
 
   const calculateTotals = (rows) => {
     let subtotal = 0, totalTax = 0, totalRowDiscount = 0;
-    
+
     rows.forEach(child => {
       const qty = parseFloat(child.quantity) || 0;
       const rate = parseFloat(child.saleRate) || 0;
       const disc = parseFloat(child.actualDiscount) || 0; // Use calculated discount
       const taxP = parseFloat(child.taxPercent) || 0;
-      
+
       const rowSub = qty * rate;
       const rowTax = (rowSub * taxP) / 100; // Tax on gross
-      
+
       subtotal += rowSub;
       totalRowDiscount += disc;
       totalTax += rowTax;
@@ -105,14 +103,14 @@ const SaleEntry = () => {
       const totalBillDiscount = totalRowDiscount + mDisc;
       const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
       const totalPaid = cPaid + uPaid + sPaid;
-      
+
       return {
         ...prev,
         subtotal: subtotal,
         taxAmount: totalTax,
         // We use a separate property for the summary if needed, 
         // but here discountAmount is what's used in UI
-        discountAmount: mDisc, 
+        discountAmount: mDisc,
         totalDiscount: totalBillDiscount, // Store total for display
         grandTotal: finalGrandTotal,
         pendingAmount: Math.max(0, finalGrandTotal - totalPaid)
@@ -123,9 +121,9 @@ const SaleEntry = () => {
   const handleChildChange = (id, field, value, extraData) => {
     const updated = children.map(child => {
       if (child.id !== id) return child;
-      
+
       let u = { ...child, [field]: value };
-      
+
       // If product changes, auto-fill details
       if (field === 'productId' && extraData) {
         u.productName = extraData.name || '';
@@ -137,8 +135,12 @@ const SaleEntry = () => {
         u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
         u.multiUnits = extraData.multiUnits || [];
         u.conversionFactor = 1;
-        u.batchNo = extraData.latestBatch || 'B-101'; 
+        u.batchNo = extraData.latestBatch || 'B-101';
         u.expiryDate = extraData.expiryDate || '';
+        // Set defaults only when product is picked
+        u.quantity = 1;
+        u.freeQuantity = 0;
+        u.discount = 0;
       }
 
       // If unit changes, update conversion factor
@@ -171,8 +173,8 @@ const SaleEntry = () => {
       }
 
       // Calculate Amount (Strictly Excluding Tax for table display)
-      const rowTax = (rowSub * taxP) / 100; 
-      
+      const rowTax = (rowSub * taxP) / 100;
+
       u.taxAmount = rowTax;
       u.amount = rowSub - actualDisc; // Net amount for table
       u.actualDiscount = actualDisc; // Store for global totals
@@ -189,13 +191,33 @@ const SaleEntry = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    if (field === 'customerId' && value) {
-      const customer = customers.find(c => String(c.id) === String(value));
-      setMaster(prev => ({ ...prev, customerId: value, customerBalance: customer?.balance || 0 }));
+    if (field === 'customerId') {
+      if (value) {
+        const customer = customers.find(c => String(c.id) === String(value));
+        // Auto-fetch invoice and set date when customer is picked
+        ApiService.getAll('sales/next-invoice').then(invData => {
+          setMaster(prev => ({
+            ...prev,
+            customerId: value,
+            customerBalance: customer?.balance || 0,
+            invoiceNo: invData.invoiceNo,
+            billDate: new Date().toISOString().split('T')[0]
+          }));
+        }).catch(err => console.error("Invoice fetch error:", err));
+      } else {
+        // Reset everything if customer is cleared
+        setMaster(prev => ({
+          ...prev,
+          customerId: '',
+          customerBalance: 0,
+          invoiceNo: '',
+          billDate: ''
+        }));
+      }
     } else if (['cashPaid', 'upiPaid', 'swipePaid'].includes(field)) {
       const val = parseFloat(value) || 0;
       setMaster(prev => ({ ...prev, [field]: val }));
-      
+
       // Get current values to pass to calculateTotals
       const cash = field === 'cashPaid' ? val : master.cashPaid;
       const upi = field === 'upiPaid' ? val : master.upiPaid;
@@ -259,7 +281,7 @@ const SaleEntry = () => {
   return (
     <div className="agro-container">
       <div className="agro-unified-card" style={{ padding: '20px' }}>
-        
+
         {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           <div>
@@ -287,12 +309,12 @@ const SaleEntry = () => {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>BALANCE STATUS</label>
-            <div style={{ 
-              height: '42px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: '0 15px', 
-              borderRadius: '10px', 
+            <div style={{
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 15px',
+              borderRadius: '10px',
               fontSize: '14px',
               fontWeight: '800',
               background: !master.customerId ? '#f1f5f9' : (master.customerBalance > 0 ? '#fee2e2' : '#dcfce7'),
@@ -359,24 +381,24 @@ const SaleEntry = () => {
                     <td><input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
                     <td><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
                     <td>
-                      <input 
+                      <input
                         ref={el => qtyRefs.current[child.id] = el}
-                        type="number" className="form-control" value={child.quantity} 
-                        onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)} 
-                        style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} 
+                        type="number" className="form-control" value={child.quantity}
+                        onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
+                        style={{ height: '36px', textAlign: 'center', fontWeight: '700' }}
                       />
                     </td>
-                    <td><input type="number" className="form-control" value={child.freeQuantity} onChange={(e) => handleChildChange(child.id, 'freeQuantity', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
+                    <td><input type="number" className="form-control" value={child.freeQuantity || ''} onChange={(e) => handleChildChange(child.id, 'freeQuantity', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
                     <td>
-                      <select 
-                        className="form-control" 
-                        value={child.unit} 
+                      <select
+                        className="form-control"
+                        value={child.unit}
                         onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
                         style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
                       >
                         {/* Always show the primary unit first */}
                         <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
-                        
+
                         {/* Show alternative units if they are not the same as primary */}
                         {child.multiUnits && child.multiUnits.map((mu, i) => (
                           mu.alternative !== (child.primaryUnit || child.unit) && (
@@ -387,19 +409,19 @@ const SaleEntry = () => {
                     </td>
                     <td>
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <input 
-                          type="number" 
-                          className="form-control" 
-                          value={child.stockIncrement} 
-                          onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)} 
-                          style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }} 
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={child.stockIncrement}
+                          onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
+                          style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
                         />
                         {child.primaryUnit && (
-                          <span style={{ 
-                            position: 'absolute', 
-                            right: '4px', 
-                            fontSize: '10px', 
-                            fontWeight: '800', 
+                          <span style={{
+                            position: 'absolute',
+                            right: '4px',
+                            fontSize: '10px',
+                            fontWeight: '800',
                             color: 'var(--primary)',
                             background: '#eff6ff',
                             padding: '2px 4px',
@@ -412,13 +434,13 @@ const SaleEntry = () => {
                         )}
                       </div>
                     </td>
-                    <td><input type="number" className="form-control" value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                    <td><input type="number" className="form-control" value={child.saleRate === 0 || child.saleRate === '0' ? '' : child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
                     <td>
                       <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', height: '36px' }}>
                         <input
                           type="number"
                           className="form-control"
-                          value={child.discount}
+                          value={child.discount || ''}
                           onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
                           style={{ border: 'none', width: '50px', textAlign: 'center', fontSize: '13px', borderRadius: 0, padding: '0' }}
                         />
@@ -448,25 +470,25 @@ const SaleEntry = () => {
 
         {/* Bottom Section: 3️⃣ Payment, 4️⃣ Summary, 5️⃣ Tax Breakdown */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-          
+
           {/* 3️⃣ Payment Info Section */}
           <div className="agro-card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '20px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CreditCard size={18} /> PAYMENT INFO
             </h3>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
               <div className="form-group">
                 <label>CASH (₹)</label>
-                <input type="number" className="form-control" value={master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                <input type="number" className="form-control" value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
               </div>
               <div className="form-group">
                 <label>UPI (₹)</label>
-                <input type="number" className="form-control" value={master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                <input type="number" className="form-control" value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
               </div>
               <div className="form-group">
                 <label>SWIPE (₹)</label>
-                <input type="number" className="form-control" value={master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                <input type="number" className="form-control" value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
               </div>
               <div className="form-group">
                 <label style={{ color: '#ef4444' }}>PENDING (₹)</label>
