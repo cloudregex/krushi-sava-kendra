@@ -62,6 +62,9 @@ const startServer = async () => {
     try {
       await sequelize.query("DROP TABLE IF EXISTS `Products_backup`;");
       await sequelize.query("DROP TABLE IF EXISTS `Admins_backup`;");
+      await sequelize.query("DROP TABLE IF EXISTS `Customers_backup`;");
+      await sequelize.query("DROP TABLE IF EXISTS `Sales_backup`;");
+      await sequelize.query("DROP TABLE IF EXISTS `SaleItems_backup`;");
       await sequelize.query("DROP TABLE IF EXISTS `Purchases_backup`;");
     } catch (e) {}
 

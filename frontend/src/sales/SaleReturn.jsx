@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RotateCcw, AlertCircle } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 import '../mastermodel/styles/MasterModel.css';
 
 const SaleReturn = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [returns, setReturns] = useState([
-    { id: 'SRET-001', saleId: 'SALE-501', customerId: 'CUS-101', customerName: 'Ramesh Patil', returnDate: '2026-04-28', totalAmount: 450.00, reason: 'Incorrect Product' },
-    { id: 'SRET-002', saleId: 'SALE-505', customerId: 'CUS-105', customerName: 'Sunil Jadhav', returnDate: '2026-04-29', totalAmount: 120.00, reason: 'Defective Item' },
-  ]);
+  const [returns, setReturns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReturns();
+  }, []);
+
+  const fetchReturns = async () => {
+    try {
+      setLoading(true);
+      const data = await ApiService.getAll('sales/returns');
+      setReturns(data || []);
+    } catch (error) {
+      console.error("Error fetching returns:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredReturns = returns.filter(r =>
+    (r.returnNo || r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.saleInvoiceNo || r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(r.customerId).includes(searchTerm) ||
+    (r.customer?.name || r.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.saleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(r.customerId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (r.customerName && r.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -67,16 +86,18 @@ const SaleReturn = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredReturns.map((item) => (
+                {loading ? (
+                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
+                ) : filteredReturns.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.id}</td>
-                    <td>{item.saleId}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || item.id}</td>
+                    <td>{item.saleInvoiceNo || item.saleId}</td>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{item.customerName}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.customerId}</div>
+                      <div style={{ fontWeight: '600' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.customerId}</div>
                     </td>
                     <td>{item.returnDate}</td>
-                    <td style={{ fontWeight: '700' }}>₹{item.totalAmount.toFixed(2)}</td>
+                    <td style={{ fontWeight: '700' }}>₹{(item.totalAmount || 0).toFixed(2)}</td>
                     <td>
                       <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <AlertCircle size={14} color="#f59e0b" />
@@ -94,7 +115,7 @@ const SaleReturn = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredReturns.length === 0 && (
+                {!loading && filteredReturns.length === 0 && (
                   <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>

@@ -101,6 +101,7 @@ const SaleEntry = () => {
     });
 
     setMaster(prev => {
+      // Use existing values from prev state to avoid flickering/overwriting during typing
       const cPaid = parseFloat(prev.cashPaid) || 0;
       const uPaid = parseFloat(prev.upiPaid) || 0;
       const sPaid = parseFloat(prev.swipePaid) || 0;
@@ -117,7 +118,7 @@ const SaleEntry = () => {
       const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
       const totalPaid = cPaid + uPaid + sPaid;
 
-      // --- DYNAMIC TAX BREAKDOWN LOGIC ---
+      // Tax Breakdown
       const hsnMap = {};
       rows.forEach(child => {
         if (!child.productId) return;
@@ -129,15 +130,7 @@ const SaleEntry = () => {
         const rowTax = (taxableVal * taxP) / 100;
 
         if (!hsnMap[hsn]) {
-          hsnMap[hsn] = {
-            hsn,
-            taxRate: taxP,
-            cgstRate: taxP / 2,
-            sgstRate: taxP / 2,
-            cgstAmount: rowTax / 2,
-            sgstAmount: rowTax / 2,
-            totalTax: rowTax
-          };
+          hsnMap[hsn] = { hsn, taxRate: taxP, cgstRate: taxP / 2, sgstRate: taxP / 2, cgstAmount: rowTax / 2, sgstAmount: rowTax / 2, totalTax: rowTax };
         } else {
           hsnMap[hsn].cgstAmount += rowTax / 2;
           hsnMap[hsn].sgstAmount += rowTax / 2;
@@ -168,20 +161,23 @@ const SaleEntry = () => {
 
       if (field === 'productId') {
         if (extraData) {
-          u.productName = extraData.name || '';
-          u.hsnCode = extraData.hsnCode || '';
-          u.currentStock = extraData.currentStock || 0;
-          u.unit = extraData.unit || '';
-          u.primaryUnit = extraData.unit || '';
-          u.taxPercent = parseFloat(extraData.tax) || 0;
-          u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
-          u.multiUnits = extraData.multiUnits || [];
-          u.conversionFactor = 1;
-          u.batchNo = '';
-          u.expiryDate = '';
-          u.quantity = 1;
-          u.freeQuantity = 0;
-          u.discount = 0;
+          // Only reset if product actually changed to prevent overwriting user input during re-renders
+          if (child.productId !== value) {
+            u.productName = extraData.name || '';
+            u.hsnCode = extraData.hsnCode || '';
+            u.currentStock = extraData.currentStock || 0;
+            u.unit = extraData.unit || '';
+            u.primaryUnit = extraData.unit || '';
+            u.taxPercent = parseFloat(extraData.tax) || 0;
+            u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
+            u.multiUnits = extraData.multiUnits || [];
+            u.conversionFactor = 1;
+            u.batchNo = '';
+            u.expiryDate = '';
+            u.quantity = 1;
+            u.freeQuantity = 0;
+            u.discount = 0;
+          }
 
           if (value) {
             ApiService.getById('products', `${value}/latest-batch`).then(res => {
@@ -231,7 +227,7 @@ const SaleEntry = () => {
     });
 
     setChildren(updated);
-    calculateTotals(updated);
+    // Removed direct calculateTotals call to prevent flickering
 
     if (field === 'productId' && value) {
       setTimeout(() => qtyRefs.current[id]?.focus(), 50);
@@ -244,7 +240,12 @@ const SaleEntry = () => {
     setMaster(prev => ({ ...prev, [field]: value }));
 
     // 2. Only if customer changes, fetch external data
-    if (field === 'customerId' && value) {
+    if (field === 'customerId') {
+      if (!value) {
+        setMaster(prev => ({ ...prev, customerBalance: 0, invoiceNo: '', billDate: '' }));
+        return;
+      }
+      
       const customer = customers.find(c => String(c.id) === String(value));
       ApiService.getAll('sales/next-invoice').then(invData => {
         // Use functional update to avoid overwriting typed payment values
@@ -266,7 +267,8 @@ const SaleEntry = () => {
     master.upiPaid,
     master.swipePaid,
     master.discountAmount,
-    master.discountType
+    master.discountType,
+    master.customerId
   ]);
 
   const addChildRow = () => {
@@ -283,16 +285,30 @@ const SaleEntry = () => {
     }
   };
 
-  const handleSaveSale = async () => {
+  const handleSaveSale = async (shouldPrint = false) => {
     if (!master.customerId) return toast.error("Please select a customer");
-    if (children.some(c => !c.productId)) return toast.error("Please select products for all rows");
+    const validItems = children.filter(c => c.productId && c.quantity > 0);
+    if (validItems.length === 0) return toast.error("Please add at least one product");
 
     try {
       const payload = {
-        ...master,
+        invoiceNo: master.invoiceNo,
+        customerId: master.customerId,
+        billDate: master.billDate,
+        subtotal: master.subtotal,
+        taxAmount: master.taxAmount,
+        discountAmount: master.totalDiscount,
+        grandTotal: master.grandTotal,
+        paidAmount: master.paidAmount,
+        balanceAmount: master.pendingAmount,
+        paymentMode: {
+          cash: parseFloat(master.cashPaid) || 0,
+          upi: parseFloat(master.upiPaid) || 0,
+          swipe: parseFloat(master.swipePaid) || 0
+        },
+        notes: master.notes,
         items: validItems.map(c => ({
           productId: c.productId,
-          productName: c.productName,
           batchNo: c.batchNo,
           expiryDate: c.expiryDate,
           quantity: parseFloat(c.quantity),
@@ -302,27 +318,27 @@ const SaleEntry = () => {
           discount: parseFloat(c.actualDiscount) || 0,
           taxPercent: parseFloat(c.taxPercent) || 0,
           taxAmount: parseFloat(c.taxAmount) || 0,
-          totalAmount: parseFloat(c.amount) // This is qty * rate
+          totalAmount: parseFloat(c.amount),
+          conversionFactor: parseFloat(c.conversionFactor) || 1,
+          stockIncrement: parseFloat(c.stockIncrement) || 0
         }))
       };
 
-      console.log("Saving Sale Data:", saleData);
-      const response = await ApiService.add('sales', saleData);
+      const response = await ApiService.add('sales', payload);
 
-      if (response) {
-        alert("🎉 Sale Saved Successfully!");
-        // Reset Form
-        setMaster({
-          invoiceNo: '', customerId: '', billDate: '', subtotal: 0, taxAmount: 0,
-          rowDiscountAmount: 0, masterDiscountAmount: 0, totalDiscount: 0,
-          grandTotal: 0, cashPaid: '', upiPaid: '', swipePaid: '', paidAmount: 0,
-          pendingAmount: 0, notes: '', customerBalance: 0, taxBreakdown: []
-        });
-        setChildren([newRow()]);
+      if (response && response.sale) {
+        toast.success("Sale Saved Successfully!");
+        navigate('/sales/bills');
       }
     } catch (error) {
       console.error("Save Sale Error:", error);
-      alert("❌ Error saving sale: " + (error.response?.data?.message || error.message));
+      toast.error(error.response?.data?.message || "Failed to save sale");
+    }
+  };
+
+  const handleCancel = () => {
+    if (window.confirm("Are you sure you want to cancel this sale? Any unsaved changes will be lost.")) {
+      navigate('/sales/bills');
     }
   };
 
@@ -610,6 +626,42 @@ const SaleEntry = () => {
                 <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
                 <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{(master.grandTotal || 0).toFixed(2)}</span>
               </div>
+
+              {/* Action Buttons inside Bill Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', marginTop: '20px' }}>
+                <button 
+                  className="btn-agro" 
+                  onClick={handleCancel}
+                  style={{ 
+                    height: '45px', 
+                    background: 'rgba(255,255,255,0.1)', 
+                    color: 'white', 
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    fontWeight: '700',
+                    borderRadius: '10px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-agro" 
+                  onClick={() => handleSaveSale(false)}
+                  disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
+                  style={{ 
+                    height: '45px', 
+                    background: 'white', 
+                    color: 'var(--primary)', 
+                    border: 'none',
+                    fontWeight: '900',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                    opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1,
+                    cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <Save size={18} /> Save Sale
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -669,31 +721,6 @@ const SaleEntry = () => {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Bottom Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-          <button className="btn-agro btn-outline" style={{ height: '45px', padding: '0 25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Printer size={20} /> Print Bill
-          </button>
-          <button
-            className="btn-agro btn-primary"
-            onClick={handleSaveSale}
-            disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
-            style={{
-              height: '45px',
-              padding: '0 40px',
-              fontSize: '16px',
-              fontWeight: '800',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1,
-              cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            <Save size={20} /> Save Sale
-          </button>
         </div>
 
       </div>

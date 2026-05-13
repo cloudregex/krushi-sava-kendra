@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CheckCircle, Clock, AlertCircle, Search } from 'lucide-react';
 import '../mastermodel/styles/MasterModel.css';
+
+import { ApiService } from '../mastermodel/services/ApiService';
 
 const Quotation = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [quotations, setQuotations] = useState([
-    { id: 'QTN-201', customerId: 'CUS-501', customerName: 'Ramesh Patil', date: '2026-04-20', totalAmount: 5400.00, status: 'Pending' },
-    { id: 'QTN-202', customerId: 'CUS-502', customerName: 'Suresh Deshmukh', date: '2026-04-22', totalAmount: 12450.50, status: 'Accepted' },
-    { id: 'QTN-203', customerId: 'CUS-503', customerName: 'Anil Jadhav', date: '2026-04-25', totalAmount: 8900.00, status: 'Expired' },
-  ]);
+  const [quotations, setQuotations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, []);
+
+  const fetchQuotations = async () => {
+    try {
+      setLoading(true);
+      // Note: Backend endpoint for quotations might need to be created if not exists
+      const data = await ApiService.getAll('quotations');
+      setQuotations(data || []);
+    } catch (error) {
+      console.error("Error fetching quotations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredQuotations = quotations.filter(q => {
     const matchesSearch = String(q.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,15 +105,17 @@ const Quotation = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredQuotations.map((item) => (
+                {loading ? (
+                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>Loading quotations...</td></tr>
+                ) : filteredQuotations.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#8b5cf6' }}>{item.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#8b5cf6' }}>{item.quotationNo || item.id}</td>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{item.customerName || item.customerId}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.customerId}</div>
+                      <div style={{ fontWeight: '600' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.customerId}</div>
                     </td>
-                    <td>{item.date}</td>
-                    <td style={{ fontWeight: '700' }}>₹{item.totalAmount.toFixed(2)}</td>
+                    <td>{item.date || item.createdAt?.split('T')[0]}</td>
+                    <td style={{ fontWeight: '700' }}>₹{(item.totalAmount || 0).toFixed(2)}</td>
                     <td>{getStatusBadge(item.status)}</td>
                     <td style={{ textAlign: 'left' }}>
                       <button
@@ -110,7 +128,7 @@ const Quotation = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredQuotations.length === 0 && (
+                {!loading && filteredQuotations.length === 0 && (
                   <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>
