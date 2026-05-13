@@ -418,16 +418,21 @@ const PurchaseEntry = () => {
 
   return (
     <div className="agro-container">
-      <div className="agro-unified-card">
+      <div>
         <div
           className="agro-header-compact"
           style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            margin: "-20px -20px 20px -20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 20px",
             borderBottom: "1px solid var(--border-light)",
             background: "white",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
           }}
         >
           <div>
@@ -455,7 +460,7 @@ const PurchaseEntry = () => {
             <div
               style={{
                 padding: "12px",
-                background: "#f8fafc",
+                background: "#ffffff",
                 borderRadius: "12px",
                 border: "1px solid var(--border-light)",
               }}
@@ -561,12 +566,13 @@ const PurchaseEntry = () => {
                 border: "1px solid var(--border-light)",
                 borderRadius: "12px",
                 overflow: "hidden",
+                background: "#ffffff",
               }}
             >
               <div
                 style={{
                   padding: "10px 15px",
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   borderBottom: "1px solid var(--border-light)",
                   display: "flex",
                   justifyContent: "space-between",
@@ -606,7 +612,7 @@ const PurchaseEntry = () => {
                 style={{ overflowX: "auto" }}
               >
                 <table className="agro-table" style={{ border: "none" }}>
-                  <thead>
+                  <thead style={{ background: "#ffffff" }}>
                     <tr>
                       <th
                         style={{
@@ -1121,7 +1127,7 @@ const PurchaseEntry = () => {
               <div
                 style={{
                   padding: "20px",
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   borderRadius: "12px",
                   border: "1px solid var(--border-light)",
                 }}
@@ -1643,6 +1649,7 @@ const PurchaseEntry = () => {
                 border: "1px solid #94a3b8",
                 borderRadius: "8px",
                 overflow: "hidden",
+                background: "#ffffff",
               }}
             >
               <table
@@ -1654,7 +1661,7 @@ const PurchaseEntry = () => {
               >
                 <thead
                   style={{
-                    background: "#f8fafc",
+                    background: "#ffffff",
                     borderBottom: "1px solid #94a3b8",
                   }}
                 >
