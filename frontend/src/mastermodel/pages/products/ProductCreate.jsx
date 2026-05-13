@@ -141,7 +141,7 @@ const ProductCreate = () => {
             <h2 style={{ fontSize: '18px', marginBottom: '1px' }}>Register New Product</h2>
             <p style={{ fontSize: '12px', margin: 0 }}>Manage stocks, pricing and categories</p>
           </div>
-          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
+          <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')}>
             <ArrowLeft size={16} /> Back
           </button>
         </div>
@@ -195,31 +195,25 @@ const ProductCreate = () => {
               </div>
             </div>
 
-            <div className="agro-grid-2" style={{ marginTop: '-4px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>Primary Value</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  style={{ padding: '8px 12px', fontSize: '14px' }}
-                  value={formData.unitValue}
-                  onChange={(e) => handlePrimaryChange('unitValue', e.target.value)}
-                  placeholder="e.g. 50"
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <SearchableSelect
-                  label="Primary Unit"
-                  options={units}
-                  value={formData.unit}
-                  onChange={(e) => handlePrimaryChange('unit', e.target.value)}
-                  required
-                  placeholder="Select Primary Unit"
-                />
-                <p style={{ fontSize: '10px', color: '#ef4444', marginTop: '-3px', marginLeft: '2px', fontWeight: '500' }}>
-                  Primary Unit cannot be changed once set.
-                </p>
-              </div>
+            <div className="agro-grid-2" style={{ marginTop: '5px' }}>
+              <FormField
+                label="Primary Value"
+                name="unitValue"
+                type="number"
+                value={formData.unitValue}
+                onChange={(e) => handlePrimaryChange('unitValue', e.target.value)}
+                placeholder="e.g. 50"
+              />
+              <SearchableSelect
+                label="Primary Unit"
+                options={units}
+                value={formData.unit}
+                onChange={(e) => handlePrimaryChange('unit', e.target.value)}
+                required
+                placeholder="Select Primary Unit"
+                hint="Primary Unit cannot be changed once set."
+                hintColor="#ef4444"
+              />
             </div>
 
             {/* Unit Management Section - Table Based UI */}
@@ -244,35 +238,29 @@ const ProductCreate = () => {
                       <tr key={row.id}>
                         <td style={{ textAlign: 'center' }}>{index + 1}</td>
                         <td>
-                          <input
+                          <FormField
+                            noLabel
+                            noMargin
                             type="number"
-                            className="form-control"
-                            style={{ padding: '8px 12px', fontSize: '14px' }}
                             value={row.value}
                             onChange={(e) => handleUnitRowChange(row.id, 'value', e.target.value)}
                             placeholder="Value"
                           />
                         </td>
                         <td>
-                          <select
-                            className="form-control"
-                            style={{ padding: '8px 12px', fontSize: '14px' }}
+                          <FormField
+                            noLabel
+                            noMargin
+                            type="select"
                             value={row.unit}
                             onChange={(e) => handleUnitRowChange(row.id, 'unit', e.target.value)}
-                          >
-                            <option value="">- Select Unit -</option>
-                            {units
-                              .filter(u => {
-                                // Allow if it's the primary unit and this is the first row
-                                if (index === 0 && u === formData.unit) return true;
-                                // Always hide primary unit for other rows
-                                if (index !== 0 && u === formData.unit) return false;
-                                // Hide if already selected in ANY other row
-                                const isSelectedElsewhere = unitRows.some((r, i) => i !== index && r.unit === u);
-                                return !isSelectedElsewhere;
-                              })
-                              .map(u => <option key={u} value={u}>{u}</option>)}
-                          </select>
+                            options={units.filter(u => {
+                              if (index === 0 && u === formData.unit) return true;
+                              if (index !== 0 && u === formData.unit) return false;
+                              const isSelectedElsewhere = unitRows.some((r, i) => i !== index && r.unit === u);
+                              return !isSelectedElsewhere;
+                            })}
+                          />
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
@@ -282,8 +270,6 @@ const ProductCreate = () => {
                                 background: '#f43f5e', 
                                 color: 'white', 
                                 border: 'none', 
-                                padding: '6px 12px', 
-                                borderRadius: '6px', 
                                 fontSize: '11px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -303,11 +289,10 @@ const ProductCreate = () => {
                   </tbody>
                 </table>
               </div>
-              <div>
+              <div style={{ marginTop: '8px' }}>
                 <button
                   type="button"
                   className="btn-agro btn-primary"
-                  style={{ padding: '6px 15px', fontSize: '12px', borderRadius: '6px' }}
                   onClick={addUnitRow}
                 >
                   <Plus size={14} /> Add Unit

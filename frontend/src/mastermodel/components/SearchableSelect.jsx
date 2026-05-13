@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-const SearchableSelect = ({ label, options, value, onChange, placeholder, required, limitInitial, disabled }) => {
+const SearchableSelect = ({ label, options, value, onChange, placeholder, required, limitInitial, disabled, hint, hintColor }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -163,7 +163,6 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
           disabled={disabled}
           style={{ 
             paddingRight: '60px', 
-            borderRadius: '12px',
             borderColor: isOpen ? 'var(--primary)' : 'var(--border)',
             boxShadow: isOpen ? '0 0 0 4px var(--primary-soft)' : 'none',
             background: disabled ? '#f3f4f6' : '#f9fafb',
@@ -189,6 +188,18 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
           <ChevronDown size={18} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
         </div>
       </div>
+
+      {hint && (
+        <p style={{ 
+          fontSize: '10px', 
+          color: hintColor || 'var(--primary)', 
+          marginTop: '4px', 
+          marginLeft: '4px',
+          fontWeight: '500' 
+        }}>
+          {hint}
+        </p>
+      )}
 
       {dropdown}
     </div>

@@ -187,7 +187,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
           padding: padding,
           height: height,
           background: bgColor,
-          borderRadius: '10px',
+          borderRadius: '4px',
           border: isOpen ? '2px solid var(--primary)' : '1px solid var(--border)',
           transition: 'all 0.2s ease',
           boxShadow: isOpen ? '0 0 0 4px var(--primary-soft)' : 'none'
