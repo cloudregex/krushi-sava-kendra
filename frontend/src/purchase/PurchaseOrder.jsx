@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Filter, Plus, Calendar, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 
 import '../mastermodel/styles/MasterModel.css';
 
@@ -8,15 +9,20 @@ const PurchaseOrder = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [orders, setOrders] = useState([
-    { id: 'PO-001', supplierId: 'SUP-101', orderDate: '2026-04-20', expiryDate: '2026-05-20', status: 'Pending' },
-    { id: 'PO-002', supplierId: 'SUP-102', orderDate: '2026-04-22', expiryDate: '2026-05-22', status: 'Completed' },
-    { id: 'PO-003', supplierId: 'SUP-103', orderDate: '2026-04-25', expiryDate: '2026-05-25', status: 'Cancelled' },
-  ]);
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    ApiService.getAll('purchase-orders')
+      .then(data => {
+        if (Array.isArray(data)) setOrders(data);
+      })
+      .catch(err => console.error('Error fetching orders:', err));
+  }, []);
 
   const filteredOrders = orders.filter(o => {
-    const matchesSearch = o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.supplierId.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.Supplier?.name && o.Supplier.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      String(o.supplierId).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -81,7 +87,7 @@ const PurchaseOrder = () => {
               <thead>
                 <tr>
                   <th>Order ID</th>
-                  <th>Supplier ID</th>
+                  <th>Supplier Name</th>
                   <th>Order Date</th>
                   <th>Expiry Date</th>
                   <th>Status</th>
@@ -91,8 +97,8 @@ const PurchaseOrder = () => {
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>{order.id}</td>
-                    <td>{order.supplierId}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>PO-{order.id}</td>
+                    <td>{order.Supplier?.name || order.supplierId}</td>
                     <td>{order.orderDate}</td>
                     <td>{order.expiryDate}</td>
                     <td>{getStatusBadge(order.status)}</td>

@@ -13,7 +13,7 @@ const PurchaseReturn = () => {
   ]);
 
   const filteredReturns = returns.filter(r =>
-    r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.purchaseId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.supplierId.toLowerCase().includes(searchTerm.toLowerCase())
   );

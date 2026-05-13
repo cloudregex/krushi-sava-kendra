@@ -18,6 +18,7 @@ const unitRoutes = require("./src/routes/unitRoutes");
 const activityRoutes = require("./src/routes/activityRoutes");
 const translateRoutes = require("./src/routes/translateRoutes");
 const purchaseRoutes = require("./src/routes/purchaseRoutes");
+const purchaseOrderRoutes = require("./src/routes/purchaseOrderRoutes");
 const saleRoutes = require("./src/routes/saleRoutes");
 
 // Load Associations
@@ -44,6 +45,7 @@ app.use("/api/units", unitRoutes);
 app.use("/api/activity-logs", activityRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/purchases", purchaseRoutes);
+app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/sales", saleRoutes);
 
 // Basic Route
@@ -63,6 +65,7 @@ const startServer = async () => {
       await sequelize.query("DROP TABLE IF EXISTS `Customers_backup`;");
       await sequelize.query("DROP TABLE IF EXISTS `Sales_backup`;");
       await sequelize.query("DROP TABLE IF EXISTS `SaleItems_backup`;");
+      await sequelize.query("DROP TABLE IF EXISTS `Purchases_backup`;");
     } catch (e) {}
 
     // Disable FK checks so Sequelize can alter referenced tables

@@ -30,7 +30,7 @@ const Quotation = () => {
   };
 
   const filteredQuotations = quotations.filter(q => {
-    const matchesSearch = q.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = String(q.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (q.customerName && q.customerName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'All' || q.status === statusFilter;

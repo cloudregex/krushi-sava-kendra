@@ -31,6 +31,10 @@ const SaleReturn = () => {
     (r.saleInvoiceNo || r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(r.customerId).includes(searchTerm) ||
     (r.customer?.name || r.customerName || '').toLowerCase().includes(searchTerm.toLowerCase())
+    String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.saleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.customerName && r.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (

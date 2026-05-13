@@ -14,7 +14,7 @@ const StockMaster = () => {
   const filteredMaster = useMemo(() => {
     return mockStockMaster.filter(item =>
       item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase())
+      String(item.id).toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm]);
 
