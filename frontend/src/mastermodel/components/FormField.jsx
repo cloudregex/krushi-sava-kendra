@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FormField = ({ label, name, type = 'text', value, onChange, placeholder, required, options, isToggle, hint, hintColor }) => {
+const FormField = ({ label, name, type = 'text', value, onChange, placeholder, required, options, isToggle, hint, hintColor, noLabel, noMargin }) => {
   if (isToggle) {
     return (
       <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -17,26 +17,28 @@ const FormField = ({ label, name, type = 'text', value, onChange, placeholder, r
   }
 
   return (
-    <div className="form-group">
-      <div style={{ marginBottom: '2px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>
-        <label style={{ margin: 0, display: 'inline-block' }}>
-          {label} {required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
-        </label>
-        {hint && (
-          <span style={{ 
-            fontSize: '10px', 
-            color: hintColor || '#16a34a', 
-            fontWeight: '700', 
-            background: hintColor ? `${hintColor}10` : '#f0fdf4', 
-            padding: '2px 8px', 
-            borderRadius: '10px',
-            border: `1px solid ${hintColor ? `${hintColor}30` : '#dcfce7'}`,
-            whiteSpace: 'nowrap'
-          }}>
-            {hint}
-          </span>
-        )}
-      </div>
+    <div className="form-group" style={{ marginBottom: noMargin ? '0' : '8px' }}>
+      {!noLabel && (
+        <div style={{ marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '5px' }}>
+          <label style={{ margin: 0, display: 'inline-block' }}>
+            {label} {required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
+          </label>
+          {hint && (
+            <span style={{ 
+              fontSize: '10px', 
+              color: hintColor || '#16a34a', 
+              fontWeight: '700', 
+              background: hintColor ? `${hintColor}10` : '#f0fdf4', 
+              padding: '2px 8px', 
+              borderRadius: '10px',
+              border: `1px solid ${hintColor ? `${hintColor}30` : '#dcfce7'}`,
+              whiteSpace: 'nowrap'
+            }}>
+              {hint}
+            </span>
+          )}
+        </div>
+      )}
       {type === 'select' ? (
         <select 
           className="form-control" 
