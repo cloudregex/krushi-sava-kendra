@@ -125,22 +125,28 @@ const SaleEntry = () => {
       let u = { ...child, [field]: value };
 
       // If product changes, auto-fill details
-      if (field === 'productId' && extraData) {
-        u.productName = extraData.name || '';
-        u.hsnCode = extraData.hsnCode || '';
-        u.currentStock = extraData.currentStock || 0;
-        u.unit = extraData.unit || '';
-        u.primaryUnit = extraData.unit || '';
-        u.taxPercent = parseFloat(extraData.tax) || 0;
-        u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
-        u.multiUnits = extraData.multiUnits || [];
-        u.conversionFactor = 1;
-        u.batchNo = extraData.latestBatch || 'B-101';
-        u.expiryDate = extraData.expiryDate || '';
-        // Set defaults only when product is picked
-        u.quantity = 1;
-        u.freeQuantity = 0;
-        u.discount = 0;
+      if (field === 'productId') {
+        if (extraData) {
+          u.productName = extraData.name || '';
+          u.hsnCode = extraData.hsnCode || '';
+          u.currentStock = extraData.currentStock || 0;
+          u.unit = extraData.unit || '';
+          u.primaryUnit = extraData.unit || '';
+          u.taxPercent = parseFloat(extraData.tax) || 0;
+          u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
+          u.multiUnits = extraData.multiUnits || [];
+          u.conversionFactor = 1;
+          u.batchNo = extraData.latestBatch || 'B-101';
+          u.expiryDate = extraData.expiryDate || '';
+          // Set defaults only when product is picked
+          u.quantity = 1;
+          u.freeQuantity = 0;
+          u.discount = 0;
+        } else {
+          // If product is cleared, reset the entire row except ID
+          const fresh = newRow();
+          u = { ...fresh, id: u.id };
+        }
       }
 
       // If unit changes, update conversion factor
@@ -323,10 +329,6 @@ const SaleEntry = () => {
             }}>
               {!master.customerId ? 'Select Customer' : (master.customerBalance > 0 ? `Pending: ₹${master.customerBalance}` : master.customerBalance < 0 ? `Available: ₹${Math.abs(master.customerBalance)}` : 'No Dues')}
             </div>
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>INVOICE NUMBER</label>
-            <input type="text" className="form-control" value={master.invoiceNo} readOnly style={{ height: '42px', fontWeight: '700', background: '#fff' }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>SALE DATE</label>
