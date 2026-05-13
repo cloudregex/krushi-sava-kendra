@@ -18,7 +18,7 @@ const SaleBill = () => {
 
   const filteredBills = initialBills.filter(b => {
     const matchesSearch =
-      b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(b.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.customerId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;

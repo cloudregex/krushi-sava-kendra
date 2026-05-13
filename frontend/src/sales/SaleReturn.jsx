@@ -12,7 +12,7 @@ const SaleReturn = () => {
   ]);
 
   const filteredReturns = returns.filter(r =>
-    r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.saleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (r.customerName && r.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
