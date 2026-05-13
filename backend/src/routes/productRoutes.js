@@ -4,6 +4,7 @@ const productController = require('../controllers/productController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.get('/', productController.getAll);
+router.get('/:id/latest-batch', productController.getLatestBatch);
 router.get('/:id', productController.getById);
 router.post('/', protect, productController.create);
 router.put('/:id', protect, productController.update);

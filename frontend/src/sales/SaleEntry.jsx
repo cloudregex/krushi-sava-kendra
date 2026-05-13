@@ -51,7 +51,8 @@ const SaleEntry = () => {
     pendingAmount: 0,
     totalDiscount: 0,
     notes: '',
-    customerBalance: 0
+    customerBalance: 0,
+    taxBreakdown: []
   });
 
   const [children, setChildren] = useState([newRow()]);
@@ -65,9 +66,13 @@ const SaleEntry = () => {
           ApiService.getAll('products'),
           ApiService.getAll('units')
         ]);
+        console.log("Fetched Customers:", custData);
+        console.log("Fetched Products:", prodData);
         setCustomers(custData);
         // Only show saleable products
-        setProducts(prodData.filter(p => p.isSaleable));
+        const saleable = prodData.filter(p => p.isSaleable);
+        console.log("Saleable Products:", saleable);
+        setProducts(saleable);
         setUnits(unitData);
       } catch (error) {
         console.error("Fetch error:", error);
@@ -102,18 +107,45 @@ const SaleEntry = () => {
 
       const totalBillDiscount = totalRowDiscount + mDisc;
       const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
-      const totalPaid = cPaid + uPaid + sPaid;
+
+      // --- DYNAMIC TAX BREAKDOWN LOGIC ---
+      const hsnMap = {};
+      rows.forEach(child => {
+        if (!child.productId) return;
+        const hsn = child.hsnCode || 'N/A';
+        const taxP = parseFloat(child.taxPercent) || 0;
+        const rowGross = (parseFloat(child.quantity) || 0) * (parseFloat(child.saleRate) || 0);
+        // Tax is usually on (Gross - RowDiscount)
+        const rowDisc = parseFloat(child.actualDiscount) || 0;
+        const taxableVal = rowGross - rowDisc;
+        const rowTax = (taxableVal * taxP) / 100;
+
+        if (!hsnMap[hsn]) {
+          hsnMap[hsn] = {
+            hsn,
+            taxRate: taxP,
+            cgstRate: taxP / 2,
+            sgstRate: taxP / 2,
+            cgstAmount: rowTax / 2,
+            sgstAmount: rowTax / 2,
+            totalTax: rowTax
+          };
+        } else {
+          hsnMap[hsn].cgstAmount += rowTax / 2;
+          hsnMap[hsn].sgstAmount += rowTax / 2;
+          hsnMap[hsn].totalTax += rowTax;
+        }
+      });
 
       return {
         ...prev,
         subtotal: subtotal,
         taxAmount: totalTax,
-        // We use a separate property for the summary if needed, 
-        // but here discountAmount is what's used in UI
         discountAmount: mDisc,
         totalDiscount: totalBillDiscount, // Store total for display
         grandTotal: finalGrandTotal,
-        pendingAmount: Math.max(0, finalGrandTotal - totalPaid)
+        pendingAmount: Math.max(0, finalGrandTotal - (cPaid + uPaid + sPaid)),
+        taxBreakdown: Object.values(hsnMap)
       };
     });
   };
@@ -136,12 +168,23 @@ const SaleEntry = () => {
           u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
           u.multiUnits = extraData.multiUnits || [];
           u.conversionFactor = 1;
-          u.batchNo = extraData.latestBatch || 'B-101';
-          u.expiryDate = extraData.expiryDate || '';
+          u.batchNo = '';
+          u.expiryDate = '';
           // Set defaults only when product is picked
           u.quantity = 1;
           u.freeQuantity = 0;
           u.discount = 0;
+
+          // FETCH LATEST BATCH ASYNCHRONOUSLY
+          if (value) {
+            ApiService.getById('products', `${value}/latest-batch`).then(res => {
+              if (res && res.batchNo) {
+                setChildren(prevRows => prevRows.map(row => 
+                  row.id === id ? { ...row, prevBatchNo: res.batchNo } : row
+                ));
+              }
+            }).catch(err => console.log("Batch fetch error:", err));
+          }
         } else {
           // If product is cleared, reset the entire row except ID
           const fresh = newRow();
@@ -380,15 +423,31 @@ const SaleEntry = () => {
                         </div>
                       )}
                     </td>
-                    <td><input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                    <td>
+                      {child.productId && (
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#64748b', textAlign: 'center', marginBottom: '2px' }}>
+                          Prev: {child.prevBatchNo || 'No History'}
+                        </div>
+                      )}
+                      <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                    </td>
                     <td><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
                     <td>
                       <input
                         ref={el => qtyRefs.current[child.id] = el}
                         type="number" className="form-control" value={child.quantity}
                         onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                        style={{ height: '36px', textAlign: 'center', fontWeight: '700' }}
+                        style={{
+                          height: '36px',
+                          textAlign: 'center',
+                          fontWeight: '700',
+                          borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
+                          color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
+                        }}
                       />
+                      {child.productId && child.quantity > child.currentStock && (
+                        <div style={{ color: '#ef4444', fontSize: '10px', fontWeight: '800', marginTop: '2px' }}>EXCEEDS STOCK!</div>
+                      )}
                     </td>
                     <td><input type="number" className="form-control" value={child.freeQuantity || ''} onChange={(e) => handleChildChange(child.id, 'freeQuantity', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
                     <td>
@@ -530,12 +589,84 @@ const SaleEntry = () => {
           </div>
         </div>
 
+        {/* 5️⃣ Tax Breakdown Section (Professional GST Table) */}
+        <div style={{ marginTop: '25px', background: '#fff', borderRadius: '15px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div style={{ background: '#f8fafc', padding: '15px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: '#dcfce7', padding: '5px', borderRadius: '6px' }}>📄</span> TAX BREAKDOWN (GST)
+            </h3>
+            <span style={{ background: '#dcfce7', color: '#166534', padding: '5px 15px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', border: '1px solid #bbf7d0' }}>
+              INTRA-STATE SALE (CGST + SGST)
+            </span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '13px' }}>
+              <thead style={{ background: '#f8fafc', color: '#475569' }}>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <th rowSpan="2" style={{ padding: '15px', borderRight: '1px solid #f1f5f9', width: '120px' }}>HSN CODE</th>
+                  <th rowSpan="2" style={{ padding: '15px', borderRight: '1px solid #f1f5f9', width: '120px' }}>TAX RATE (%)</th>
+                  <th colSpan="2" style={{ padding: '10px', borderRight: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>CGST</th>
+                  <th colSpan="2" style={{ padding: '10px', borderRight: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>SGST</th>
+                  <th rowSpan="2" style={{ padding: '15px', width: '140px' }}>TOTAL TAX (₹)</th>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>RATE (%)</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>AMOUNT (₹)</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>RATE (%)</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>AMOUNT (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {master.taxBreakdown.length > 0 ? (
+                  master.taxBreakdown.map((item, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}>
+                      <td style={{ padding: '12px', fontWeight: '700', borderRight: '1px solid #f1f5f9' }}>{item.hsn}</td>
+                      <td style={{ padding: '12px', fontWeight: '700', borderRight: '1px solid #f1f5f9' }}>{item.taxRate}%</td>
+                      <td style={{ padding: '12px', color: '#64748b', borderRight: '1px solid #f1f5f9' }}>{item.cgstRate.toFixed(2)}%</td>
+                      <td style={{ padding: '12px', fontWeight: '600', borderRight: '1px solid #f1f5f9' }}>{item.cgstAmount.toFixed(2)}</td>
+                      <td style={{ padding: '12px', color: '#64748b', borderRight: '1px solid #f1f5f9' }}>{item.sgstRate.toFixed(2)}%</td>
+                      <td style={{ padding: '12px', fontWeight: '600', borderRight: '1px solid #f1f5f9' }}>{item.sgstAmount.toFixed(2)}</td>
+                      <td style={{ padding: '12px', fontWeight: '800', color: '#166534' }}>{item.totalTax.toFixed(2)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" style={{ padding: '20px', color: '#94a3b8', fontStyle: 'italic' }}>Add products to see tax breakdown</td>
+                  </tr>
+                )}
+                <tr style={{ background: '#f0fdf4', fontWeight: '900', color: '#166534', borderTop: '2px solid #bbf7d0' }}>
+                  <td colSpan="3" style={{ padding: '15px', textAlign: 'left', paddingLeft: '30px', fontSize: '14px' }}>TOTAL</td>
+                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
+                  <td style={{ padding: '15px' }}></td>
+                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
+                  <td style={{ padding: '15px', fontSize: '16px' }}>₹{master.taxAmount.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Bottom Buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
           <button className="btn-agro btn-outline" style={{ height: '45px', padding: '0 25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Printer size={20} /> Print Bill
           </button>
-          <button className="btn-agro btn-primary" onClick={handleSaveSale} style={{ height: '45px', padding: '0 40px', fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            className="btn-agro btn-primary"
+            onClick={handleSaveSale}
+            disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
+            style={{
+              height: '45px',
+              padding: '0 40px',
+              fontSize: '16px',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1,
+              cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
+            }}
+          >
             <Save size={20} /> Save Sale
           </button>
         </div>
