@@ -20,6 +20,7 @@ const newRow = () => ({
   unit: '',
   saleRate: '',
   discount: 0,
+  discountType: 'fixed',
   taxPercent: 0,
   taxAmount: 0,
   amount: 0,
@@ -48,6 +49,7 @@ const SaleEntry = () => {
     upiPaid: 0,
     swipePaid: 0,
     pendingAmount: 0,
+    totalDiscount: 0,
     notes: '',
     customerBalance: 0
   });
@@ -76,35 +78,42 @@ const SaleEntry = () => {
     fetchData();
   }, []);
 
-  const calculateTotals = (rows, masterDiscount, cashP, upiP, swipeP) => {
+  const calculateTotals = (rows) => {
     let subtotal = 0, totalTax = 0, totalRowDiscount = 0;
     
     rows.forEach(child => {
       const qty = parseFloat(child.quantity) || 0;
       const rate = parseFloat(child.saleRate) || 0;
-      const disc = parseFloat(child.discount) || 0;
+      const disc = parseFloat(child.actualDiscount) || 0; // Use calculated discount
       const taxP = parseFloat(child.taxPercent) || 0;
       
       const rowSub = qty * rate;
-      const discountedSub = Math.max(0, rowSub - disc);
-      const rowTax = (discountedSub * taxP) / 100;
+      const rowTax = (rowSub * taxP) / 100; // Tax on gross
       
       subtotal += rowSub;
       totalRowDiscount += disc;
       totalTax += rowTax;
     });
 
-    const totalPaid = (parseFloat(cashP) || 0) + (parseFloat(upiP) || 0) + (parseFloat(swipeP) || 0);
-
     setMaster(prev => {
-      const finalDiscount = totalRowDiscount + (parseFloat(masterDiscount) || 0);
-      const finalGrandTotal = Math.max(0, subtotal - totalRowDiscount + totalTax - (parseFloat(masterDiscount) || 0));
+      // Correctly parse values from the current state
+      const mDisc = parseFloat(prev.discountAmount) || 0;
+      const cPaid = parseFloat(prev.cashPaid) || 0;
+      const uPaid = parseFloat(prev.upiPaid) || 0;
+      const sPaid = parseFloat(prev.swipePaid) || 0;
+
+      const totalBillDiscount = totalRowDiscount + mDisc;
+      const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const totalPaid = cPaid + uPaid + sPaid;
       
       return {
         ...prev,
         subtotal: subtotal,
         taxAmount: totalTax,
-        discountAmount: finalDiscount,
+        // We use a separate property for the summary if needed, 
+        // but here discountAmount is what's used in UI
+        discountAmount: mDisc, 
+        totalDiscount: totalBillDiscount, // Store total for display
         grandTotal: finalGrandTotal,
         pendingAmount: Math.max(0, finalGrandTotal - totalPaid)
       };
@@ -151,18 +160,27 @@ const SaleEntry = () => {
         u.stockIncrement = (qty + freeQty) / factor;
       }
 
-      // Calculate Amount
+      // Calculate actual discount value based on type
       const rowSub = qty * rate;
-      const discountedSub = Math.max(0, rowSub - disc);
-      const rowTax = (discountedSub * taxP) / 100;
+      let actualDisc = 0;
+      const dVal = parseFloat(u.discount) || 0;
+      if (u.discountType === 'percent') {
+        actualDisc = (rowSub * dVal) / 100;
+      } else {
+        actualDisc = dVal;
+      }
+
+      // Calculate Amount (Strictly Excluding Tax for table display)
+      const rowTax = (rowSub * taxP) / 100; 
       
       u.taxAmount = rowTax;
-      u.amount = discountedSub + rowTax;
+      u.amount = rowSub - actualDisc; // Net amount for table
+      u.actualDiscount = actualDisc; // Store for global totals
       return u;
     });
 
     setChildren(updated);
-    calculateTotals(updated, master.discountAmount, master.cashPaid, master.upiPaid, master.swipePaid);
+    calculateTotals(updated);
 
     if (field === 'productId' && value) {
       setTimeout(() => qtyRefs.current[id]?.focus(), 50);
@@ -184,10 +202,12 @@ const SaleEntry = () => {
       const swipe = field === 'swipePaid' ? val : master.swipePaid;
       calculateTotals(children, master.discountAmount, cash, upi, swipe);
     } else {
-      setMaster(prev => ({ ...prev, [field]: value }));
-      if (field === 'discountAmount') {
-        calculateTotals(children, value, master.cashPaid, master.upiPaid, master.swipePaid);
-      }
+      setMaster(prev => {
+        const newState = { ...prev, [field]: value };
+        // Recalculate everything with new state
+        setTimeout(() => calculateTotals(children), 0);
+        return newState;
+      });
     }
   };
 
@@ -393,7 +413,25 @@ const SaleEntry = () => {
                       </div>
                     </td>
                     <td><input type="number" className="form-control" value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
-                    <td><input type="number" className="form-control" value={child.discount} onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
+                    <td>
+                      <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', height: '36px' }}>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={child.discount}
+                          onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
+                          style={{ border: 'none', width: '50px', textAlign: 'center', fontSize: '13px', borderRadius: 0, padding: '0' }}
+                        />
+                        <select
+                          value={child.discountType}
+                          onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                          style={{ border: 'none', background: '#f8fafc', borderLeft: '1px solid #e2e8f0', fontSize: '12px', padding: '0 2px', cursor: 'pointer', outline: 'none' }}
+                        >
+                          <option value="fixed">₹</option>
+                          <option value="percent">%</option>
+                        </select>
+                      </div>
+                    </td>
                     <td><input type="number" className="form-control" value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
                     <td style={{ fontWeight: '800', color: 'var(--primary)', textAlign: 'right', paddingRight: '15px' }}>₹{child.amount.toFixed(2)}</td>
                     <td style={{ textAlign: 'center' }}>
@@ -458,7 +496,7 @@ const SaleEntry = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Discount Amount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{master.discountAmount.toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.totalDiscount || 0).toFixed(2)}</span>
               </div>
               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px solid rgba(255,255,255,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
