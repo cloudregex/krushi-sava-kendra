@@ -32,7 +32,7 @@ const ViewSaleBill = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!loading && billData && items && items.length > 0 && !printProcessed.current) {
+    if (!loading && billData && !printProcessed.current) {
       const queryParams = new URLSearchParams(location.search);
       if (queryParams.get('print') === 'true') {
         printProcessed.current = true;
@@ -40,9 +40,11 @@ const ViewSaleBill = () => {
           console.log("Triggering Print...");
           window.focus();
           window.print();
-          // Auto-navigate back after printing
+          // Auto-navigate back after printing (only if not in quiet/iframe mode)
           setTimeout(() => {
-            navigate('/sales/bills');
+            if (!isQuiet) {
+              navigate('/sales/bills');
+            }
           }, 500);
         }, 500); // 500ms for faster printing
         return () => clearTimeout(timer);
@@ -181,16 +183,18 @@ const ViewSaleBill = () => {
       `}</style>
 
       {/* Top Actions */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '850px', margin: '0 auto 15px auto' }}>
-        <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')} style={{ gap: '8px' }}>
-          <ArrowLeft size={18} /> Back to Bills
-        </button>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px' }}>
-            <Printer size={18} /> Print Invoice
+      {!isQuiet && (
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '850px', margin: '0 auto 15px auto' }}>
+          <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')} style={{ gap: '8px' }}>
+            <ArrowLeft size={18} /> Back to Bills
           </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px' }}>
+              <Printer size={18} /> Print Invoice
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="invoice-box print-area">
         {/* Header */}
@@ -389,14 +393,14 @@ const ViewSaleBill = () => {
         </div>
 
         {/* Signatures */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '60px', padding: '0 50px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ borderTop: '1.5px solid #1e293b', width: '180px', marginBottom: '10px' }}></div>
+            <div style={{ borderTop: '1.5px solid #1e293b', width: '160px', marginBottom: '8px' }}></div>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Customer Signature</p>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ margin: '0 0 45px 0', fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>For KRUSHI SEVA KENDRA</p>
-            <div style={{ borderTop: '1.5px solid #1e293b', width: '220px', marginBottom: '10px' }}></div>
+            <p style={{ margin: '0 0 30px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>For KRUSHI SEVA KENDRA</p>
+            <div style={{ borderTop: '1.5px solid #1e293b', width: '200px', marginBottom: '8px' }}></div>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Authorized Signatory</p>
           </div>
         </div>

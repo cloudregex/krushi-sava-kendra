@@ -32,6 +32,30 @@ const SaleBill = () => {
     }
   };
 
+  const handlePrint = (id) => {
+    toast.loading("Preparing invoice...", { id: 'print-toast', duration: 1500 });
+    const iframeId = 'print-iframe';
+    let iframe = document.getElementById(iframeId);
+    if (iframe) {
+      document.body.removeChild(iframe);
+    }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    // CRITICAL: Chrome may block window.print() if the iframe is positioned far off-screen (-9999px).
+    // Instead, we position it behind the current page and make it fully transparent.
+    iframe.style.position = 'absolute';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.left = '0';
+    iframe.style.top = '0';
+    iframe.style.opacity = '0';
+    iframe.style.zIndex = '-1';
+    iframe.style.pointerEvents = 'none';
+    // Use the standalone print route
+    iframe.src = `/print/sale/${id}?print=true&quiet=true`;
+    document.body.appendChild(iframe);
+  };
+
   const handleDeleteClick = (bill) => {
     setBillToDelete(bill);
     setDeleteModalOpen(true);
@@ -201,7 +225,7 @@ const SaleBill = () => {
                             <Eye size={18} strokeWidth={2} />
                           </button>
                           <button
-                            onClick={() => navigate(`/print/sale/${bill.id}?print=true`)}
+                            onClick={() => handlePrint(bill.id)}
                             style={{ background: 'none', border: 'none', color: '#16a34a', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Print Bill"
                           >
