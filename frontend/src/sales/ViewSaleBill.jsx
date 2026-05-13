@@ -37,15 +37,14 @@ const ViewSaleBill = () => {
       if (queryParams.get('print') === 'true') {
         printProcessed.current = true;
         const timer = setTimeout(() => {
+          console.log("Triggering Print...");
+          window.focus();
           window.print();
-<<<<<<< HEAD
-        }, 500); // 500ms for faster printing
-=======
-          if (queryParams.get('quiet') !== 'true') {
+          // Auto-navigate back after printing
+          setTimeout(() => {
             navigate('/sales/bills');
-          }
-        }, 1000);
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
+          }, 500);
+        }, 500); // 500ms for faster printing
         return () => clearTimeout(timer);
       }
     }
@@ -182,32 +181,18 @@ const ViewSaleBill = () => {
       `}</style>
 
       {/* Top Actions */}
-<<<<<<< HEAD
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '900px', margin: '0 auto 15px auto' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '850px', margin: '0 auto 15px auto' }}>
         <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')} style={{ gap: '8px' }}>
           <ArrowLeft size={18} /> Back to Bills
         </button>
-      </div>
-=======
-      {!isQuiet && (
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '850px', margin: '0 auto 15px auto' }}>
-          <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')} style={{ gap: '8px' }}>
-            <ArrowLeft size={18} /> Back to Bills
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px' }}>
+            <Printer size={18} /> Print Invoice
           </button>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px' }}>
-              <Printer size={18} /> Print Invoice
-            </button>
-          </div>
         </div>
-      )}
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
+      </div>
 
-      <div className="invoice-box" style={{ 
-        boxShadow: isQuiet ? 'none' : '0 4px 25px rgba(0,0,0,0.1)', 
-        border: isQuiet ? 'none' : '1px solid #e2e8f0',
-        padding: isQuiet ? '20px' : '40px'
-      }}>
+      <div className="invoice-box print-area">
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
           <div>
@@ -239,12 +224,9 @@ const ViewSaleBill = () => {
               {billData.customer?.gstNo && <strong>GSTIN: {billData.customer?.gstNo}</strong>}
             </p>
           </div>
-<<<<<<< HEAD
           <div style={{ textAlign: 'right' }}>
             {/* Additional details like Transporter or Vehicle No can go here */}
           </div>
-=======
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
         </div>
 
         {/* Items Table */}
@@ -355,7 +337,7 @@ const ViewSaleBill = () => {
 
         {/* GST Analysis Table */}
         <div style={{ marginTop: '30px' }}>
-<<<<<<< HEAD
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', margin: 0 }}>GST Breakdown:</h3>
             <span style={{ fontSize: '10px', fontWeight: '800', color: '#16a34a' }}>INTRA-STATE SALE (CGST + SGST)</span>
@@ -403,39 +385,7 @@ const ViewSaleBill = () => {
               </tr>
             </tbody>
           </table>
-=======
-           <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', marginBottom: '5px' }}>GST Breakdown:</h3>
-           <table className="tax-breakdown-table">
-             <thead>
-               <tr>
-                 <th>HSN/SAC</th>
-                 <th>Taxable Value</th>
-                 <th>CGST %</th>
-                 <th>CGST Amt</th>
-                 <th>SGST %</th>
-                 <th>SGST Amt</th>
-                 <th>Total Tax</th>
-               </tr>
-             </thead>
-             <tbody>
-               {billData.taxBreakdown ? billData.taxBreakdown.map((tax, i) => (
-                 <tr key={i}>
-                   <td>{tax.hsn}</td>
-                   <td>{(tax.taxableVal || 0).toFixed(2)}</td>
-                   <td>{tax.cgstRate}%</td>
-                   <td>{tax.cgstAmount.toFixed(2)}</td>
-                   <td>{tax.sgstRate}%</td>
-                   <td>{tax.sgstAmount.toFixed(2)}</td>
-                   <td>{tax.totalTax.toFixed(2)}</td>
-                 </tr>
-               )) : (
-                 <tr>
-                   <td colSpan="7">Consolidated Tax Calculation Applied</td>
-                 </tr>
-               )}
-             </tbody>
-           </table>
->>>>>>> b986f56866e7da0562e40cdf571dfa51d0868407
+
         </div>
 
         {/* Signatures */}

@@ -302,27 +302,56 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  /* Hide non-printable layout elements globally */
+  .sidebar-wrapper, header, .no-print, .mobile-menu-toggle, footer { 
+    display: none !important; 
+  }
+  
+  /* Reset layout constraints so the print area can take full 100% width and height */
+  body, html, #root {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    display: block !important;
   }
 
-  .print-area,
-  .print-area * {
-    visibility: visible;
+  .layout-container {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  .main-content {
+    flex: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  
+  /* Reset inner scroll containers */
+  .main-content > div {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
-  .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { 
+    position: relative !important;
+    left: 0; 
+    top: 0; 
+    width: 100% !important; 
+    max-width: 100% !important;
+    margin: 0 !important;
   }
-
-  .no-print {
-    display: none !important;
-  }
-}
-
-margin: 0 !important;
-}
 }
