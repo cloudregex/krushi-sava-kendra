@@ -1121,7 +1121,7 @@ const PurchaseEntry = () => {
               <div
                 style={{
                   padding: "20px",
-                  background: "#ffffff",
+                  background: "#f8fafc",
                   borderRadius: "12px",
                   border: "1px solid var(--border-light)",
                 }}
@@ -1454,7 +1454,10 @@ const PurchaseEntry = () => {
                   </label>
                   <textarea
                     className="form-control"
-                    rows={5}
+                    style={{
+                      height: "80px",
+                      background: "#ffffff",
+                    }}
                     value={master.remark}
                     onChange={(e) =>
                       handleMasterChange("remark", e.target.value)
