@@ -53,6 +53,9 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register-admin" element={<AdminRegister />} />
+      
+      {/* Standalone Print Route (Bypasses Layout completely for perfect full-page printing) */}
+      <Route path="/print/sale/:id" element={<ProtectedRoute><ViewSaleBill /></ProtectedRoute>} />
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" />} />
