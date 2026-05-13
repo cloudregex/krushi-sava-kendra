@@ -121,14 +121,14 @@ const SaleEntry = () => {
         const rowTax = (taxableVal * taxP) / 100;
 
         if (!hsnMap[hsn]) {
-          hsnMap[hsn] = { 
-            hsn, 
-            taxRate: taxP, 
-            cgstRate: taxP / 2, 
-            sgstRate: taxP / 2, 
-            cgstAmount: rowTax / 2, 
-            sgstAmount: rowTax / 2, 
-            totalTax: rowTax 
+          hsnMap[hsn] = {
+            hsn,
+            taxRate: taxP,
+            cgstRate: taxP / 2,
+            sgstRate: taxP / 2,
+            cgstAmount: rowTax / 2,
+            sgstAmount: rowTax / 2,
+            totalTax: rowTax
           };
         } else {
           hsnMap[hsn].cgstAmount += rowTax / 2;
@@ -168,12 +168,23 @@ const SaleEntry = () => {
           u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
           u.multiUnits = extraData.multiUnits || [];
           u.conversionFactor = 1;
-          u.batchNo = extraData.latestBatch || extraData.batchNo || extraData.batch || '';
+          u.batchNo = '';
           u.expiryDate = '';
           // Set defaults only when product is picked
           u.quantity = 1;
           u.freeQuantity = 0;
           u.discount = 0;
+
+          // FETCH LATEST BATCH ASYNCHRONOUSLY
+          if (value) {
+            ApiService.getById('products', `${value}/latest-batch`).then(res => {
+              if (res && res.batchNo) {
+                setChildren(prevRows => prevRows.map(row => 
+                  row.id === id ? { ...row, prevBatchNo: res.batchNo } : row
+                ));
+              }
+            }).catch(err => console.log("Batch fetch error:", err));
+          }
         } else {
           // If product is cleared, reset the entire row except ID
           const fresh = newRow();
@@ -412,16 +423,23 @@ const SaleEntry = () => {
                         </div>
                       )}
                     </td>
-                    <td><input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                    <td>
+                      {child.productId && (
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#64748b', textAlign: 'center', marginBottom: '2px' }}>
+                          Prev: {child.prevBatchNo || 'No History'}
+                        </div>
+                      )}
+                      <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                    </td>
                     <td><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
                     <td>
                       <input
                         ref={el => qtyRefs.current[child.id] = el}
                         type="number" className="form-control" value={child.quantity}
                         onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                        style={{ 
-                          height: '36px', 
-                          textAlign: 'center', 
+                        style={{
+                          height: '36px',
+                          textAlign: 'center',
                           fontWeight: '700',
                           borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
                           color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
@@ -633,17 +651,17 @@ const SaleEntry = () => {
           <button className="btn-agro btn-outline" style={{ height: '45px', padding: '0 25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Printer size={20} /> Print Bill
           </button>
-          <button 
-            className="btn-agro btn-primary" 
-            onClick={handleSaveSale} 
+          <button
+            className="btn-agro btn-primary"
+            onClick={handleSaveSale}
             disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
-            style={{ 
-              height: '45px', 
-              padding: '0 40px', 
-              fontSize: '16px', 
-              fontWeight: '800', 
-              display: 'flex', 
-              alignItems: 'center', 
+            style={{
+              height: '45px',
+              padding: '0 40px',
+              fontSize: '16px',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
               gap: '10px',
               opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1,
               cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
