@@ -19,9 +19,9 @@ const newRow = () => ({
   freeQuantity: '',
   unit: '',
   saleRate: '',
-  discount: '',
-  discountType: 'fixed',
-  taxPercent: '',
+  discount: 0,
+  discountType: 'amount',
+  taxPercent: 0,
   taxAmount: 0,
   amount: 0,
   stockIncrement: '',
@@ -44,10 +44,12 @@ const SaleEntry = () => {
     subtotal: 0,
     taxAmount: 0,
     discountAmount: 0,
+    discountType: 'amount',
     grandTotal: 0,
     cashPaid: '',
     upiPaid: '',
     swipePaid: '',
+    paidAmount: 0,
     pendingAmount: 0,
     totalDiscount: 0,
     notes: '',
@@ -87,11 +89,11 @@ const SaleEntry = () => {
     rows.forEach(child => {
       const qty = parseFloat(child.quantity) || 0;
       const rate = parseFloat(child.saleRate) || 0;
-      const disc = parseFloat(child.actualDiscount) || 0; // Use calculated discount
+      const disc = parseFloat(child.actualDiscount) || 0;
       const taxP = parseFloat(child.taxPercent) || 0;
 
       const rowSub = qty * rate;
-      const rowTax = (rowSub * taxP) / 100; // Tax on gross
+      const rowTax = (rowSub * taxP) / 100;
 
       subtotal += rowSub;
       totalRowDiscount += disc;
@@ -99,14 +101,21 @@ const SaleEntry = () => {
     });
 
     setMaster(prev => {
-      // Correctly parse values from the current state
-      const mDisc = parseFloat(prev.discountAmount) || 0;
       const cPaid = parseFloat(prev.cashPaid) || 0;
       const uPaid = parseFloat(prev.upiPaid) || 0;
       const sPaid = parseFloat(prev.swipePaid) || 0;
 
+      const mDiscVal = parseFloat(prev.discountAmount) || 0;
+      let mDisc = 0;
+      if (prev.discountType === 'percent') {
+        mDisc = ((subtotal + totalTax - totalRowDiscount) * mDiscVal) / 100;
+      } else {
+        mDisc = mDiscVal;
+      }
+
       const totalBillDiscount = totalRowDiscount + mDisc;
       const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const totalPaid = cPaid + uPaid + sPaid;
 
       // --- DYNAMIC TAX BREAKDOWN LOGIC ---
       const hsnMap = {};
@@ -115,7 +124,6 @@ const SaleEntry = () => {
         const hsn = child.hsnCode || 'N/A';
         const taxP = parseFloat(child.taxPercent) || 0;
         const rowGross = (parseFloat(child.quantity) || 0) * (parseFloat(child.saleRate) || 0);
-        // Tax is usually on (Gross - RowDiscount)
         const rowDisc = parseFloat(child.actualDiscount) || 0;
         const taxableVal = rowGross - rowDisc;
         const rowTax = (taxableVal * taxP) / 100;
@@ -141,10 +149,12 @@ const SaleEntry = () => {
         ...prev,
         subtotal: subtotal,
         taxAmount: totalTax,
-        discountAmount: mDisc,
-        totalDiscount: totalBillDiscount, // Store total for display
+        rowDiscountAmount: totalRowDiscount,
+        masterDiscountAmount: mDisc,
+        totalDiscount: totalBillDiscount,
         grandTotal: finalGrandTotal,
-        pendingAmount: Math.max(0, finalGrandTotal - (cPaid + uPaid + sPaid)),
+        paidAmount: totalPaid,
+        pendingAmount: Math.max(0, finalGrandTotal - totalPaid),
         taxBreakdown: Object.values(hsnMap)
       };
     });
@@ -156,7 +166,6 @@ const SaleEntry = () => {
 
       let u = { ...child, [field]: value };
 
-      // If product changes, auto-fill details
       if (field === 'productId') {
         if (extraData) {
           u.productName = extraData.name || '';
@@ -170,48 +179,40 @@ const SaleEntry = () => {
           u.conversionFactor = 1;
           u.batchNo = '';
           u.expiryDate = '';
-          // Set defaults only when product is picked
           u.quantity = 1;
           u.freeQuantity = 0;
           u.discount = 0;
 
-          // FETCH LATEST BATCH ASYNCHRONOUSLY
           if (value) {
             ApiService.getById('products', `${value}/latest-batch`).then(res => {
               if (res && res.batchNo) {
-                setChildren(prevRows => prevRows.map(row => 
+                setChildren(prevRows => prevRows.map(row =>
                   row.id === id ? { ...row, prevBatchNo: res.batchNo } : row
                 ));
               }
             }).catch(err => console.log("Batch fetch error:", err));
           }
         } else {
-          // If product is cleared, reset the entire row except ID
           const fresh = newRow();
           u = { ...fresh, id: u.id };
         }
       }
 
-      // If unit changes, update conversion factor
       if (field === 'unit') {
         const mu = u.multiUnits.find(m => m.alternative === value);
         u.conversionFactor = mu ? (parseFloat(mu.conversion) || 1) : 1;
       }
 
-      // Extract current values for math
       const qty = parseFloat(u.quantity) || 0;
       const freeQty = parseFloat(u.freeQuantity) || 0;
       const rate = parseFloat(u.saleRate) || 0;
-      const disc = parseFloat(u.discount) || 0;
       const taxP = parseFloat(u.taxPercent) || 0;
       const factor = parseFloat(u.conversionFactor) || 1;
 
-      // Auto-calculate stockIncrement in primary unit
       if (['quantity', 'freeQuantity', 'unit', 'productId'].includes(field)) {
         u.stockIncrement = (qty + freeQty) / factor;
       }
 
-      // Calculate actual discount value based on type
       const rowSub = qty * rate;
       let actualDisc = 0;
       const dVal = parseFloat(u.discount) || 0;
@@ -221,12 +222,11 @@ const SaleEntry = () => {
         actualDisc = dVal;
       }
 
-      // Calculate Amount (Strictly Excluding Tax for table display)
-      const rowTax = (rowSub * taxP) / 100;
+      const rowTax = ((rowSub - actualDisc) * taxP) / 100;
 
+      u.amount = qty * rate;
       u.taxAmount = rowTax;
-      u.amount = rowSub - actualDisc; // Net amount for table
-      u.actualDiscount = actualDisc; // Store for global totals
+      u.actualDiscount = actualDisc;
       return u;
     });
 
@@ -240,47 +240,34 @@ const SaleEntry = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    if (field === 'customerId') {
-      if (value) {
-        const customer = customers.find(c => String(c.id) === String(value));
-        // Auto-fetch invoice and set date when customer is picked
-        ApiService.getAll('sales/next-invoice').then(invData => {
-          setMaster(prev => ({
-            ...prev,
-            customerId: value,
-            customerBalance: customer?.balance || 0,
-            invoiceNo: invData.invoiceNo,
-            billDate: new Date().toISOString().split('T')[0]
-          }));
-        }).catch(err => console.error("Invoice fetch error:", err));
-      } else {
-        // Reset everything if customer is cleared
+    // 1. Update the field immediately and accurately
+    setMaster(prev => ({ ...prev, [field]: value }));
+
+    // 2. Only if customer changes, fetch external data
+    if (field === 'customerId' && value) {
+      const customer = customers.find(c => String(c.id) === String(value));
+      ApiService.getAll('sales/next-invoice').then(invData => {
+        // Use functional update to avoid overwriting typed payment values
         setMaster(prev => ({
           ...prev,
-          customerId: '',
-          customerBalance: 0,
-          invoiceNo: '',
-          billDate: ''
+          customerBalance: customer?.balance || 0,
+          invoiceNo: invData.invoiceNo || '',
+          billDate: new Date().toISOString().split('T')[0]
         }));
-      }
-    } else if (['cashPaid', 'upiPaid', 'swipePaid'].includes(field)) {
-      const val = parseFloat(value) || 0;
-      setMaster(prev => ({ ...prev, [field]: val }));
-
-      // Get current values to pass to calculateTotals
-      const cash = field === 'cashPaid' ? val : master.cashPaid;
-      const upi = field === 'upiPaid' ? val : master.upiPaid;
-      const swipe = field === 'swipePaid' ? val : master.swipePaid;
-      calculateTotals(children, master.discountAmount, cash, upi, swipe);
-    } else {
-      setMaster(prev => {
-        const newState = { ...prev, [field]: value };
-        // Recalculate everything with new state
-        setTimeout(() => calculateTotals(children), 0);
-        return newState;
-      });
+      }).catch(err => console.error("Invoice fetch error:", err));
     }
   };
+
+  useEffect(() => {
+    calculateTotals(children);
+  }, [
+    children,
+    master.cashPaid,
+    master.upiPaid,
+    master.swipePaid,
+    master.discountAmount,
+    master.discountType
+  ]);
 
   const addChildRow = () => {
     const r = newRow();
@@ -292,7 +279,7 @@ const SaleEntry = () => {
     if (children.length > 1) {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
-      calculateTotals(updated, master.discountAmount, master.paymentMode);
+      calculateTotals(updated);
     }
   };
 
@@ -303,27 +290,39 @@ const SaleEntry = () => {
     try {
       const payload = {
         ...master,
-        items: children.map(c => ({
+        items: validItems.map(c => ({
           productId: c.productId,
+          productName: c.productName,
           batchNo: c.batchNo,
           expiryDate: c.expiryDate,
-          quantity: c.quantity,
-          freeQuantity: c.freeQuantity,
+          quantity: parseFloat(c.quantity),
+          freeQuantity: parseFloat(c.freeQuantity) || 0,
           unit: c.unit,
-          rate: c.saleRate,
-          discount: c.discount,
-          taxPercent: c.taxPercent,
-          taxAmount: c.taxAmount,
-          totalAmount: c.amount,
-          stockIncrement: c.stockIncrement,
-          conversionFactor: c.conversionFactor
+          rate: parseFloat(c.saleRate),
+          discount: parseFloat(c.actualDiscount) || 0,
+          taxPercent: parseFloat(c.taxPercent) || 0,
+          taxAmount: parseFloat(c.taxAmount) || 0,
+          totalAmount: parseFloat(c.amount) // This is qty * rate
         }))
       };
-      await ApiService.add('sales', payload);
-      toast.success("Sale saved successfully!");
-      navigate('/sales/bills');
+
+      console.log("Saving Sale Data:", saleData);
+      const response = await ApiService.add('sales', saleData);
+
+      if (response) {
+        alert("🎉 Sale Saved Successfully!");
+        // Reset Form
+        setMaster({
+          invoiceNo: '', customerId: '', billDate: '', subtotal: 0, taxAmount: 0,
+          rowDiscountAmount: 0, masterDiscountAmount: 0, totalDiscount: 0,
+          grandTotal: 0, cashPaid: '', upiPaid: '', swipePaid: '', paidAmount: 0,
+          pendingAmount: 0, notes: '', customerBalance: 0, taxBreakdown: []
+        });
+        setChildren([newRow()]);
+      }
     } catch (error) {
-      toast.error("Failed to save sale");
+      console.error("Save Sale Error:", error);
+      alert("❌ Error saving sale: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -331,7 +330,6 @@ const SaleEntry = () => {
     <div className="agro-container">
       <div className="agro-unified-card" style={{ padding: '20px' }}>
 
-        {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', margin: 0 }}>Professional Sale Bill</h1>
@@ -344,7 +342,6 @@ const SaleEntry = () => {
           </div>
         </div>
 
-        {/* 1️⃣ Invoice Details Section */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>CUSTOMER SEARCH</label>
@@ -379,7 +376,6 @@ const SaleEntry = () => {
           </div>
         </div>
 
-        {/* 2️⃣ Products Section */}
         <div style={{ marginBottom: '25px', borderRadius: '15px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
           <div style={{ background: '#f8fafc', padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: '14px', fontWeight: '800', margin: 0, color: 'var(--primary)' }}>PRODUCT DETAILS</h3>
@@ -399,7 +395,7 @@ const SaleEntry = () => {
                   <th style={{ width: '120px', textAlign: 'center' }}>UNIT</th>
                   <th style={{ width: '140px', textAlign: 'center' }}>STOCK INC</th>
                   <th style={{ width: '130px', textAlign: 'center' }}>SALE RATE</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>DISC</th>
+                  <th style={{ width: '150px', textAlign: 'center' }}>DISC</th>
                   <th style={{ width: '100px', textAlign: 'center' }}>TAX %</th>
                   <th style={{ width: '140px', textAlign: 'center' }}>TOTAL</th>
                   <th style={{ width: '50px' }}></th>
@@ -457,10 +453,7 @@ const SaleEntry = () => {
                         onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
                         style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
                       >
-                        {/* Always show the primary unit first */}
                         <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
-
-                        {/* Show alternative units if they are not the same as primary */}
                         {child.multiUnits && child.multiUnits.map((mu, i) => (
                           mu.alternative !== (child.primaryUnit || child.unit) && (
                             <option key={i} value={mu.alternative}>{mu.alternative}</option>
@@ -497,20 +490,21 @@ const SaleEntry = () => {
                     </td>
                     <td><input type="number" className="form-control" value={child.saleRate === 0 || child.saleRate === '0' ? '' : child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
                     <td>
-                      <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', height: '36px' }}>
+                      <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
                         <input
                           type="number"
                           className="form-control"
-                          value={child.discount || ''}
+                          value={child.discount === 0 || child.discount === '0' ? '' : child.discount}
                           onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
-                          style={{ border: 'none', width: '50px', textAlign: 'center', fontSize: '13px', borderRadius: 0, padding: '0' }}
+                          placeholder="0"
+                          style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
                         />
                         <select
                           value={child.discountType}
                           onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
-                          style={{ border: 'none', background: '#f8fafc', borderLeft: '1px solid #e2e8f0', fontSize: '12px', padding: '0 2px', cursor: 'pointer', outline: 'none' }}
+                          style={{ border: 'none', borderLeft: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', padding: '0 5px', cursor: 'pointer', outline: 'none' }}
                         >
-                          <option value="fixed">₹</option>
+                          <option value="amount">₹</option>
                           <option value="percent">%</option>
                         </select>
                       </div>
@@ -529,39 +523,66 @@ const SaleEntry = () => {
           </div>
         </div>
 
-        {/* Bottom Section: 3️⃣ Payment, 4️⃣ Summary, 5️⃣ Tax Breakdown */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-
-          {/* 3️⃣ Payment Info Section */}
-          <div className="agro-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '20px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="agro-card" style={{ padding: '25px', borderRadius: '15px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', marginBottom: '20px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <CreditCard size={18} /> PAYMENT INFO
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
-              <div className="form-group">
-                <label>CASH (₹)</label>
-                <input type="number" className="form-control" value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
-              </div>
-              <div className="form-group">
-                <label>UPI (₹)</label>
-                <input type="number" className="form-control" value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
-              </div>
-              <div className="form-group">
-                <label>SWIPE (₹)</label>
-                <input type="number" className="form-control" value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
-              </div>
-              <div className="form-group">
-                <label style={{ color: '#ef4444' }}>PENDING (₹)</label>
-                <div style={{ height: '45px', background: '#fef2f2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '800', color: '#ef4444', border: '1px solid #fee2e2' }}>
-                  {master.pendingAmount.toFixed(2)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>DISCOUNT</label>
+                  <div style={{ display: 'flex', border: '1px solid #bbf7d0', borderRadius: '8px', overflow: 'hidden' }}>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={master.discountAmount === 0 || master.discountAmount === '0' ? '' : master.discountAmount}
+                      onChange={(e) => handleMasterChange('discountAmount', e.target.value)}
+                      placeholder="0"
+                      style={{ border: 'none', height: '45px', textAlign: 'center', fontWeight: '700', flex: 1 }}
+                    />
+                    <select
+                      value={master.discountType}
+                      onChange={(e) => handleMasterChange('discountType', e.target.value)}
+                      style={{ border: 'none', borderLeft: '1px solid #bbf7d0', background: '#f0fdf4', fontSize: '14px', fontWeight: '800', padding: '0 10px', cursor: 'pointer', outline: 'none' }}
+                    >
+                      <option value="amount">₹</option>
+                      <option value="percent">%</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>CASH (₹)</label>
+                  <input type="number" className="form-control" value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>UPI (₹)</label>
+                  <input type="number" className="form-control" value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>SWIPE (₹)</label>
+                  <input type="number" className="form-control" value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
                 </div>
               </div>
-            </div>
 
-            <div className="form-group">
-              <label>NOTES / REMARK</label>
-              <textarea className="form-control" value={master.notes} onChange={(e) => handleMasterChange('notes', e.target.value)} placeholder="Add any notes here..." rows="2" style={{ resize: 'none' }}></textarea>
+              {/* Line 2: Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534' }}>PAID AMOUNT</span>
+                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#166534' }}>₹{(master.paidAmount || 0).toFixed(2)}</span>
+                </div>
+                <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#991b1b' }}>PENDING AMOUNT</span>
+                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#991b1b' }}>₹{(master.pendingAmount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Line 3: Notes */}
+              <div className="form-group">
+                <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>NOTES / REMARK</label>
+                <textarea className="form-control" value={master.notes} onChange={(e) => handleMasterChange('notes', e.target.value)} placeholder="Write any additional notes here..." style={{ height: '60px', borderRadius: '10px', resize: 'none' }}></textarea>
+              </div>
             </div>
           </div>
 
@@ -571,19 +592,23 @@ const SaleEntry = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Subtotal</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{master.subtotal.toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{(master.subtotal || 0).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Tax Amount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{master.taxAmount.toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{(master.taxAmount || 0).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '13px', opacity: 0.9 }}>Discount Amount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.totalDiscount || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Product Discount</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.rowDiscountAmount || 0).toFixed(2)}</span>
               </div>
-              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px solid rgba(255,255,255,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Bill Discount</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.masterDiscountAmount || 0).toFixed(2)}</span>
+              </div>
+              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
-                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{master.grandTotal.toFixed(2)}</span>
+                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{(master.grandTotal || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>
