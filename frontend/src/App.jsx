@@ -33,6 +33,7 @@ import SaleReturn from './sales/SaleReturn';
 import NewSaleReturn from './sales/NewSaleReturn';
 import ViewSaleReturn from './sales/ViewSaleReturn';
 import ViewSaleBill from './sales/ViewSaleBill';
+import EditSaleBill from './sales/EditSaleBill';
 
 import PurchaseBill from './purchase/PurchaseBill';
 import ViewPurchaseBill from './purchase/ViewPurchaseBill';
@@ -95,10 +96,10 @@ const AppRoutes = () => {
           <Route path="edit/:id" element={<UnitEdit />} />
         </Route>
 
-        {/* Sales Routes */}
         <Route path="sales">
           <Route path="bills" element={<SaleBill />} />
           <Route path="bills/view/:id" element={<ViewSaleBill />} />
+          <Route path="bills/edit/:id" element={<EditSaleBill />} />
           <Route path="entry" element={<SaleEntry />} />
           <Route path="quotations" element={<Quotation />} />
           <Route path="quotations/new" element={<NewQuotation />} />

@@ -11,6 +11,8 @@ const SaleBill = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [billToDelete, setBillToDelete] = useState(null);
 
   useEffect(() => {
     fetchBills();
@@ -25,6 +27,22 @@ const SaleBill = () => {
       console.error("Error fetching bills:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (bill) => {
+    setBillToDelete(bill);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await ApiService.delete('sales', billToDelete.id);
+      setDeleteModalOpen(false);
+      setBillToDelete(null);
+      fetchBills();
+    } catch (error) {
+      console.error("Delete Error:", error);
     }
   };
 
@@ -144,7 +162,7 @@ const SaleBill = () => {
                       {(() => {
                         const pm = bill.paymentMode;
                         if (!pm) return <span style={{ color: '#94a3b8', fontSize: '11px' }}>N/A</span>;
-                        
+
                         // Legacy string format
                         if (typeof pm === 'string') {
                           return <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', color: '#475569' }}>{pm}</span>;
@@ -153,9 +171,9 @@ const SaleBill = () => {
                         // JSON Object format
                         try {
                           const parsed = typeof pm === 'string' ? JSON.parse(pm) : pm;
-                          
+
                           if ((parsed.cash || 0) === 0 && (parsed.upi || 0) === 0 && (parsed.swipe || 0) === 0) {
-                             return <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '600' }}>Unpaid</span>;
+                            return <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '600' }}>Unpaid</span>;
                           }
 
                           return (
@@ -189,14 +207,14 @@ const SaleBill = () => {
                             <Printer size={18} strokeWidth={2} />
                           </button>
                           <button
-                            onClick={() => console.log('Edit clicked')}
+                            onClick={() => navigate(`/sales/bills/edit/${bill.id}`)}
                             style={{ background: 'none', border: 'none', color: '#eab308', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Edit Bill"
                           >
                             <Edit size={18} strokeWidth={2} />
                           </button>
                           <button
-                            onClick={() => console.log('Delete clicked')}
+                            onClick={() => handleDeleteClick(bill)}
                             style={{ background: 'none', border: 'none', color: '#ef4444', padding: 0, cursor: 'pointer', display: 'flex' }}
                             title="Delete Bill"
                           >
@@ -215,6 +233,36 @@ const SaleBill = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '25px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', color: '#ef4444' }}>
+              <Trash2 size={30} />
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Delete Sale Bill?</h3>
+            </div>
+            <p style={{ margin: '0 0 25px 0', fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
+              Are you sure you want to delete bill <strong>{billToDelete?.invoiceNo}</strong>? This action cannot be undone and will revert the stock inventory.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                className="btn-agro btn-outline"
+                onClick={() => { setDeleteModalOpen(false); setBillToDelete(null); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-agro btn-primary"
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                onClick={confirmDelete}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

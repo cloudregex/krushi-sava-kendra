@@ -264,14 +264,16 @@ body {
     gap: 15px;
   }
 
-  .agro-header-compact > div:last-child {
+  .agro-header-compact>div:last-child {
     width: 100%;
     display: flex;
     justify-content: space-between;
   }
 
   /* Grid adjustments */
-  .grid-2, .grid-3, .grid-4 {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
     grid-template-columns: 1fr !important;
   }
 
@@ -284,7 +286,8 @@ body {
   }
 
   .agro-table {
-    min-width: 600px; /* Ensure table doesn't squish too much */
+    min-width: 600px;
+    /* Ensure table doesn't squish too much */
   }
 
   .btn-agro {
@@ -299,8 +302,27 @@ body {
 }
 
 @media print {
-  body * { visibility: hidden; }
-  .print-area, .print-area * { visibility: visible; }
-  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-  .no-print { display: none !important; }
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+margin: 0 !important;
+}
 }

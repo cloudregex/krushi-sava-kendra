@@ -28,7 +28,10 @@ const newRow = () => ({
   conversionFactor: 1
 });
 
-const SaleEntry = () => {
+import { useParams } from 'react-router-dom';
+
+const EditSaleBill = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [customers, setCustomers] = useState([]);
@@ -63,25 +66,82 @@ const SaleEntry = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [custData, prodData, unitData] = await Promise.all([
+        const [custData, prodData, unitData, saleData] = await Promise.all([
           ApiService.getAll('customers'),
           ApiService.getAll('products'),
-          ApiService.getAll('units')
+          ApiService.getAll('units'),
+          ApiService.getById('sales', id)
         ]);
-        console.log("Fetched Customers:", custData);
-        console.log("Fetched Products:", prodData);
+        
         setCustomers(custData);
-        // Only show saleable products
         const saleable = prodData.filter(p => p.isSaleable);
-        console.log("Saleable Products:", saleable);
         setProducts(saleable);
         setUnits(unitData);
+
+        if (saleData) {
+          const sale = saleData.sale || saleData;
+          const sItems = saleData.items || [];
+          
+          let pm = { cash: 0, upi: 0, swipe: 0 };
+          try {
+             if (typeof sale.paymentMode === 'string') pm = JSON.parse(sale.paymentMode);
+             else if (sale.paymentMode) pm = sale.paymentMode;
+          } catch(e) {}
+
+          setMaster(prev => ({
+            ...prev,
+            invoiceNo: sale.invoiceNo || '',
+            customerId: sale.customerId || '',
+            billDate: sale.billDate || '',
+            subtotal: sale.subtotal || 0,
+            taxAmount: sale.taxAmount || 0,
+            discountAmount: sale.discountAmount || 0,
+            discountType: 'amount', 
+            grandTotal: sale.grandTotal || 0,
+            cashPaid: pm.cash || '',
+            upiPaid: pm.upi || '',
+            swipePaid: pm.swipe || '',
+            paidAmount: sale.paidAmount || 0,
+            pendingAmount: sale.balanceAmount || 0,
+            totalDiscount: sale.discountAmount || 0,
+            notes: sale.notes || '',
+            customerBalance: 0
+          }));
+
+          const mappedItems = sItems.map(item => {
+             const prod = saleable.find(p => p.id === item.productId) || {};
+             return {
+                id: item.id || Date.now() + Math.random(),
+                productId: item.productId,
+                productName: prod.name || '',
+                primaryUnit: prod.unit || '',
+                hsnCode: prod.hsnCode || '',
+                batchNo: item.batchNo || '',
+                expiryDate: item.expiryDate || '',
+                currentStock: prod.currentStock || 0,
+                quantity: item.quantity,
+                freeQuantity: item.freeQuantity || 0,
+                unit: item.unit || '',
+                saleRate: item.rate || 0,
+                discount: item.discount || 0,
+                discountType: 'amount',
+                taxPercent: item.taxPercent || 0,
+                taxAmount: item.taxAmount || 0,
+                amount: item.totalAmount || 0,
+                stockIncrement: 0,
+                conversionFactor: 1,
+                multiUnits: prod.multiUnits || []
+             };
+          });
+
+          if (mappedItems.length > 0) setChildren(mappedItems);
+        }
       } catch (error) {
         console.error("Fetch error:", error);
       }
     };
-    fetchData();
-  }, []);
+    if (id) fetchData();
+  }, [id]);
 
   const calculateTotals = (rows) => {
     let subtotal = 0, totalTax = 0, totalRowDiscount = 0;
@@ -236,27 +296,7 @@ const SaleEntry = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    // 1. Update the field immediately and accurately
     setMaster(prev => ({ ...prev, [field]: value }));
-
-    // 2. Only if customer changes, fetch external data
-    if (field === 'customerId') {
-      if (!value) {
-        setMaster(prev => ({ ...prev, customerBalance: 0, invoiceNo: '', billDate: '' }));
-        return;
-      }
-
-      const customer = customers.find(c => String(c.id) === String(value));
-      ApiService.getAll('sales/next-invoice').then(invData => {
-        // Use functional update to avoid overwriting typed payment values
-        setMaster(prev => ({
-          ...prev,
-          customerBalance: customer?.balance || 0,
-          invoiceNo: invData.invoiceNo || '',
-          billDate: new Date().toISOString().split('T')[0]
-        }));
-      }).catch(err => console.error("Invoice fetch error:", err));
-    }
   };
 
   useEffect(() => {
@@ -324,10 +364,10 @@ const SaleEntry = () => {
         }))
       };
 
-      const response = await ApiService.add('sales', payload);
+      const response = await ApiService.update('sales', id, payload);
 
-      if (response && response.sale) {
-        toast.success("Sale Saved Successfully!");
+      if (response) {
+        toast.success("Sale Updated Successfully!");
         navigate('/sales/bills');
       }
     } catch (error) {
@@ -348,7 +388,7 @@ const SaleEntry = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', margin: 0 }}>Professional Sale Bill</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', margin: 0 }}>Edit Sale Bill ({master.invoiceNo})</h1>
             <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>Krushi Seva Kendra Billing System</p>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -629,13 +669,13 @@ const SaleEntry = () => {
 
               {/* Action Buttons inside Bill Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', marginTop: '20px' }}>
-                <button
-                  className="btn-agro"
+                <button 
+                  className="btn-agro" 
                   onClick={handleCancel}
-                  style={{
-                    height: '45px',
-                    background: 'rgba(255,255,255,0.1)',
-                    color: 'white',
+                  style={{ 
+                    height: '45px', 
+                    background: 'rgba(255,255,255,0.1)', 
+                    color: 'white', 
                     border: '1px solid rgba(255,255,255,0.3)',
                     fontWeight: '700',
                     borderRadius: '10px'
@@ -643,14 +683,14 @@ const SaleEntry = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  className="btn-agro"
+                <button 
+                  className="btn-agro" 
                   onClick={() => handleSaveSale(false)}
                   disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
-                  style={{
-                    height: '45px',
-                    background: 'white',
-                    color: 'var(--primary)',
+                  style={{ 
+                    height: '45px', 
+                    background: 'white', 
+                    color: 'var(--primary)', 
                     border: 'none',
                     fontWeight: '900',
                     borderRadius: '10px',
@@ -659,7 +699,7 @@ const SaleEntry = () => {
                     cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <Save size={18} /> Save Sale
+                  <Save size={18} /> Update Sale
                 </button>
               </div>
             </div>
@@ -728,4 +768,4 @@ const SaleEntry = () => {
   );
 };
 
-export default SaleEntry;
+export default EditSaleBill;
