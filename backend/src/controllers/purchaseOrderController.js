@@ -65,3 +65,22 @@ exports.getById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+exports.delete = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const purchaseOrder = await PurchaseOrder.findByPk(id, { transaction: t });
+        if (!purchaseOrder) return res.status(404).json({ message: 'Order not found' });
+
+        await PurchaseOrderItem.destroy({ where: { purchaseOrderId: id }, transaction: t });
+        await purchaseOrder.destroy({ transaction: t });
+
+        await t.commit();
+        await logActivity(req, 'PurchaseOrder', 'DELETE', `Deleted purchase order ID: ${id}`);
+        res.status(200).json({ message: 'Purchase order deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error("Purchase Order delete error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};

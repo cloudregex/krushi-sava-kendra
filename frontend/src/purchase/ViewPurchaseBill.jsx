@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, FileText, Calendar, User, Package, IndianRupee, Printer, CheckCircle, Clock } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
 
@@ -8,43 +8,69 @@ import '../mastermodel/styles/MasterModel.css';
 const ViewPurchaseBill = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [billData, setBillData] = useState(null);
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock fetching data based on ID
     const fetchBillData = async () => {
-      // Mock Master Data
-      const mockMaster = {
-        id: id,
-        supplierId: 'SUP-101',
-        supplierName: 'Agro Traders Pvt Ltd',
-        billDate: '2026-04-18',
-        paymentType: 'Swipe',
-        status: 'Paid',
-        totalAmount: 18000.00,
-        taxAmount: 500.00,
-        grandTotal: 18500.00,
-        paidAmount: 18500.00,
-        dueAmount: 0
-      };
-
-      // Mock Items Data
-      const mockItems = [
-        { id: 1, productName: 'DAP Fertilizer 50kg', batchNo: 'B-890', quantity: 20, purchasePrice: 850.00, taxPercent: 5, taxAmount: 42.50, amount: 892.50 * 20 },
-        { id: 2, productName: 'Urea Fertilizer 50kg', batchNo: 'B-120', quantity: 15, purchasePrice: 400.00, taxPercent: 5, taxAmount: 20.00, amount: 420.00 * 15 }
-      ];
-
-      setBillData(mockMaster);
-      setItems(mockItems);
+      try {
+        const data = await ApiService.getById('purchases', id);
+        if (data) {
+          setBillData({
+            ...data,
+            supplierName: data.Supplier?.name || 'N/A',
+            billDate: data.billDate || '-',
+            paymentType: data.paymentType || 'Mixed',
+            grandTotal: parseFloat(data.grandTotal) || 0,
+            taxAmount: parseFloat(data.totalTaxAmount) || 0,
+            totalAmount: parseFloat(data.subtotal) || 0,
+            paidAmount: parseFloat(data.paidAmount) || 0,
+            dueAmount: parseFloat(data.dueAmount) || 0
+          });
+          setItems(data.items || []);
+        }
+      } catch (err) {
+        console.error('Error fetching bill details:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchBillData();
   }, [id]);
 
-  if (!billData) {
+  const printProcessed = React.useRef(false);
+
+  useEffect(() => {
+    if (!loading && billData && !printProcessed.current) {
+      const queryParams = new URLSearchParams(location.search);
+      if (queryParams.get('print') === 'true') {
+        printProcessed.current = true;
+        setTimeout(() => {
+          window.print();
+          navigate('/purchase/bills');
+        }, 500);
+      }
+    }
+  }, [loading, billData, location.search, navigate]);
+
+  if (loading) {
     return <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Loading bill details...</div>;
   }
+
+  if (!billData) {
+    return <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Bill not found.</div>;
+  }
+
+  const getStatus = (bill) => {
+    const paid = parseFloat(bill.paidAmount) || 0;
+    const due = parseFloat(bill.dueAmount) || 0;
+    if (due <= 0) return 'Paid';
+    if (paid > 0) return 'Partial';
+    return 'Unpaid';
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -58,10 +84,10 @@ const ViewPurchaseBill = () => {
   const getTaxBreakdown = () => {
     const breakdown = {};
     items.forEach(item => {
-      const hsn = item.hsnCode || '31021000';
-      const rate = item.taxPercent || 0;
-      const taxableValue = (item.purchasePrice / (1 + (rate / 100))) * (item.altQuantity || item.quantity);
-      const totalTax = (taxableValue * rate) / 100;
+      const hsn = item.hsnCode || 'N/A';
+      const rate = parseFloat(item.taxPercent) || 0;
+      const taxableValue = parseFloat(item.totalAmount) || 0;
+      const totalTax = parseFloat(item.taxAmount) || 0;
       
       if (!breakdown[hsn]) {
         breakdown[hsn] = {
@@ -105,16 +131,23 @@ const ViewPurchaseBill = () => {
     return res + 'Only';
   };
 
+  const queryParams = new URLSearchParams(location.search);
+  const isQuiet = queryParams.get('quiet') === 'true';
+
   return (
-    <div className="agro-container print-area" style={{ padding: '0 10px', background: '#f1f5f9', minHeight: '100vh' }}>
+    <div className="agro-container print-area" style={{ 
+      padding: isQuiet ? '0' : '0 10px', 
+      background: isQuiet ? 'white' : '#f1f5f9', 
+      minHeight: '100vh' 
+    }}>
       <style>
         {`
           .invoice-box {
             max-width: 1000px;
-            margin: 20px auto;
+            margin: ${isQuiet ? '0' : '20px auto'};
             padding: 30px;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            border: ${isQuiet ? 'none' : '1px solid #eee'};
+            box-shadow: ${isQuiet ? 'none' : '0 0 10px rgba(0, 0, 0, 0.15)'};
             font-size: 13px;
             line-height: 24px;
             font-family: 'Inter', sans-serif;
@@ -185,14 +218,13 @@ const ViewPurchaseBill = () => {
         `}
       </style>
 
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '15px 0', maxWidth: '1000px', margin: '0 auto' }}>
-        <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ background: 'var(--primary)', color: 'white', padding: '8px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Printer size={18} /> Print Bill
-        </button>
-        <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/bills')} style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={18} /> Back
-        </button>
-      </div>
+      {!isQuiet && (
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '15px 0', maxWidth: '1000px', margin: '0 auto' }}>
+          <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/bills')} style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ArrowLeft size={18} /> Back
+          </button>
+        </div>
+      )}
 
       <div className="invoice-box">
         <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '15px', marginBottom: '20px' }}>
@@ -205,11 +237,12 @@ const ViewPurchaseBill = () => {
           <div>
             <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Supplier Details</h3>
             <p style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>{billData.supplierName}</p>
-            <p style={{ margin: '2px 0', color: '#555' }}>GSTIN: 27SUPPL1234G1Z1</p>
+            <p style={{ margin: '2px 0', color: '#555' }}>GSTIN: {billData.Supplier?.gstNumber || 'N/A'}</p>
             <p style={{ margin: '2px 0', color: '#555' }}>Supplier ID: {billData.supplierId}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: '2px 0' }}><strong>Invoice No:</strong> {billData.id}</p>
+            <p style={{ margin: '2px 0' }}><strong>Invoice No:</strong> PUR-{billData.id}</p>
+            <p style={{ margin: '2px 0' }}><strong>Ref Inv No:</strong> {billData.supplierInvoiceNumber || '-'}</p>
             <p style={{ margin: '2px 0' }}><strong>Date:</strong> {billData.billDate}</p>
             <p style={{ margin: '2px 0' }}><strong>Payment Mode:</strong> {billData.paymentType}</p>
           </div>
@@ -223,64 +256,57 @@ const ViewPurchaseBill = () => {
               <th style={{ width: '80px' }}>HSN/SAC</th>
               <th style={{ width: '60px', textAlign: 'center' }}>GST Rate</th>
               <th style={{ width: '100px', textAlign: 'center' }}>Quantity</th>
-              <th style={{ width: '80px', textAlign: 'right' }}>Rate (Incl.)</th>
-              <th style={{ width: '80px', textAlign: 'right' }}>Rate</th>
+              <th style={{ width: '80px', textAlign: 'right' }}>Rate (Excl.)</th>
               <th style={{ width: '60px', textAlign: 'center' }}>per</th>
               <th style={{ width: '100px', textAlign: 'right' }}>Amount</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, index) => {
-              const rate = item.taxPercent || 0;
-              const taxableRate = (item.purchasePrice / (1 + (rate / 100))).toFixed(2);
-              const rowAmount = (taxableRate * (item.altQuantity || item.quantity)).toFixed(2);
               return (
-                <tr key={item.id}>
+                <tr key={index}>
                   <td style={{ textAlign: 'center' }}>{index + 1}</td>
                   <td>
-                    <strong>{item.productName}</strong>
-                    <div style={{ fontSize: '10px', color: '#666' }}>Batch: {item.batchNo}</div>
+                    <strong>{item.Product?.name || 'Unknown Product'}</strong>
+                    <div style={{ fontSize: '10px', color: '#666' }}>Batch: {item.batchNo || '-'}</div>
                   </td>
-                  <td>{item.hsnCode || '31021000'}</td>
+                  <td>{item.hsnCode || '-'}</td>
                   <td style={{ textAlign: 'center' }}>{item.taxPercent}%</td>
-                  <td style={{ textAlign: 'center' }}>{item.altQuantity || item.quantity} {item.unit || 'Bag'}</td>
-                  <td style={{ textAlign: 'right' }}>{item.purchasePrice.toFixed(2)}</td>
-                  <td style={{ textAlign: 'right' }}>{taxableRate}</td>
-                  <td style={{ textAlign: 'center' }}>{item.unit || 'Bag'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: '700' }}>{rowAmount}</td>
+                  <td style={{ textAlign: 'center' }}>{item.purchaseQty} {item.unit}</td>
+                  <td style={{ textAlign: 'right' }}>{(parseFloat(item.purchasePrice)).toFixed(2)}</td>
+                  <td style={{ textAlign: 'center' }}>{item.unit}</td>
+                  <td style={{ textAlign: 'right', fontWeight: '700' }}>{(parseFloat(item.totalAmount)).toFixed(2)}</td>
                 </tr>
               );
             })}
-            
-
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan="7" style={{ border: 'none', borderTop: '1px solid #ddd' }}></td>
+              <td colSpan="6" style={{ border: 'none', borderTop: '1px solid #ddd' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>SubTotal</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{billData.totalAmount.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan="7" style={{ border: 'none' }}></td>
+              <td colSpan="6" style={{ border: 'none' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>CGST</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{(billData.taxAmount / 2).toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan="7" style={{ border: 'none' }}></td>
+              <td colSpan="6" style={{ border: 'none' }}></td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>SGST</td>
               <td style={{ textAlign: 'right', fontWeight: '700' }}>{(billData.taxAmount / 2).toFixed(2)}</td>
             </tr>
-            {billData.grandTotal % 1 !== 0 && (
+            {billData.discount > 0 && (
               <tr>
-                <td colSpan="7" style={{ border: 'none' }}></td>
-                <td style={{ textAlign: 'right', fontWeight: '700' }}>Round Off</td>
-                <td style={{ textAlign: 'right', fontWeight: '700' }}>{ (Math.round(billData.grandTotal) - billData.grandTotal).toFixed(2) }</td>
+                <td colSpan="6" style={{ border: 'none' }}></td>
+                <td style={{ textAlign: 'right', fontWeight: '700' }}>Discount</td>
+                <td style={{ textAlign: 'right', fontWeight: '700' }}>-{billData.discount.toFixed(2)}</td>
               </tr>
             )}
             <tr style={{ background: '#f8fafc' }}>
-              <td colSpan="7" style={{ textAlign: 'right', border: 'none', fontWeight: '900', fontSize: '14px' }}>Total</td>
+              <td colSpan="6" style={{ textAlign: 'right', border: 'none', fontWeight: '900', fontSize: '14px' }}>Total</td>
               <td style={{ border: 'none', borderTop: '2px solid #333' }}></td>
-              <td style={{ textAlign: 'right', fontWeight: '900', fontSize: '16px', borderTop: '2px solid #333' }}>₹{Math.round(billData.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              <td style={{ textAlign: 'right', fontWeight: '900', fontSize: '16px', borderTop: '2px solid #333' }}>₹{billData.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             </tr>
           </tfoot>
         </table>

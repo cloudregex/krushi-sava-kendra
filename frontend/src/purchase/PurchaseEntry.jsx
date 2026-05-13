@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Plus,
   Trash2,
@@ -44,6 +44,7 @@ const newRow = () => ({
 
 const PurchaseEntry = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const rowRefs = useRef({});
@@ -98,6 +99,54 @@ const PurchaseEntry = () => {
         if (Array.isArray(data)) setProducts(data);
       })
       .catch((err) => console.error("Product fetch error:", err));
+
+    if (id) {
+      ApiService.getById("purchases", id)
+        .then((data) => {
+          if (data) {
+            setMaster({
+              supplierId: data.supplierId || "",
+              supplierInvoiceNumber: data.supplierInvoiceNumber || "",
+              billDate: data.billDate || new Date().toISOString().split("T")[0],
+              totalQuantity: data.totalQuantity || 0,
+              subtotal: data.subtotal || 0,
+              totalTaxAmount: data.totalTaxAmount || 0,
+              discount: data.discount || 0,
+              discountType: data.discountType || "%",
+              grandTotal: data.grandTotal || 0,
+              cashAmount: data.cashAmount || 0,
+              upiAmount: data.upiAmount || 0,
+              swipeAmount: data.swipeAmount || 0,
+              paidAmount: data.paidAmount || 0,
+              dueAmount: data.dueAmount || 0,
+              remark: data.remark || "",
+            });
+
+            if (data.items && data.items.length > 0) {
+              setChildren(
+                data.items.map((item) => ({
+                  ...newRow(),
+                  ...item,
+                  id: item.id || Date.now() + Math.random(),
+                  productId: item.productId,
+                  purchaseQty: item.purchaseQty,
+                  freeQty: item.freeQty,
+                  quantity: item.quantity,
+                  unit: item.unit,
+                  batchNo: item.batchNo,
+                  expiryDate: item.expiryDate ? item.expiryDate.split("T")[0] : "",
+                  purchasePrice: item.purchasePrice,
+                  salePrice: item.salePrice,
+                  taxPercent: item.taxPercent,
+                  taxAmount: item.taxAmount,
+                  totalAmount: item.totalAmount,
+                })),
+              );
+            }
+          }
+        })
+        .catch((err) => console.error("Fetch purchase error:", err));
+    }
 
     ApiService.getAll("units")
       .then((data) => {
@@ -404,6 +453,7 @@ const PurchaseEntry = () => {
       }));
 
       const payload = {
+        id: id ? Number(id) : undefined,
         ...masterData,
         items: itemsData,
       };

@@ -101,6 +101,7 @@ const AppRoutes = () => {
           <Route path="bills/view/:id" element={<ViewSaleBill />} />
           <Route path="bills/edit/:id" element={<EditSaleBill />} />
           <Route path="entry" element={<SaleEntry />} />
+          <Route path="entry/:id" element={<SaleEntry />} />
           <Route path="quotations" element={<Quotation />} />
           <Route path="quotations/new" element={<NewQuotation />} />
           <Route path="returns" element={<SaleReturn />} />
@@ -114,8 +115,10 @@ const AppRoutes = () => {
           <Route path="bills" element={<PurchaseBill />} />
           <Route path="bills/view/:id" element={<ViewPurchaseBill />} />
           <Route path="entry" element={<PurchaseEntry />} />
+          <Route path="entry/:id" element={<PurchaseEntry />} />
           <Route path="orders" element={<PurchaseOrder />} />
           <Route path="orders/new" element={<NewPurchaseOrder />} />
+          <Route path="orders/edit/:id" element={<NewPurchaseOrder />} />
           <Route path="orders/view/:id" element={<ViewPurchaseOrder />} />
           <Route path="returns" element={<PurchaseReturn />} />
           <Route path="returns/new" element={<NewPurchaseReturn />} />
