@@ -56,8 +56,21 @@ app.get('/', (req, res) => {
 const startServer = async () => {
     try {
         await connectDB();
+        
+        // Clean up any stale backup tables
+        try {
+            await sequelize.query('DROP TABLE IF EXISTS `Products_backup`;');
+            await sequelize.query('DROP TABLE IF EXISTS `Admins_backup`;');
+        } catch(e) {}
+
+        // Disable FK checks so Sequelize can alter referenced tables
+        await sequelize.query('PRAGMA foreign_keys = OFF;');
+
         // Sync models
         await sequelize.sync({ alter: true });
+
+        // Re-enable FK checks
+        await sequelize.query('PRAGMA foreign_keys = ON;');
         console.log('✅ Database models synced successfully with alter.');
 
         const server = app.listen(port, () => {

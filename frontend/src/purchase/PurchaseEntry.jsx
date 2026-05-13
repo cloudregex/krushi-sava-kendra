@@ -426,28 +426,29 @@ const PurchaseEntry = () => {
                 <table className="agro-table" style={{ border: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '380px', fontSize: '10px', letterSpacing: '0.05em' }}>PRODUCT NAME</th>
-                      <th style={{ width: '80px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>BATCH NO</th>
-                      <th style={{ width: '100px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>EXPIRY DATE</th>
-                      <th style={{ width: '55px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>QTY</th>
-                      <th style={{ width: '55px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>FREE QTY</th>
-                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>UNIT</th>
-                      <th style={{ width: '95px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>STOCK INCR.</th>
-                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>PURCHASE RATE</th>
-                      <th style={{ width: '85px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>SALE RATE</th>
-                      <th style={{ width: '125px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>DISCOUNT</th>
-                      <th style={{ width: '65px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>TAX %</th>
-                      <th style={{ width: '95px', fontSize: '10px', textAlign: 'right', paddingRight: '15px', letterSpacing: '0.05em' }}>TOTAL</th>
-                      <th style={{ width: '40px' }}></th>
+                      <th style={{ minWidth: '300px', fontSize: '10px', letterSpacing: '0.05em', textAlign: 'left' }}>PRODUCT NAME</th>
+                      <th style={{ minWidth: '80px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>BATCH NO</th>
+                      <th style={{ minWidth: '110px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>EXPIRY DATE</th>
+                      <th style={{ minWidth: '60px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>QTY</th>
+                      <th style={{ minWidth: '60px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>FREE QTY</th>
+                      <th style={{ minWidth: '90px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>UNIT</th>
+                      <th style={{ minWidth: '90px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>STOCK INCR.</th>
+                      <th style={{ minWidth: '100px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>PURCHASE RATE</th>
+                      <th style={{ minWidth: '100px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>SALE RATE</th>
+                      <th style={{ minWidth: '130px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>DISCOUNT</th>
+                      <th style={{ minWidth: '70px', fontSize: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>TAX %</th>
+                      <th style={{ minWidth: '100px', fontSize: '10px', textAlign: 'right', paddingRight: '15px', letterSpacing: '0.05em' }}>TOTAL</th>
+                      <th style={{ minWidth: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ width: '380px', paddingLeft: '10px' }}>
+                        <td style={{ minWidth: '300px', paddingLeft: '10px', textAlign: 'left' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '220px' }}>
+                            <div style={{ flex: 1, minWidth: '180px' }}>
                               <SearchableSelect
+                                inputRef={el => rowRefs.current[child.id] = el}
                                 options={products}
                                 value={child.productId}
                                 onChange={(val, extra) => handleChildChange(child.id, 'productId', val, extra)}
@@ -475,57 +476,62 @@ const PurchaseEntry = () => {
                             )}
                           </div>
                         </td>
-                        <td style={{ width: '80px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '80px', padding: '0 4px' }}>
                           <input
                             type="text"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.batchNo}
                             onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                             placeholder="Batch"
                           />
                         </td>
-                        <td style={{ width: '100px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '110px', padding: '0 4px' }}>
                           <input
                             type="date"
                             className="form-control"
-                            style={{ height: '34px', fontSize: '11px', textAlign: 'center' }}
+                            style={{ height: '34px', fontSize: '11px', textAlign: 'center', padding: '0 4px' }}
                             value={child.expiryDate}
                             onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '55px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '60px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center', padding: '0' }}
                             value={child.purchaseQty}
                             onChange={(e) => handleChildChange(child.id, 'purchaseQty', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '55px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '60px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center', background: '#fffbeb', padding: '0' }}
                             value={child.freeQty}
                             onChange={(e) => handleChildChange(child.id, 'freeQty', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                             placeholder="1"
                           />
                         </td>
-                        <td style={{ width: '85px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '90px', padding: '0 4px' }}>
                           <select
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', padding: '0 5px' }}
                             value={child.unit}
                             onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           >
                             {(child.availableUnits && child.availableUnits.length > 0 ? child.availableUnits : ['Bag', 'Quintal', 'kg']).map((uName, i) => (
                               <option key={i} value={uName}>{uName}</option>
                             ))}
                           </select>
                         </td>
-                        <td style={{ width: '95px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '90px', padding: '0 4px' }}>
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <input
                               type="text"
@@ -552,16 +558,17 @@ const PurchaseEntry = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ width: '85px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '100px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.purchasePrice}
                             onChange={(e) => handleChildChange(child.id, 'purchasePrice', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '85px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '100px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -571,13 +578,14 @@ const PurchaseEntry = () => {
                             onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ width: '125px', padding: '0 4px' }}>
-                          <div style={{ display: 'flex', gap: '2px' }}>
+                        <td style={{ minWidth: '130px', padding: '0 4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
                             <select
                               className="form-control"
-                              style={{ width: '45px', height: '34px', fontSize: '11px', padding: '0 2px' }}
+                              style={{ width: '45px', height: '34px', fontSize: '11px', padding: '0 2px', borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
                               value={child.discountType}
                               onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                              onKeyDown={(e) => handleEnterNavigation(e, idx)}
                             >
                               <option value="%">%</option>
                               <option value="Amt">₹</option>
@@ -585,25 +593,27 @@ const PurchaseEntry = () => {
                             <input
                               type="number"
                               className="form-control"
-                              style={{ height: '34px', fontSize: '12px', width: '70px', textAlign: 'center', padding: '0 2px' }}
+                              style={{ height: '34px', fontSize: '12px', width: '80px', textAlign: 'center', padding: '0 2px', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                               value={child.discountValue}
                               onChange={(e) => handleChildChange(child.id, 'discountValue', e.target.value)}
+                              onKeyDown={(e) => handleEnterNavigation(e, idx)}
                             />
                           </div>
                         </td>
-                        <td style={{ width: '65px', padding: '0 4px' }}>
+                        <td style={{ minWidth: '70px', padding: '0 4px' }}>
                           <input
                             type="number"
                             className="form-control"
                             style={{ height: '34px', fontSize: '12px', textAlign: 'center' }}
                             value={child.taxPercent}
                             onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)}
+                            onKeyDown={(e) => handleEnterNavigation(e, idx)}
                           />
                         </td>
-                        <td style={{ fontSize: '13px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px', width: '90px' }}>
+                        <td style={{ minWidth: '100px', fontSize: '13px', fontWeight: '800', color: '#22c55e', textAlign: 'right', paddingRight: '15px' }}>
                           ₹{child.totalAmount.toFixed(2)}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ minWidth: '40px', textAlign: 'center' }}>
                           <button type="button" onClick={() => removeChildRow(child.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}>
                             <Trash2 size={16} />
                           </button>

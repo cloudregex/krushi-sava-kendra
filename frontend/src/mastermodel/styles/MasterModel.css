@@ -157,7 +157,7 @@
 .form-control {
   width: 100%;
   padding: 12px 16px;
-  border-radius: var(--radius-md);
+  border-radius: 4px;
   border: 1px solid var(--border);
   background: #fcfcfc;
   transition: var(--transition);
@@ -201,14 +201,14 @@ input[type=number] {
 }
 
 .agro-table th {
-  text-align: center !important;
-  font-size: 12px !important;
-  color: #334155 !important;
+  text-align: center;
+  font-size: 12px;
+  color: #334155;
 }
 
 .agro-table td {
-  text-align: center !important;
-  vertical-align: middle !important;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .form-grid {
