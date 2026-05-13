@@ -57,6 +57,7 @@ const PurchaseEntry = () => {
     subtotal: 0,
     totalTaxAmount: 0,
     discount: 0,
+    discountType: "%",
     grandTotal: 0,
     cashAmount: 0,
     upiAmount: 0,
@@ -126,9 +127,12 @@ const PurchaseEntry = () => {
       totalTax += rowTax;
     });
 
-    const disc = parseFloat(discount) || 0;
+    const discVal = parseFloat(discount) || 0;
+    const discType = paymentFields.discountType || master.discountType;
+    const globalDiscAmount = discType === "%" ? ((subtotal + totalTax) * discVal / 100) : discVal;
+
     // Calculate raw total including tax
-    const rawGrandTotal = subtotal + totalTax - disc;
+    const rawGrandTotal = subtotal + totalTax - globalDiscAmount;
     // Final grand total is rounded to the nearest integer
     const grandTotal = Math.round(rawGrandTotal);
     // Difference for display
@@ -167,7 +171,8 @@ const PurchaseEntry = () => {
       paidAmount: totalPaid,
       dueAmount: due,
       creditAmount: due > 0 ? due : 0,
-      discount: disc,
+      discount: discVal,
+      discountType: discType,
       ...paymentFields,
     }));
   };
@@ -336,7 +341,7 @@ const PurchaseEntry = () => {
 
   const handleMasterChange = (field, value) => {
     if (
-      ["discount", "cashAmount", "upiAmount", "swipeAmount"].includes(field)
+      ["discount", "discountType", "cashAmount", "upiAmount", "swipeAmount"].includes(field)
     ) {
       const newFields = { [field]: value };
       calculateTotals(
@@ -1018,10 +1023,10 @@ const PurchaseEntry = () => {
                             <select
                               className="form-control"
                               style={{
-                                width: "45px",
+                                width: "50px",
                                 height: "34px",
-                                fontSize: "11px",
-                                padding: "0 2px",
+                                fontSize: "13px",
+                                padding: "0 8px",
                                 borderTopRightRadius: 0,
                                 borderBottomRightRadius: 0,
                                 borderRight: 0,
@@ -1186,16 +1191,36 @@ const PurchaseEntry = () => {
                         color: "#475569",
                         fontWeight: "700",
                         fontSize: "12px",
-                        padding: "8px 10px",
+                        padding: "0px 0px",
                         borderRadius: "6px",
                         minWidth: "85px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        whiteSpace: "nowrap",
+                        overflow: "hidden",
                       }}
                     >
-                      Discount (₹)
+                      <select
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          fontWeight: "700",
+                          fontSize: "12px",
+                          color: "#475569",
+                          padding: "8px 5px",
+                          outline: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          textAlign: "center",
+                        }}
+                        value={master.discountType}
+                        onChange={(e) =>
+                          handleMasterChange("discountType", e.target.value)
+                        }
+                      >
+                        <option value="%">Disc %</option>
+                        <option value="Amt">Disc ₹</option>
+                      </select>
                     </div>
                     <input
                       type="number"
