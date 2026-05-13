@@ -1,27 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Plus, Calendar, User, IndianRupee, CheckCircle, Clock, FileText } from 'lucide-react';
-
-const initialBills = [
-  { id: 'SALE-101', customerId: 'CUS-501', customerName: 'Ramesh Patil', billDate: '2026-04-20', grandTotal: 5400.00, paidAmount: 5400.00, dueAmount: 0, paymentType: 'Cash', status: 'Paid' },
-  { id: 'SALE-102', customerId: 'CUS-502', customerName: 'Suresh Deshmukh', billDate: '2026-04-22', grandTotal: 12450.50, paidAmount: 8000, dueAmount: 4450.50, paymentType: 'UPI', status: 'Partial' },
-  { id: 'SALE-103', customerId: 'CUS-503', customerName: 'Anil Jadhav', billDate: '2026-04-25', grandTotal: 8900.00, paidAmount: 0, dueAmount: 8900.00, paymentType: 'Credit', status: 'Unpaid' },
-];
-
+import { ShoppingCart, Search, Plus, Calendar, User, IndianRupee, CheckCircle, Clock, FileText, Printer, Eye, Edit, Trash2 } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 import { useAuth } from '../adminauth/context/AuthContext';
 
 const SaleBill = () => {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const filteredBills = initialBills.filter(b => {
+  useEffect(() => {
+    fetchBills();
+  }, []);
+
+  const fetchBills = async () => {
+    try {
+      setLoading(true);
+      const data = await ApiService.getAll('sales');
+      setBills(data || []);
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatus = (bill) => {
+    if (bill.balanceAmount <= 0) return 'Paid';
+    if (bill.paidAmount > 0) return 'Partial';
+    return 'Unpaid';
+  };
+
+  const filteredBills = bills.filter(b => {
+    const status = getStatus(b);
     const matchesSearch =
-      b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.customerId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
+      b.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(b.customerId).includes(searchTerm);
+    const matchesStatus = statusFilter === 'All' || status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -98,35 +117,101 @@ const SaleBill = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBills.map((bill) => (
+                {loading ? (
+                  <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>Loading bills...</td></tr>
+                ) : filteredBills.map((bill) => (
                   <tr key={bill.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>{bill.id}</td>
+                    <td style={{ fontWeight: '800', fontSize: '13px', color: '#1e293b' }}>{bill.invoiceNo}</td>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{bill.customerName}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{bill.customerId}</div>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#0f172a' }}>{bill.customer?.name || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
+                        📞 {bill.customer?.mobile || 'No Mobile'}
+                      </div>
                     </td>
-                    <td>{bill.billDate}</td>
-                    <td style={{ fontWeight: '700' }}>₹{bill.grandTotal.toFixed(2)}</td>
-                    <td style={{ color: '#16a34a', fontWeight: '600' }}>₹{bill.paidAmount.toFixed(2)}</td>
-                    <td style={{ color: bill.dueAmount > 0 ? '#ef4444' : 'inherit', fontWeight: '600' }}>₹{bill.dueAmount.toFixed(2)}</td>
+                    <td style={{ fontSize: '12px', color: '#475569', fontWeight: '500' }}>{bill.billDate}</td>
+                    <td style={{ fontWeight: '800', fontSize: '14px', color: '#1e293b' }}>₹{(bill.grandTotal || 0).toFixed(2)}</td>
+                    <td style={{ color: '#16a34a', fontWeight: '800', fontSize: '13px' }}>₹{(bill.paidAmount || 0).toFixed(2)}</td>
                     <td>
-                      <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '5px', fontSize: '11px' }}>{bill.paymentType}</span>
+                      {bill.balanceAmount > 0 ? (
+                        <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '14px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px' }}>
+                          ₹{(bill.balanceAmount || 0).toFixed(2)}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#64748b', fontWeight: '500', fontSize: '13px' }}>₹0.00</span>
+                      )}
                     </td>
-                    <td>{getStatusBadge(bill.status)}</td>
+                    <td>
+                      {(() => {
+                        const pm = bill.paymentMode;
+                        if (!pm) return <span style={{ color: '#94a3b8', fontSize: '11px' }}>N/A</span>;
+                        
+                        // Legacy string format
+                        if (typeof pm === 'string') {
+                          return <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', color: '#475569' }}>{pm}</span>;
+                        }
+
+                        // JSON Object format
+                        try {
+                          const parsed = typeof pm === 'string' ? JSON.parse(pm) : pm;
+                          
+                          if ((parsed.cash || 0) === 0 && (parsed.upi || 0) === 0 && (parsed.swipe || 0) === 0) {
+                             return <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '600' }}>Unpaid</span>;
+                          }
+
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              {parsed.cash > 0 && <span style={{ fontSize: '10px', color: '#15803d', fontWeight: '700', background: '#f0fdf4', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>💵 Cash: ₹{parsed.cash.toFixed(2)}</span>}
+                              {parsed.upi > 0 && <span style={{ fontSize: '10px', color: '#1d4ed8', fontWeight: '700', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>📱 UPI: ₹{parsed.upi.toFixed(2)}</span>}
+                              {parsed.swipe > 0 && <span style={{ fontSize: '10px', color: '#7e22ce', fontWeight: '700', background: '#faf5ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e9d5ff' }}>💳 Swipe: ₹{parsed.swipe.toFixed(2)}</span>}
+                            </div>
+                          );
+                        } catch (e) {
+                          return <span>{String(pm)}</span>;
+                        }
+                      })()}
+                    </td>
+                    <td>{getStatusBadge(getStatus(bill))}</td>
                     <td style={{ textAlign: 'left' }}>
                       {hasPermission('sale', 'view') && (
-                        <button
-                          className="btn-agro btn-outline"
-                          onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
-                          style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
-                        >
-                          View
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className="btn-agro btn-outline"
+                            onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
+                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#3b82f6', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            title="View Bill"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            className="btn-agro btn-outline"
+                            onClick={() => navigate(`/sales/bills/view/${bill.id}?print=true`)}
+                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#16a34a', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            title="Print Bill"
+                          >
+                            <Printer size={15} />
+                          </button>
+                          <button
+                            className="btn-agro btn-outline"
+                            onClick={() => console.log('Edit clicked')}
+                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#eab308', color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            title="Edit Bill"
+                          >
+                            <Edit size={15} />
+                          </button>
+                          <button
+                            className="btn-agro btn-outline"
+                            onClick={() => console.log('Delete clicked')}
+                            style={{ padding: '4px', height: '30px', width: '30px', borderColor: '#ef4444', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                            title="Delete Bill"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
                 ))}
-                {filteredBills.length === 0 && (
+                {!loading && filteredBills.length === 0 && (
                   <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>

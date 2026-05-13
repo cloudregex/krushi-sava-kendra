@@ -75,6 +75,7 @@ exports.createSale = async (req, res) => {
 exports.getAllSales = async (req, res) => {
     try {
         const sales = await Sale.findAll({
+            include: [{ model: Customer, as: 'customer', attributes: ['id', 'name', 'mobile'] }],
             order: [['createdAt', 'DESC']]
         });
         res.json(sales);
@@ -102,5 +103,25 @@ exports.getNextInvoiceNo = async (req, res) => {
         res.json({ invoiceNo });
     } catch (error) {
         res.status(500).json({ message: 'Failed to generate invoice number', error: error.message });
+    }
+};
+
+exports.getSaleById = async (req, res) => {
+    try {
+        const sale = await Sale.findByPk(req.params.id, {
+            include: [
+                { 
+                    model: SaleItem, 
+                    as: 'items',
+                    include: [{ model: Product, as: 'product' }]
+                },
+                { model: Customer, as: 'customer' }
+            ]
+        });
+        if (!sale) return res.status(404).json({ message: 'Sale not found' });
+        res.json(sale);
+    } catch (error) {
+        console.error('Fetch Sale Error:', error);
+        res.status(500).json({ message: 'Failed to fetch sale details', error: error.message });
     }
 };
