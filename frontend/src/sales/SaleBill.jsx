@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, Plus, Calendar, User, IndianRupee, CheckCircle, Clock, FileText } from 'lucide-react';
+import { useAuth } from '../adminauth/context/AuthContext';
 
 const initialBills = [
   { id: 'SALE-101', customerId: 'CUS-501', customerName: 'Ramesh Patil', billDate: '2026-04-20', grandTotal: 5400.00, paidAmount: 5400.00, dueAmount: 0, paymentType: 'Cash', status: 'Paid' },
   { id: 'SALE-102', customerId: 'CUS-502', customerName: 'Suresh Deshmukh', billDate: '2026-04-22', grandTotal: 12450.50, paidAmount: 8000, dueAmount: 4450.50, paymentType: 'UPI', status: 'Partial' },
   { id: 'SALE-103', customerId: 'CUS-503', customerName: 'Anil Jadhav', billDate: '2026-04-25', grandTotal: 8900.00, paidAmount: 0, dueAmount: 8900.00, paymentType: 'Credit', status: 'Unpaid' },
 ];
-
-import { useAuth } from '../adminauth/context/AuthContext';
 
 const SaleBill = () => {
   const navigate = useNavigate();
