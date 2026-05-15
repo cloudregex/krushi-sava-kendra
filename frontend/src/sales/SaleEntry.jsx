@@ -93,7 +93,7 @@ const SaleEntry = () => {
       const taxP = parseFloat(child.taxPercent) || 0;
 
       const rowSub = qty * rate;
-      const rowTax = (rowSub * taxP) / 100;
+      const rowTax = ((rowSub - disc) * taxP) / 100;
 
       subtotal += rowSub;
       totalRowDiscount += disc;
@@ -181,10 +181,38 @@ const SaleEntry = () => {
 
           if (value) {
             ApiService.getById('products', `${value}/latest-batch`).then(res => {
-              if (res && res.batchNo) {
-                setChildren(prevRows => prevRows.map(row =>
-                  row.id === id ? { ...row, prevBatchNo: res.batchNo } : row
-                ));
+              if (res) {
+                setChildren(prevRows => prevRows.map(row => {
+                  if (row.id === id) {
+                    const newBatch = row.batchNoEdited ? row.batchNo : (res.batchNo || row.batchNo);
+                    const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate || row.expiryDate);
+                    const newRate = row.saleRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
+
+                    const qty = parseFloat(row.quantity) || 0;
+                    const rate = parseFloat(newRate) || 0;
+                    const rowSub = qty * rate;
+                    let actualDisc = 0;
+                    const dVal = parseFloat(row.discount) || 0;
+                    if (row.discountType === 'percent') {
+                      actualDisc = (rowSub * dVal) / 100;
+                    } else {
+                      actualDisc = dVal;
+                    }
+                    const taxP = parseFloat(row.taxPercent) || 0;
+                    const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+
+                    return { 
+                      ...row, 
+                      batchNo: newBatch, 
+                      expiryDate: newExpiry,
+                      saleRate: newRate,
+                      amount: rowSub,
+                      taxAmount: rowTax,
+                      actualDiscount: actualDisc
+                    };
+                  }
+                  return row;
+                }));
               }
             }).catch(err => console.log("Batch fetch error:", err));
           }
@@ -193,6 +221,10 @@ const SaleEntry = () => {
           u = { ...fresh, id: u.id };
         }
       }
+
+      if (field === 'batchNo') u.batchNoEdited = true;
+      if (field === 'expiryDate') u.expiryDateEdited = true;
+      if (field === 'saleRate') u.saleRateEdited = true;
 
       if (field === 'unit') {
         const mu = u.multiUnits.find(m => m.alternative === value);
@@ -282,6 +314,11 @@ const SaleEntry = () => {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
       calculateTotals(updated);
+    } else {
+      // If it's the last row, just clear it with a fresh one
+      const fresh = [newRow()];
+      setChildren(fresh);
+      calculateTotals(fresh);
     }
   };
 
@@ -344,385 +381,403 @@ const SaleEntry = () => {
 
   return (
     <div className="agro-container">
-      <div className="agro-unified-card" style={{ padding: '20px' }}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
+      <div>
+        <div
+          className="agro-header-compact"
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            margin: "-5px -5px 20px -5px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 10px",
+            borderBottom: "1px solid var(--border-light)",
+            background: "white",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', margin: 0 }}>Professional Sale Bill</h1>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>Krushi Seva Kendra Billing System</p>
+            <h2 style={{ fontSize: "18px", marginBottom: "1px" }}>
+              Professional Sale Bill
+            </h2>
+            <p style={{ fontSize: "12px", margin: 0 }}>
+              Krushi Seva Kendra Billing System
+            </p>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')}>
-              <ArrowLeft size={18} /> Back
-            </button>
-          </div>
+          <button
+            className="btn-agro btn-outline"
+            onClick={() => navigate('/sales/bills')}
+            style={{ height: "34px", padding: "0 12px", fontSize: "12px" }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>CUSTOMER SEARCH</label>
-            <SearchableSelect
-              options={customers}
-              value={master.customerId}
-              onChange={(val) => handleMasterChange('customerId', val)}
-              placeholder="Search Customer..."
-              height="42px"
-            />
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>BALANCE STATUS</label>
-            <div style={{
-              height: '42px',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 15px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '800',
-              background: !master.customerId ? '#f1f5f9' : (master.customerBalance > 0 ? '#fee2e2' : '#dcfce7'),
-              color: !master.customerId ? '#94a3b8' : (master.customerBalance > 0 ? '#ef4444' : '#16a34a'),
-              border: `1px solid ${!master.customerId ? '#e2e8f0' : (master.customerBalance > 0 ? '#fecaca' : '#bbf7d0')}`
-            }}>
-              {!master.customerId ? 'Select Customer' : (master.customerBalance > 0 ? `Pending: ₹${master.customerBalance}` : master.customerBalance < 0 ? `Available: ₹${Math.abs(master.customerBalance)}` : 'No Dues')}
-            </div>
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>SALE DATE</label>
-            <input type="date" className="form-control" value={master.billDate} onChange={(e) => handleMasterChange('billDate', e.target.value)} style={{ height: '42px' }} />
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '25px', borderRadius: '15px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ background: '#f8fafc', padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '800', margin: 0, color: 'var(--primary)' }}>PRODUCT DETAILS</h3>
-            <button className="btn-agro btn-primary" onClick={addChildRow} style={{ height: '32px', padding: '0 15px', fontSize: '12px' }}>
-              <Plus size={16} /> Add Product
-            </button>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="agro-table" style={{ width: '100%', minWidth: '1350px' }}>
-              <thead style={{ background: '#f1f5f9' }}>
-                <tr>
-                  <th style={{ width: '350px', textAlign: 'center' }}>PRODUCT NAME</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>BATCH</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>EXPIRY</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>QTY</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>FREE QTY</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>UNIT</th>
-                  <th style={{ width: '140px', textAlign: 'center' }}>STOCK INC</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>SALE RATE</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>DISC</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>TAX %</th>
-                  <th style={{ width: '140px', textAlign: 'center' }}>TOTAL</th>
-                  <th style={{ width: '50px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {children.map((child, idx) => (
-                  <tr key={child.id}>
-                    <td style={{ verticalAlign: 'top' }}>
-                      <SearchableSelect
-                        options={products}
-                        value={child.productId}
-                        onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
-                        placeholder="Select Product"
-                        height="36px"
-                      />
-                      {child.productId && (
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '10px', fontWeight: '700' }}>
-                          <span style={{ color: '#64748b' }}>HSN: <span style={{ color: '#0f172a' }}>{child.hsnCode}</span></span>
-                          <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {child.productId && (
-                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#64748b', textAlign: 'center', marginBottom: '2px' }}>
-                          Prev: {child.prevBatchNo || 'No History'}
-                        </div>
-                      )}
-                      <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
-                    </td>
-                    <td><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
-                    <td>
-                      <input
-                        ref={el => qtyRefs.current[child.id] = el}
-                        type="number" className="form-control" value={child.quantity}
-                        onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                        style={{
-                          height: '36px',
-                          textAlign: 'center',
-                          fontWeight: '700',
-                          borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
-                          color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
-                        }}
-                      />
-                      {child.productId && child.quantity > child.currentStock && (
-                        <div style={{ color: '#ef4444', fontSize: '10px', fontWeight: '800', marginTop: '2px' }}>EXCEEDS STOCK!</div>
-                      )}
-                    </td>
-                    <td><input type="number" className="form-control" value={child.freeQuantity || ''} onChange={(e) => handleChildChange(child.id, 'freeQuantity', e.target.value)} style={{ height: '36px', textAlign: 'center' }} /></td>
-                    <td>
-                      <select
-                        className="form-control"
-                        value={child.unit}
-                        onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
-                        style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
-                      >
-                        <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
-                        {child.multiUnits && child.multiUnits.map((mu, i) => (
-                          mu.alternative !== (child.primaryUnit || child.unit) && (
-                            <option key={i} value={mu.alternative}>{mu.alternative}</option>
-                          )
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={child.stockIncrement}
-                          onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
-                          style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
-                        />
-                        {child.primaryUnit && (
-                          <span style={{
-                            position: 'absolute',
-                            right: '4px',
-                            fontSize: '10px',
-                            fontWeight: '800',
-                            color: 'var(--primary)',
-                            background: '#eff6ff',
-                            padding: '2px 4px',
-                            borderRadius: '4px',
-                            pointerEvents: 'none',
-                            border: '1px solid #dbeafe'
-                          }}>
-                            {child.primaryUnit}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td><input type="number" className="form-control" value={child.saleRate === 0 || child.saleRate === '0' ? '' : child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
-                    <td>
-                      <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={child.discount === 0 || child.discount === '0' ? '' : child.discount}
-                          onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
-                          placeholder="0"
-                          style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
-                        />
-                        <select
-                          value={child.discountType}
-                          onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
-                          style={{ border: 'none', borderLeft: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', padding: '0 5px', cursor: 'pointer', outline: 'none' }}
-                        >
-                          <option value="amount">₹</option>
-                          <option value="percent">%</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td><input type="number" className="form-control" value={child.taxPercent} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
-                    <td style={{ fontWeight: '800', color: 'var(--primary)', textAlign: 'right', paddingRight: '15px' }}>₹{child.amount.toFixed(2)}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button onClick={() => removeChildRow(child.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-          <div className="agro-card" style={{ padding: '25px', borderRadius: '15px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '800', marginBottom: '20px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CreditCard size={18} /> PAYMENT INFO
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>DISCOUNT</label>
-                  <div style={{ display: 'flex', border: '1px solid #bbf7d0', borderRadius: '8px', overflow: 'hidden' }}>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={master.discountAmount === 0 || master.discountAmount === '0' ? '' : master.discountAmount}
-                      onChange={(e) => handleMasterChange('discountAmount', e.target.value)}
-                      placeholder="0"
-                      style={{ border: 'none', height: '45px', textAlign: 'center', fontWeight: '700', flex: 1 }}
-                    />
-                    <select
-                      value={master.discountType}
-                      onChange={(e) => handleMasterChange('discountType', e.target.value)}
-                      style={{ border: 'none', borderLeft: '1px solid #bbf7d0', background: '#f0fdf4', fontSize: '14px', fontWeight: '800', padding: '0 10px', cursor: 'pointer', outline: 'none' }}
-                    >
-                      <option value="amount">₹</option>
-                      <option value="percent">%</option>
-                    </select>
+        <div style={{ padding: "15px 10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+            <div style={{ padding: "12px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border-light)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", color: "var(--primary)" }}>
+                <User size={16} />
+                <h3 style={{ fontSize: "13px", margin: 0, fontWeight: "700" }}>Customer Details</h3>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "15px" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px", display: "block" }}>CUSTOMER SEARCH</label>
+                  <SearchableSelect
+                    options={customers}
+                    value={master.customerId}
+                    onChange={(val) => handleMasterChange('customerId', val)}
+                    placeholder="Search Customer..."
+                    height="36px"
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px", display: "block" }}>BALANCE STATUS</label>
+                  <div style={{
+                    height: '36px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 15px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    background: !master.customerId ? '#f1f5f9' : (master.customerBalance > 0 ? '#fee2e2' : '#dcfce7'),
+                    color: !master.customerId ? '#94a3b8' : (master.customerBalance > 0 ? '#ef4444' : '#16a34a'),
+                    border: `1px solid ${!master.customerId ? '#e2e8f0' : (master.customerBalance > 0 ? '#fecaca' : '#bbf7d0')}`
+                  }}>
+                    {!master.customerId ? 'Select Customer' : (master.customerBalance > 0 ? `Pending: ₹${master.customerBalance}` : master.customerBalance < 0 ? `Advance: ₹${Math.abs(master.customerBalance)}` : 'No Dues')}
                   </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>CASH (₹)</label>
-                  <input type="number" className="form-control" value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px", display: "block" }}>SALE DATE</label>
+                  <input type="date" className="form-control" value={master.billDate} onChange={(e) => handleMasterChange('billDate', e.target.value)} style={{ height: '36px', fontSize: '13px' }} />
                 </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>UPI (₹)</label>
-                  <input type="number" className="form-control" value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>SWIPE (₹)</label>
-                  <input type="number" className="form-control" value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
-                </div>
-              </div>
-
-              {/* Line 2: Summary */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534' }}>PAID AMOUNT</span>
-                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#166534' }}>₹{(master.paidAmount || 0).toFixed(2)}</span>
-                </div>
-                <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#991b1b' }}>PENDING AMOUNT</span>
-                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#991b1b' }}>₹{(master.pendingAmount || 0).toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Line 3: Notes */}
-              <div className="form-group">
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>NOTES / REMARK</label>
-                <textarea className="form-control" value={master.notes} onChange={(e) => handleMasterChange('notes', e.target.value)} placeholder="Write any additional notes here..." style={{ height: '60px', borderRadius: '10px', resize: 'none' }}></textarea>
               </div>
             </div>
-          </div>
 
-          {/* 4️⃣ Bill Summary Section */}
-          <div style={{ background: 'var(--primary)', color: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '10px' }}>BILL SUMMARY</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '13px', opacity: 0.9 }}>Subtotal</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{(master.subtotal || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '13px', opacity: 0.9 }}>Tax Amount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{(master.taxAmount || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '13px', opacity: 0.9 }}>Product Discount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.rowDiscountAmount || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '13px', opacity: 0.9 }}>Bill Discount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.masterDiscountAmount || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
-                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{(master.grandTotal || 0).toFixed(2)}</span>
-              </div>
-
-              {/* Action Buttons inside Bill Summary */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', marginTop: '20px' }}>
-                <button
-                  className="btn-agro"
-                  onClick={handleCancel}
-                  style={{
-                    height: '45px',
-                    background: 'rgba(255,255,255,0.1)',
-                    color: 'white',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    fontWeight: '700',
-                    borderRadius: '10px'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn-agro"
-                  onClick={() => handleSaveSale(false)}
-                  disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
-                  style={{
-                    height: '45px',
-                    background: 'white',
-                    color: 'var(--primary)',
-                    border: 'none',
-                    fontWeight: '900',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-                    opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1,
-                    cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <Save size={18} /> Save Sale
+            <div style={{ border: "1px solid var(--border-light)", borderRadius: "12px", overflow: "hidden", background: "#ffffff" }}>
+              <div style={{ padding: "10px 15px", background: "#ffffff", borderBottom: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)" }}>
+                  <Package size={16} />
+                  <h3 style={{ fontSize: "13px", margin: 0, fontWeight: "700" }}>Products</h3>
+                </div>
+                <button className="btn-agro btn-primary" onClick={addChildRow} style={{ height: "28px", padding: "0 10px", fontSize: "11px", background: "var(--primary)" }}>
+                  <Plus size={14} /> Add Product
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 5️⃣ Tax Breakdown Section (Professional GST Table) */}
-        <div style={{ marginTop: '25px', background: '#fff', borderRadius: '15px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ background: '#f8fafc', padding: '15px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '800', margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ background: '#dcfce7', padding: '5px', borderRadius: '6px' }}>📄</span> TAX BREAKDOWN (GST)
-            </h3>
-            <span style={{ background: '#dcfce7', color: '#166534', padding: '5px 15px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', border: '1px solid #bbf7d0' }}>
-              INTRA-STATE SALE (CGST + SGST)
-            </span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '13px' }}>
-              <thead style={{ background: '#f8fafc', color: '#475569' }}>
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <th rowSpan="2" style={{ padding: '15px', borderRight: '1px solid #f1f5f9', width: '120px' }}>HSN CODE</th>
-                  <th rowSpan="2" style={{ padding: '15px', borderRight: '1px solid #f1f5f9', width: '120px' }}>TAX RATE (%)</th>
-                  <th colSpan="2" style={{ padding: '10px', borderRight: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>CGST</th>
-                  <th colSpan="2" style={{ padding: '10px', borderRight: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>SGST</th>
-                  <th rowSpan="2" style={{ padding: '15px', width: '140px' }}>TOTAL TAX (₹)</th>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>RATE (%)</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>AMOUNT (₹)</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>RATE (%)</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #f1f5f9', fontSize: '11px' }}>AMOUNT (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {master.taxBreakdown.length > 0 ? (
-                  master.taxBreakdown.map((item, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}>
-                      <td style={{ padding: '12px', fontWeight: '700', borderRight: '1px solid #f1f5f9' }}>{item.hsn}</td>
-                      <td style={{ padding: '12px', fontWeight: '700', borderRight: '1px solid #f1f5f9' }}>{item.taxRate}%</td>
-                      <td style={{ padding: '12px', color: '#64748b', borderRight: '1px solid #f1f5f9' }}>{item.cgstRate.toFixed(2)}%</td>
-                      <td style={{ padding: '12px', fontWeight: '600', borderRight: '1px solid #f1f5f9' }}>{item.cgstAmount.toFixed(2)}</td>
-                      <td style={{ padding: '12px', color: '#64748b', borderRight: '1px solid #f1f5f9' }}>{item.sgstRate.toFixed(2)}%</td>
-                      <td style={{ padding: '12px', fontWeight: '600', borderRight: '1px solid #f1f5f9' }}>{item.sgstAmount.toFixed(2)}</td>
-                      <td style={{ padding: '12px', fontWeight: '800', color: '#166534' }}>{item.totalTax.toFixed(2)}</td>
+              <div className="agro-table-wrapper-simple" style={{ overflowX: "auto" }}>
+                <table className="agro-table" style={{ border: "none", width: '100%', minWidth: '1100px' }}>
+                  <thead style={{ background: "#ffffff" }}>
+                    <tr>
+                      <th style={{ minWidth: "220px", fontSize: "10px", letterSpacing: "0.05em", textAlign: "left", paddingLeft: "15px" }}>PRODUCT NAME</th>
+                      <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>BATCH</th>
+                      <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>EXPIRY</th>
+                      <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>AVAILABLE QTY</th>
+                      <th style={{ minWidth: "70px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>SOLD QTY</th>
+                      <th style={{ minWidth: "80px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>UNIT</th>
+                      <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>STOCK DECREMENT</th>
+                      <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>SALE RATE</th>
+                      <th style={{ minWidth: "100px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>DISC</th>
+                      <th style={{ minWidth: "60px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>TAX %</th>
+                      <th style={{ minWidth: "100px", fontSize: "10px", textAlign: "right", paddingRight: "15px", letterSpacing: "0.05em" }}>TOTAL</th>
+                      <th style={{ minWidth: "30px" }}></th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" style={{ padding: '20px', color: '#94a3b8', fontStyle: 'italic' }}>Add products to see tax breakdown</td>
-                  </tr>
-                )}
-                <tr style={{ background: '#f0fdf4', fontWeight: '900', color: '#166534', borderTop: '2px solid #bbf7d0' }}>
-                  <td colSpan="3" style={{ padding: '15px', textAlign: 'left', paddingLeft: '30px', fontSize: '14px' }}>TOTAL</td>
-                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
-                  <td style={{ padding: '15px' }}></td>
-                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
-                  <td style={{ padding: '15px', fontSize: '16px' }}>₹{master.taxAmount.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {children.map((child, idx) => (
+                      <tr key={child.id}>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <SearchableSelect
+                            options={products}
+                            value={child.productId}
+                            onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
+                            placeholder="Select Product"
+                            height="36px"
+                          />
+                          {child.productId && (
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '10px', fontWeight: '700' }}>
+                              <span style={{ color: '#64748b' }}>HSN: <span style={{ color: '#0f172a' }}>{child.hsnCode}</span></span>
+                              <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={child.productId && child.currentStock !== 0 ? child.currentStock : ''}
+                            readOnly
+                            style={{ 
+                              height: '36px', 
+                              textAlign: 'center', 
+                              fontWeight: '800', 
+                              color: child.currentStock > 0 ? '#16a34a' : '#ef4444',
+                              background: '#f8fafc',
+                              cursor: 'not-allowed'
+                            }}
+                          />
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <input
+                            ref={el => qtyRefs.current[child.id] = el}
+                            type="number" className="form-control" value={child.quantity || ''}
+                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
+                            style={{
+                              height: '36px',
+                              textAlign: 'center',
+                              fontWeight: '700',
+                              borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
+                              color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
+                            }}
+                          />
+                          {child.productId && child.quantity > child.currentStock && (
+                            <div style={{ color: '#ef4444', fontSize: '10px', fontWeight: '800', marginTop: '2px' }}>EXCEEDS STOCK!</div>
+                          )}
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <select
+                            className="form-control"
+                            value={child.unit}
+                            onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
+                            style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
+                          >
+                            <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
+                            {child.multiUnits && child.multiUnits.map((mu, i) => (
+                              mu.alternative !== (child.primaryUnit || child.unit) && (
+                                <option key={i} value={mu.alternative}>{mu.alternative}</option>
+                              )
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={child.stockIncrement || ''}
+                              onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
+                              style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
+                            />
+                            {child.primaryUnit && (
+                              <span style={{
+                                position: 'absolute',
+                                right: '4px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                color: 'var(--primary)',
+                                background: '#eff6ff',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                pointerEvents: 'none',
+                                border: '1px solid #dbeafe'
+                              }}>
+                                {child.primaryUnit}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.saleRate === 0 || child.saleRate === '0' ? '' : child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={child.discount || ''}
+                              onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
+                              style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
+                            />
+                            <select
+                              value={child.discountType}
+                              onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                              style={{ border: 'none', borderLeft: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', padding: '0 5px', cursor: 'pointer', outline: 'none' }}
+                            >
+                              <option value="percent">%</option>
+                              <option value="amount">₹</option>
+                            </select>
+                          </div>
+                        </td>
+                        <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.taxPercent || ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                        <td style={{ verticalAlign: 'top' }}>
+                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
+                            ₹{child.amount.toFixed(2)}
+                          </div>
+                        </td>
+                        <td style={{ verticalAlign: 'top', textAlign: 'center' }}>
+                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button onClick={() => removeChildRow(child.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 8fr) minmax(0, 4fr)", gap: "20px", marginTop: "20px" }}>
+              <div style={{ padding: "20px", background: "#ffffff", borderRadius: "12px", border: "1px solid var(--border-light)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                  <div style={{ background: "#eff6ff", padding: "6px", borderRadius: "8px" }}>
+                    <CreditCard size={18} color="#2563eb" />
+                  </div>
+                  <h3 style={{ fontSize: "14px", margin: "0", fontWeight: "800", color: "#1e293b", letterSpacing: "0.05em" }}>PAYMENT INFO</h3>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "15px" }}>
+                  {/* Row 1: 4 Fields */}
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
+                    <input 
+                      type="number" 
+                      style={{ border: "none", background: "transparent", padding: "8px 12px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} 
+                      value={master.discountAmount === 0 || master.discountAmount === '0' ? '' : master.discountAmount} 
+                      onChange={(e) => handleMasterChange("discountAmount", e.target.value)} 
+                    />
+                    <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", borderRadius: "6px", minWidth: "50px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                      <select style={{ border: "none", background: "transparent", fontWeight: "700", fontSize: "14px", color: "#475569", padding: "8px 5px", outline: "none", cursor: "pointer", width: "100%", textAlign: "center" }} value={master.discountType} onChange={(e) => handleMasterChange("discountType", e.target.value)}>
+                        <option value="percent">%</option>
+                        <option value="amount">₹</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
+                    <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>Cash Amt</div>
+                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange("cashPaid", e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
+                    <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>UPI Amt</div>
+                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange("upiPaid", e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
+                    <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>Swipe Amt</div>
+                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange("swipePaid", e.target.value)} />
+                  </div>
+
+                  {/* Row 2: 2 Fields */}
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #bbf7d0", borderRadius: "10px", padding: "4px", background: "#f0fdf4", gridColumn: "span 2" }}>
+                    <div style={{ background: "#dcfce7", color: "#16a34a", fontWeight: "700", fontSize: "13px", padding: "8px 16px", borderRadius: "6px", minWidth: "110px", display: "flex", alignItems: "center", justifyContent: "center" }}>Paid</div>
+                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px 12px", flex: 1, outline: "none", fontSize: "16px", fontWeight: "700", color: "#16a34a", minWidth: 0 }} value={master.paidAmount} readOnly />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #fecaca", borderRadius: "10px", padding: "4px", background: "#fff1f2", gridColumn: "span 2" }}>
+                    <div style={{ background: "#fee2e2", color: "#ef4444", fontWeight: "700", fontSize: "13px", padding: "8px 16px", borderRadius: "6px", minWidth: "110px", display: "flex", alignItems: "center", justifyContent: "center" }}>Pending</div>
+                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px 12px", flex: 1, outline: "none", fontSize: "16px", fontWeight: "700", color: "#ef4444", minWidth: 0 }} value={master.pendingAmount} readOnly />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "20px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "5px", display: "block" }}>Remark / Internal Notes</label>
+                  <textarea className="form-control" style={{ height: "80px", background: "#ffffff", borderRadius: "10px", resize: "none" }} value={master.notes} onChange={(e) => handleMasterChange("notes", e.target.value)} placeholder="Write any additional notes here..." />
+                </div>
+              </div>
+
+              <div style={{ padding: "20px", background: "#f0fdf4", borderRadius: "12px", border: "1px solid #dcfce7" }}>
+                <h3 style={{ fontSize: "14px", margin: "0 0 15px 0", fontWeight: "800", color: "#16a34a" }}>Bill Summary</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
+                    <span>Subtotal</span>
+                    <span style={{ fontWeight: "600" }}>₹{(parseFloat(master.subtotal) || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
+                    <span>Tax Amount</span>
+                    <span style={{ fontWeight: "600" }}>₹{(parseFloat(master.taxAmount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
+                    <span>Product Discount</span>
+                    <span style={{ fontWeight: "600", color: "#ef4444" }}>- ₹{(parseFloat(master.rowDiscountAmount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
+                    <span>Bill Discount</span>
+                    <span style={{ fontWeight: "600", color: "#ef4444" }}>- ₹{(parseFloat(master.masterDiscountAmount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ margin: "15px 0", borderTop: "1px dashed #bbf7d0" }}></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#166534" }}>
+                    <span style={{ fontSize: "15px", fontWeight: "800" }}>Grand Total</span>
+                    <span style={{ fontSize: "24px", fontWeight: "900" }}>₹{(parseFloat(master.grandTotal) || 0).toFixed(2)}</span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "10px", marginTop: "20px" }}>
+                    <button onClick={handleCancel} style={{ height: "42px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#ffffff", color: "#475569", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" }} onMouseOver={(e) => e.target.style.background = "#f8fafc"} onMouseOut={(e) => e.target.style.background = "#ffffff"}>
+                      Cancel
+                    </button>
+                    <button onClick={() => handleSaveSale(false)} disabled={children.some(c => c.productId && c.quantity > c.currentStock)} style={{ height: "42px", borderRadius: "8px", border: "none", background: "#16a34a", color: "#ffffff", fontWeight: "700", cursor: children.some(c => c.productId && c.quantity > c.currentStock) ? "not-allowed" : "pointer", opacity: children.some(c => c.productId && c.quantity > c.currentStock) ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s" }} onMouseOver={(e) => { if (!e.target.disabled) e.target.style.background = "#15803d" }} onMouseOut={(e) => { if (!e.target.disabled) e.target.style.background = "#16a34a" }}>
+                      <Save size={18} /> Save Sale
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5️⃣ Tax Breakdown Section (Professional GST Table) */}
+            {/* 5️⃣ Tax Breakdown Section (Professional GST Table) */}
+            <div style={{ marginTop: "20px", marginBottom: "15px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <h3 style={{ fontSize: "13px", margin: 0, fontWeight: "700", color: "var(--primary)" }}>
+                  Tax Breakdown (CGST & SGST)
+                </h3>
+                <span style={{ background: '#dcfce7', color: '#166534', padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '800', border: '1px solid #bbf7d0' }}>
+                  INTRA-STATE SALE
+                </span>
+              </div>
+              <div style={{ border: "1px solid #94a3b8", borderRadius: "8px", overflow: "hidden", background: "#ffffff" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                  <thead style={{ background: "#ffffff", borderBottom: "1px solid #94a3b8" }}>
+                    <tr>
+                      <th rowSpan="2" style={{ padding: "6px 10px", textAlign: "left", borderRight: "1px solid #94a3b8" }}>HSN CODE</th>
+                      <th rowSpan="2" style={{ padding: "6px 10px", textAlign: "left", borderRight: "1px solid #94a3b8" }}>Tax Rate</th>
+                      <th colSpan="2" style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", borderBottom: "1px solid #94a3b8" }}>CGST</th>
+                      <th colSpan="2" style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", borderBottom: "1px solid #94a3b8" }}>SGST</th>
+                      <th rowSpan="2" style={{ padding: "6px 10px", textAlign: "right" }}>Total Tax</th>
+                    </tr>
+                    <tr>
+                      <th style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", fontWeight: "600" }}>Rate</th>
+                      <th style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", fontWeight: "600" }}>Amount</th>
+                      <th style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", fontWeight: "600" }}>Rate</th>
+                      <th style={{ padding: "3px", textAlign: "center", borderRight: "1px solid #94a3b8", fontWeight: "600" }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {master.taxBreakdown.length > 0 ? (
+                      master.taxBreakdown.map((item, i, arr) => (
+                        <tr key={i} style={{ borderBottom: i === arr.length - 1 ? "none" : "1px solid #94a3b8" }}>
+                          <td style={{ padding: "6px 10px", borderRight: "1px solid #94a3b8" }}>{item.hsn}</td>
+                          <td style={{ padding: "6px 10px", borderRight: "1px solid #94a3b8" }}>{item.taxRate}%</td>
+                          <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>{item.cgstRate.toFixed(2)}%</td>
+                          <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>₹{item.cgstAmount.toFixed(2)}</td>
+                          <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>{item.sgstRate.toFixed(2)}%</td>
+                          <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>₹{item.sgstAmount.toFixed(2)}</td>
+                          <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: "700" }}>₹{item.totalTax.toFixed(2)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" style={{ padding: "10px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>Add products to see tax breakdown</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot style={{ background: "#f1f5f9", fontWeight: "800", borderTop: "1px solid #94a3b8" }}>
+                    <tr>
+                      <td style={{ padding: "6px 10px", borderRight: "1px solid #94a3b8" }}>Total</td>
+                      <td style={{ borderRight: "1px solid #94a3b8" }}></td>
+                      <td style={{ borderRight: "1px solid #94a3b8" }}></td>
+                      <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
+                      <td style={{ borderRight: "1px solid #94a3b8" }}></td>
+                      <td style={{ padding: "6px", textAlign: "center", borderRight: "1px solid #94a3b8" }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
+                      <td style={{ padding: "6px 10px", textAlign: "right" }}>₹{master.taxAmount.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
           </div>
         </div>
-
       </div>
     </div>
   );

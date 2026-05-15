@@ -8,9 +8,21 @@ const ViewSaleBill = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isQuiet = queryParams.get('quiet') === 'true';
   const [billData, setBillData] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const printProcessed = React.useRef(false);
+
+  useEffect(() => {
+    if (isQuiet) {
+      document.body.style.backgroundColor = 'white';
+      return () => {
+        document.body.style.backgroundColor = '';
+      };
+    }
+  }, [isQuiet]);
 
   useEffect(() => {
     const fetchBillData = async () => {
@@ -30,8 +42,29 @@ const ViewSaleBill = () => {
     fetchBillData();
   }, [id]);
 
-  const queryParams = new URLSearchParams(location.search);
-  const isQuiet = queryParams.get('quiet') === 'true';
+  useEffect(() => {
+    if (!loading && billData && !printProcessed.current) {
+      if (queryParams.get('print') === 'true') {
+        printProcessed.current = true;
+        const timer = setTimeout(() => {
+          console.log("Triggering Print...");
+          window.focus();
+          window.print();
+          // After printing, if it's a standalone print tab, try to close it
+          setTimeout(() => {
+            // If we are in a standalone route (opened via window.open), close it
+            if (window.opener || window.location.pathname.startsWith('/print/')) {
+              window.close();
+            } else if (queryParams.get('quiet') !== 'true') {
+              // Fallback for regular view page with print=true
+              navigate('/sales/bills');
+            }
+          }, 500);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, billData, items, location.search, navigate]);
 
   const calculatedTaxBreakdown = React.useMemo(() => {
     if (!items || items.length === 0) return [];
@@ -89,24 +122,42 @@ const ViewSaleBill = () => {
   if (!billData) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif' }}>Invoice Not Found!</div>;
 
   return (
-    <div className="invoice-outer-wrapper" style={{ padding: isQuiet ? '0' : '20px', background: isQuiet ? 'white' : '#f8fafc', minHeight: '100vh' }}>
+    <div className={`invoice-outer-wrapper ${isQuiet ? 'quiet-mode' : ''}`} style={{
+      padding: isQuiet ? '0' : '20px',
+      background: 'white',
+      minHeight: '100vh',
+      display: 'block'
+    }}>
       <style>{`
         @media print {
-          @page { size: A4; margin: 5mm; }
-          body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+          @page { size: A4; margin: 4mm; }
+          body, html { 
+            background: white !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            width: 100% !important;
+            -webkit-print-color-adjust: exact; 
+          }
           .no-print { display: none !important; }
-          .invoice-outer-wrapper { padding: 0 !important; background: white !important; min-height: auto !important; }
+          .invoice-outer-wrapper { 
+            padding: 0 !important; 
+            background: white !important; 
+            min-height: auto !important; 
+            width: 100% !important;
+          }
           
           .invoice-box { 
             box-shadow: none !important; 
-            border: 1px solid #000 !important; 
+            border: none !important; 
             margin: 0 !important; 
             width: 100% !important;
-            padding: 10mm !important;
+            max-width: 100% !important;
+            padding: 0 !important;
             visibility: visible !important;
             display: block !important;
             border-radius: 0 !important;
           }
+          .print-area { display: block !important; }
 
           .invoice-box * {
             visibility: visible !important;
@@ -115,32 +166,61 @@ const ViewSaleBill = () => {
             -webkit-print-color-adjust: exact;
           }
           
-          table, .invoice-table { 
+          /* Readability & Spacing */
+          h1 { font-size: 26px !important; margin: 0 !important; }
+          h2 { font-size: 20px !important; margin: 0 !important; }
+          h3 { font-size: 12px !important; margin-bottom: 4px !important; }
+          p { font-size: 13px !important; margin: 3px 0 !important; }
+
+          .invoice-box > div { margin-top: 15px !important; }
+          .invoice-box > div:first-child { margin-top: 0 !important; padding-bottom: 10px !important; border-bottom: 2px solid #1e293b !important; }
+
+          table, .invoice-table, .tax-breakdown-table { 
             width: 100% !important; 
             border-collapse: collapse !important; 
             margin-top: 10px !important;
             display: table !important;
           }
           tr { display: table-row !important; page-break-inside: avoid !important; }
-          th, td { display: table-cell !important; padding: 6px !important; font-size: 11px !important; }
+          th, td { display: table-cell !important; }
+          
+          .invoice-table tr {
+            background: transparent !important;
+            color: black !important;
+          }
           
           .invoice-table th { 
-            background: #f0f0f0 !important; 
+            background: #e2e8f0 !important; 
             color: black !important; 
             border: 1px solid #000 !important; 
+            padding: 10px !important;
+            font-size: 12px !important;
+            font-weight: bold !important;
           }
           .invoice-table td { 
             border: 1px solid #000 !important; 
+            padding: 10px !important;
+            font-size: 13px !important;
           }
           .tax-breakdown-table th, .tax-breakdown-table td { 
             border: 1px solid #000 !important; 
-            font-size: 9px !important;
-            padding: 4px !important;
+            padding: 6px !important;
+            font-size: 11px !important;
           }
           .grand-total-section {
             background: #f8fafc !important;
-            -webkit-print-color-adjust: exact;
+            padding: 15px !important;
+            border: 1px solid #000 !important;
+            border-radius: 8px !important;
           }
+          .grand-total-section div { font-size: 14px !important; margin-bottom: 4px !important; }
+          .grand-total-section > div:nth-child(4) { 
+             font-size: 20px !important; 
+             padding-top: 8px !important; 
+             margin-top: 8px !important; 
+          }
+          .terms-section { padding: 10px !important; margin-top: 10px !important; }
+          .terms-section ul { margin: 0 !important; padding-left: 18px !important; font-size: 11px !important; }
         }
 
         .invoice-box {
@@ -153,6 +233,23 @@ const ViewSaleBill = () => {
           border: 1px solid #e2e8f0;
           color: #1e293b;
           font-family: 'Inter', -apple-system, sans-serif;
+          transition: all 0.3s ease;
+        }
+        .invoice-box.quiet-mode {
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 10mm !important;
+          box-shadow: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+        }
+        @media screen {
+          .invoice-outer-wrapper.quiet-mode {
+            background: white !important;
+          }
+          .invoice-outer-wrapper.quiet-mode * {
+            display: none !important;
+          }
         }
         .invoice-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .invoice-table th { padding: 12px 10px; background: #1e293b; color: white; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e2e8f0; }
@@ -171,7 +268,7 @@ const ViewSaleBill = () => {
         </div>
       )}
 
-      <div className="invoice-box print-area">
+      <div className={`invoice-box print-area ${isQuiet ? 'quiet-mode' : ''}`}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1e293b', paddingBottom: '15px', breakInside: 'avoid' }}>
           <div>
@@ -209,7 +306,7 @@ const ViewSaleBill = () => {
         </div>
 
         {/* Items Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', border: '1px solid #e2e8f0' }}>
+        <table className="invoice-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', border: '1px solid #e2e8f0' }}>
           <thead>
             <tr style={{ background: '#1e293b', color: 'white', fontSize: '12px' }}>
               <th style={{ width: '50px', textAlign: 'center', padding: '10px', border: '1px solid #e2e8f0' }}>SR.</th>
@@ -243,11 +340,11 @@ const ViewSaleBill = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '40px', marginTop: '20px' }}>
           <div>
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', marginBottom: '8px' }}>Amount in Words:</h3>
-            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#1e293b', fontStyle: 'italic' }}>
+            <p className="amount-words" style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#1e293b', fontStyle: 'italic' }}>
               {numberToWords(billData.grandTotal)}
             </p>
 
-            <div style={{ marginTop: '20px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            <div className="terms-section" style={{ marginTop: '20px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
               <h3 style={{ fontSize: '11px', margin: '0 0 5px 0' }}>Terms & Conditions:</h3>
               <ul style={{ margin: 0, paddingLeft: '15px', fontSize: '10px', color: '#64748b' }}>
                 <li>Goods once sold will not be taken back.</li>
@@ -321,7 +418,7 @@ const ViewSaleBill = () => {
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', margin: 0 }}>GST Breakdown:</h3>
             <span style={{ fontSize: '10px', fontWeight: '800', color: '#16a34a' }}>INTRA-STATE SALE (CGST + SGST)</span>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px', border: '1px solid #e2e8f0' }}>
+          <table className="tax-breakdown-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px', border: '1px solid #e2e8f0' }}>
             <thead>
               <tr style={{ background: '#f8fafc', color: '#1e293b' }}>
                 <th rowSpan="2" style={{ padding: '10px', border: '1px solid #e2e8f0' }}>HSN CODE</th>

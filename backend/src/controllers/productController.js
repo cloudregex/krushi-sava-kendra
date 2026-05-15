@@ -10,12 +10,12 @@ exports.getLatestBatch = async (req, res) => {
             SaleItem.findOne({
                 where: { productId: req.params.id },
                 order: [['createdAt', 'DESC']],
-                attributes: ['batchNo', 'createdAt']
+                attributes: ['batchNo', 'expiryDate', 'rate', 'createdAt']
             }),
             PurchaseItem.findOne({
                 where: { productId: req.params.id },
                 order: [['createdAt', 'DESC']],
-                attributes: ['batchNo', 'createdAt']
+                attributes: ['batchNo', 'expiryDate', 'salePrice', 'createdAt']
             })
         ]);
         
@@ -23,15 +23,37 @@ exports.getLatestBatch = async (req, res) => {
         console.log("Last Purchase Found:", lastPurchase ? lastPurchase.batchNo : "NONE");
         
         let latestBatch = '';
+        let latestExpiry = '';
+        let latestSaleRate = '';
+        
         if (lastSale && lastPurchase) {
-            latestBatch = lastSale.createdAt > lastPurchase.createdAt ? lastSale.batchNo : lastPurchase.batchNo;
+            if (lastSale.createdAt > lastPurchase.createdAt) {
+                latestBatch = lastSale.batchNo;
+                latestExpiry = lastSale.expiryDate;
+                latestSaleRate = lastSale.rate;
+            } else {
+                latestBatch = lastPurchase.batchNo;
+                latestExpiry = lastPurchase.expiryDate;
+                latestSaleRate = lastPurchase.salePrice;
+            }
         } else if (lastSale) {
             latestBatch = lastSale.batchNo;
+            latestExpiry = lastSale.expiryDate;
+            latestSaleRate = lastSale.rate;
         } else if (lastPurchase) {
             latestBatch = lastPurchase.batchNo;
+            latestExpiry = lastPurchase.expiryDate;
+            latestSaleRate = lastPurchase.salePrice;
         }
 
-        res.status(200).json({ batchNo: latestBatch });
+        if (latestExpiry === 'Invalid date') latestExpiry = '';
+        if (latestBatch === 'Invalid date') latestBatch = '';
+
+        res.status(200).json({ 
+            batchNo: latestBatch || '', 
+            expiryDate: latestExpiry || '',
+            saleRate: latestSaleRate || ''
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

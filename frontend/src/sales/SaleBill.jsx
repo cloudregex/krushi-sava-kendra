@@ -49,23 +49,8 @@ const SaleBill = () => {
   };
 
   const handlePrint = (id) => {
-    const iframeId = 'print-iframe';
-    let iframe = document.getElementById(iframeId);
-    if (iframe) {
-      document.body.removeChild(iframe);
-    }
-    iframe = document.createElement('iframe');
-    iframe.id = iframeId;
-    iframe.style.position = 'absolute';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.left = '0';
-    iframe.style.top = '0';
-    iframe.style.opacity = '0';
-    iframe.style.zIndex = '-1';
-    iframe.style.pointerEvents = 'none';
-    iframe.src = `/sales/bills/view/${id}?print=true&quiet=true`;
-    document.body.appendChild(iframe);
+    // Open in a new tab for standalone printing with quiet mode (hides UI buttons)
+    window.open(`/print/sale/${id}?print=true&quiet=true`, '_blank');
   };
 
   const getStatus = (bill) => {
@@ -161,25 +146,17 @@ const SaleBill = () => {
                   <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>Loading bills...</td></tr>
                 ) : filteredBills.map((bill) => (
                   <tr key={bill.id}>
-                    <td style={{ fontWeight: '800', fontSize: '13px', color: '#1e293b' }}>{bill.invoiceNo}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>{bill.invoiceNo}</td>
                     <td>
-                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#0f172a' }}>{bill.customer?.name || 'Unknown'}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
+                      <div style={{ fontWeight: '600' }}>{bill.customer?.name || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         📞 {bill.customer?.mobile || 'No Mobile'}
                       </div>
                     </td>
-                    <td style={{ fontSize: '12px', color: '#475569', fontWeight: '500' }}>{bill.billDate}</td>
-                    <td style={{ fontWeight: '800', fontSize: '14px', color: '#1e293b' }}>₹{(bill.grandTotal || 0).toFixed(2)}</td>
-                    <td style={{ color: '#16a34a', fontWeight: '800', fontSize: '13px' }}>₹{(bill.paidAmount || 0).toFixed(2)}</td>
-                    <td>
-                      {bill.balanceAmount > 0 ? (
-                        <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '14px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px' }}>
-                          ₹{(bill.balanceAmount || 0).toFixed(2)}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#64748b', fontWeight: '500', fontSize: '13px' }}>₹0.00</span>
-                      )}
-                    </td>
+                    <td>{bill.billDate}</td>
+                    <td style={{ fontWeight: '700' }}>₹{(bill.grandTotal || 0).toFixed(2)}</td>
+                    <td style={{ color: '#16a34a', fontWeight: '600' }}>₹{(bill.paidAmount || 0).toFixed(2)}</td>
+                    <td style={{ color: (parseFloat(bill.balanceAmount) || 0) > 0 ? '#ef4444' : 'inherit', fontWeight: '600' }}>₹{(parseFloat(bill.balanceAmount) || 0).toFixed(2)}</td>
                     <td>
                       {(() => {
                         const pm = bill.paymentMode;
@@ -300,15 +277,15 @@ const SaleBill = () => {
             }}>
               <Trash2 size={30} />
             </div>
-            
+
             <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>Confirm Delete?</h3>
             <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '25px' }}>
-              Are you sure you want to delete bill <strong>{confirmModal.bill?.invoiceNo}</strong>? <br/>
+              Are you sure you want to delete bill <strong>{confirmModal.bill?.invoiceNo}</strong>? <br />
               <strong style={{ color: '#ef4444' }}>This action will reverse the stock reduction.</strong>
             </p>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
+              <button
                 onClick={() => setConfirmModal({ show: false, bill: null })}
                 style={{
                   flex: 1,
@@ -322,10 +299,12 @@ const SaleBill = () => {
                   fontSize: '14px',
                   transition: 'all 0.2s'
                 }}
+                onMouseOver={(e) => e.target.style.background = '#f1f5f9'}
+                onMouseOut={(e) => e.target.style.background = '#f8fafc'}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={confirmDelete}
                 style={{
                   flex: 1,
@@ -340,12 +319,14 @@ const SaleBill = () => {
                   boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)',
                   transition: 'all 0.2s'
                 }}
+                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
               >
                 Yes, Delete
               </button>
             </div>
           </div>
-          
+
           <style>{`
             @keyframes fadeIn {
               from { opacity: 0; }
