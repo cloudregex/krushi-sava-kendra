@@ -35,16 +35,28 @@ const ViewPurchaseReturn = () => {
     fetchReturnData();
   }, [id]);
 
+  const queryParams = new URLSearchParams(location.search);
+  const isQuiet = queryParams.get('quiet') === 'true';
+
   if (!returnData) {
     return <div className="agro-container flex-center" style={{ height: '50vh' }}>Loading return details...</div>;
   }
 
   return (
-    <div className="agro-container print-area" style={{ padding: '0 25px' }}>
+    <div className="agro-container print-area" style={{ 
+      padding: isQuiet ? '0' : '0 25px',
+      background: isQuiet ? 'white' : 'transparent'
+    }}>
       <style>
         {`
           @media screen {
-            .print-only-header { display: none !important; }
+            .print-only-header { display: ${isQuiet ? 'block' : 'none'} !important; }
+            .no-print { display: ${isQuiet ? 'none' : 'block'} !important; }
+            .agro-unified-card { 
+              box-shadow: ${isQuiet ? 'none' : 'var(--shadow)'} !important; 
+              border: ${isQuiet ? 'none' : '1px solid var(--border-light)'} !important; 
+              margin: ${isQuiet ? '0' : '5px auto'} !important; 
+            }
           }
           @media print {
             .no-print { display: none !important; }
@@ -68,32 +80,34 @@ const ViewPurchaseReturn = () => {
       <div className="agro-unified-card" style={{
         background: 'white',
         borderRadius: '16px',
-        boxShadow: 'var(--shadow)',
-        border: '1px solid var(--border-light)',
-        marginTop: '5px',
+        boxShadow: isQuiet ? 'none' : 'var(--shadow)',
+        border: isQuiet ? 'none' : '1px solid var(--border-light)',
+        marginTop: isQuiet ? '0' : '5px',
         overflow: 'hidden'
       }}>
-        <div className="agro-header-compact no-print" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 20px',
-          borderBottom: '1px solid var(--border-light)',
-          background: 'white'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Purchase Return: {returnData.id}</h2>
-            <p style={{ fontSize: '12px', margin: 0 }}>Supplier refund and inventory correction</p>
+        {!isQuiet && (
+          <div className="agro-header-compact no-print" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 20px',
+            borderBottom: '1px solid var(--border-light)',
+            background: 'white'
+          }}>
+            <div>
+              <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Purchase Return: {returnData.id}</h2>
+              <p style={{ fontSize: '12px', margin: 0 }}>Supplier refund and inventory correction</p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-agro btn-outline" onClick={() => window.print()} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
+                <Printer size={16} /> Print
+              </button>
+              <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/returns')} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
+                <ArrowLeft size={16} /> Back
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn-agro btn-outline" onClick={() => window.print()} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
-              <Printer size={16} /> Print
-            </button>
-            <button className="btn-agro btn-outline" onClick={() => navigate('/purchase/returns')} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
-              <ArrowLeft size={16} /> Back
-            </button>
-          </div>
-        </div>
+        )}
 
         <div style={{ padding: '15px 20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
