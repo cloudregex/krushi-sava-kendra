@@ -66,78 +66,104 @@ const EditSaleBill = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log("🔄 FETCHING EDIT DATA FOR ID:", id);
         const [custData, prodData, unitData, saleData] = await Promise.all([
           ApiService.getAll('customers'),
           ApiService.getAll('products'),
           ApiService.getAll('units'),
           ApiService.getById('sales', id)
         ]);
-        
-        setCustomers(custData);
-        const saleable = prodData.filter(p => p.isSaleable);
+
+        console.log("✅ Customers Found:", custData?.length);
+        console.log("✅ Products Found:", prodData?.length);
+        console.log("✅ Sale Data Received:", saleData);
+
+        setCustomers(custData || []);
+        const saleable = (prodData || []).filter(p => p.isSaleable || p.isActive);
         setProducts(saleable);
-        setUnits(unitData);
+        setUnits(unitData || []);
 
         if (saleData) {
           const sale = saleData.sale || saleData;
-          const sItems = saleData.items || [];
-          
+          const sItems = sale.items || saleData.items || [];
+          console.log("📦 Sale Items to Map:", sItems.length);
+
           let pm = { cash: 0, upi: 0, swipe: 0 };
           try {
-             if (typeof sale.paymentMode === 'string') pm = JSON.parse(sale.paymentMode);
-             else if (sale.paymentMode) pm = sale.paymentMode;
-          } catch(e) {}
+            if (typeof sale.paymentMode === 'string') pm = JSON.parse(sale.paymentMode);
+            else if (sale.paymentMode) pm = sale.paymentMode;
+          } catch (e) { }
 
           setMaster(prev => ({
             ...prev,
             invoiceNo: sale.invoiceNo || '',
             customerId: sale.customerId || '',
             billDate: sale.billDate || '',
-            subtotal: sale.subtotal || 0,
-            taxAmount: sale.taxAmount || 0,
-            discountAmount: sale.discountAmount || 0,
-            discountType: 'amount', 
-            grandTotal: sale.grandTotal || 0,
+            subtotal: parseFloat(sale.subtotal) || 0,
+            taxAmount: parseFloat(sale.taxAmount) || 0,
+            discountAmount: parseFloat(sale.discountAmount) || 0,
+            discountType: 'amount',
+            grandTotal: parseFloat(sale.grandTotal) || 0,
             cashPaid: pm.cash || '',
             upiPaid: pm.upi || '',
             swipePaid: pm.swipe || '',
-            paidAmount: sale.paidAmount || 0,
-            pendingAmount: sale.balanceAmount || 0,
-            totalDiscount: sale.discountAmount || 0,
+            paidAmount: parseFloat(sale.paidAmount) || 0,
+            pendingAmount: parseFloat(sale.balanceAmount) || 0,
+            totalDiscount: parseFloat(sale.discountAmount) || 0,
             notes: sale.notes || '',
             customerBalance: 0
           }));
 
           const mappedItems = sItems.map(item => {
-             const prod = saleable.find(p => p.id === item.productId) || {};
-             return {
-                id: item.id || Date.now() + Math.random(),
-                productId: item.productId,
-                productName: prod.name || '',
-                primaryUnit: prod.unit || '',
-                hsnCode: prod.hsnCode || '',
-                batchNo: item.batchNo || '',
-                expiryDate: item.expiryDate || '',
-                currentStock: prod.currentStock || 0,
-                quantity: item.quantity,
-                freeQuantity: item.freeQuantity || 0,
-                unit: item.unit || '',
-                saleRate: item.rate || 0,
-                discount: item.discount || 0,
-                discountType: 'amount',
-                taxPercent: item.taxPercent || 0,
-                taxAmount: item.taxAmount || 0,
-                amount: item.totalAmount || 0,
-                stockIncrement: 0,
-                conversionFactor: 1,
-                multiUnits: prod.multiUnits || []
-             };
+            const prod = prodData.find(p => p.id === item.productId) || item.product || {};
+            const multiUnits = prod.multiUnits || [];
+            
+            // Find conversion factor for the saved unit
+            let cFactor = 1;
+            if (item.unit === (prod.unit || '')) {
+              cFactor = 1;
+            } else {
+              const mu = multiUnits.find(u => u.alternative === item.unit);
+              if (mu) cFactor = parseFloat(mu.value) || 1;
+            }
+
+            const qty = parseFloat(item.quantity) || 0;
+            const freeQty = parseFloat(item.freeQuantity) || 0;
+            const totalDeduction = (qty + freeQty) / cFactor;
+
+            return {
+              id: item.id || Date.now() + Math.random(),
+              productId: item.productId,
+              productName: prod.name || item.productName || 'Unknown Product',
+              primaryUnit: prod.unit || item.unit || '',
+              hsnCode: prod.hsnCode || item.hsnCode || '',
+              batchNo: item.batchNo || '',
+              expiryDate: item.expiryDate || '',
+              currentStock: parseFloat(prod.currentStock) || 0,
+              quantity: qty,
+              freeQuantity: freeQty,
+              unit: item.unit || '',
+              saleRate: parseFloat(item.rate) || 0,
+              discount: parseFloat(item.discount) || 0,
+              discountType: 'amount',
+              taxPercent: parseFloat(item.taxPercent) || 0,
+              taxAmount: parseFloat(item.taxAmount) || 0,
+              amount: parseFloat(item.totalAmount) || 0,
+              stockIncrement: totalDeduction,
+              conversionFactor: cFactor,
+              multiUnits: multiUnits
+            };
           });
 
-          if (mappedItems.length > 0) setChildren(mappedItems);
+          if (mappedItems.length > 0) {
+            console.log("✨ Setting children with mapped items:", mappedItems.length);
+            setChildren(mappedItems);
+          } else {
+            console.warn("⚠️ No items found in sale data, showing empty row.");
+          }
         }
       } catch (error) {
-        console.error("Fetch error:", error);
+        console.error("❌ Fetch error in EditSaleBill:", error);
       }
     };
     if (id) fetchData();
@@ -229,7 +255,7 @@ const EditSaleBill = () => {
             u.unit = extraData.unit || '';
             u.primaryUnit = extraData.unit || '';
             u.taxPercent = parseFloat(extraData.tax) || 0;
-            u.saleRate = extraData.saleRate || (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
+            u.saleRate = (extraData.saleRate !== undefined && extraData.saleRate !== null && extraData.saleRate !== '') ? extraData.saleRate : (extraData.multiUnits && extraData.multiUnits.length > 0 ? extraData.multiUnits[0].amount : '');
             u.multiUnits = extraData.multiUnits || [];
             u.conversionFactor = 1;
             u.batchNo = '';
@@ -261,9 +287,9 @@ const EditSaleBill = () => {
                     const taxP = parseFloat(row.taxPercent) || 0;
                     const rowTax = ((rowSub - actualDisc) * taxP) / 100;
 
-                    return { 
-                      ...row, 
-                      batchNo: newBatch, 
+                    return {
+                      ...row,
+                      batchNo: newBatch,
                       expiryDate: newExpiry,
                       saleRate: newRate,
                       amount: rowSub,
@@ -485,7 +511,7 @@ const EditSaleBill = () => {
                   <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>EXPIRY</th>
                   <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>AVAILABLE QTY</th>
                   <th style={{ minWidth: "70px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>SOLD QTY</th>
-                  <th style={{ minWidth: "80px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>UNIT</th>
+                  <th style={{ minWidth: "100px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>UNIT</th>
                   <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>STOCK DECREMENT</th>
                   <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>SALE RATE</th>
                   <th style={{ minWidth: "100px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>DISC</th>
@@ -518,21 +544,21 @@ const EditSaleBill = () => {
                           Prev: {child.prevBatchNo || 'No History'}
                         </div>
                       )}
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        value={child.batchNo} 
-                        readOnly 
-                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }} 
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={child.batchNo}
+                        readOnly
+                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }}
                       />
                     </td>
                     <td style={{ verticalAlign: 'top' }}>
-                      <input 
-                        type="date" 
-                        className="form-control" 
-                        value={child.expiryDate} 
-                        readOnly 
-                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }} 
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={child.expiryDate}
+                        readOnly
+                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }}
                       />
                     </td>
                     <td style={{ verticalAlign: 'top' }}>
@@ -541,10 +567,10 @@ const EditSaleBill = () => {
                         className="form-control"
                         value={child.productId && child.currentStock !== 0 ? child.currentStock : ''}
                         readOnly
-                        style={{ 
-                          height: '36px', 
-                          textAlign: 'center', 
-                          fontWeight: '800', 
+                        style={{
+                          height: '36px',
+                          textAlign: 'center',
+                          fontWeight: '800',
                           color: child.currentStock > 0 ? '#16a34a' : '#ef4444',
                           background: '#f8fafc',
                           cursor: 'not-allowed'
@@ -573,7 +599,7 @@ const EditSaleBill = () => {
                         className="form-control"
                         value={child.unit}
                         onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
-                        style={{ height: '36px', fontSize: '13px', textAlign: 'center' }}
+                        style={{ height: '36px', fontSize: '12px', textAlign: 'center', padding: '0 5px', width: '100%', minWidth: '90px' }}
                       >
                         <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
                         {child.multiUnits && child.multiUnits.map((mu, i) => (
@@ -610,7 +636,7 @@ const EditSaleBill = () => {
                         )}
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.saleRate === 0 || child.saleRate === '0' ? '' : child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                    <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
                     <td style={{ verticalAlign: 'top' }}>
                       <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
                         <input
@@ -718,34 +744,34 @@ const EditSaleBill = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Subtotal</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{(master.subtotal || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>₹{parseFloat(master.subtotal || 0).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Tax Amount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{(master.taxAmount || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>+ ₹{parseFloat(master.taxAmount || 0).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Product Discount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.rowDiscountAmount || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{parseFloat(master.rowDiscountAmount || 0).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Bill Discount</span>
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{(master.masterDiscountAmount || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{parseFloat(master.masterDiscountAmount || 0).toFixed(2)}</span>
               </div>
               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>
-                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{(master.grandTotal || 0).toFixed(2)}</span>
+                <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{parseFloat(master.grandTotal || 0).toFixed(2)}</span>
               </div>
 
               {/* Action Buttons inside Bill Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', marginTop: '20px' }}>
-                <button 
-                  className="btn-agro" 
+                <button
+                  className="btn-agro"
                   onClick={handleCancel}
-                  style={{ 
-                    height: '45px', 
-                    background: 'rgba(255,255,255,0.1)', 
-                    color: 'white', 
+                  style={{
+                    height: '45px',
+                    background: 'rgba(255,255,255,0.1)',
+                    color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     fontWeight: '700',
                     borderRadius: '10px'
@@ -753,14 +779,14 @@ const EditSaleBill = () => {
                 >
                   Cancel
                 </button>
-                <button 
-                  className="btn-agro" 
+                <button
+                  className="btn-agro"
                   onClick={() => handleSaveSale(false)}
                   disabled={children.some(c => c.productId && c.quantity > c.currentStock)}
-                  style={{ 
-                    height: '45px', 
-                    background: 'white', 
-                    color: 'var(--primary)', 
+                  style={{
+                    height: '45px',
+                    background: 'white',
+                    color: 'var(--primary)',
                     border: 'none',
                     fontWeight: '900',
                     borderRadius: '10px',
@@ -823,10 +849,10 @@ const EditSaleBill = () => {
                 )}
                 <tr style={{ background: '#f0fdf4', fontWeight: '900', color: '#166534', borderTop: '2px solid #bbf7d0' }}>
                   <td colSpan="3" style={{ padding: '15px', textAlign: 'left', paddingLeft: '30px', fontSize: '14px' }}>TOTAL</td>
-                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
+                  <td style={{ padding: '15px' }}>₹{(parseFloat(master.taxAmount || 0) / 2).toFixed(2)}</td>
                   <td style={{ padding: '15px' }}></td>
-                  <td style={{ padding: '15px' }}>₹{(master.taxAmount / 2).toFixed(2)}</td>
-                  <td style={{ padding: '15px', fontSize: '16px' }}>₹{master.taxAmount.toFixed(2)}</td>
+                  <td style={{ padding: '15px' }}>₹{(parseFloat(master.taxAmount || 0) / 2).toFixed(2)}</td>
+                  <td style={{ padding: '15px', fontSize: '16px' }}>₹{parseFloat(master.taxAmount || 0).toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>

@@ -208,7 +208,7 @@ const SaleBill = () => {
                           <button
                             className="action-icon-btn edit"
                             title="Edit"
-                            onClick={() => navigate(`/sales/entry/${bill.id}`)}
+                            onClick={() => navigate(`/sales/bills/edit/${bill.id}`)}
                             style={{ color: '#eab308', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
                           >
                             <Edit size={18} />

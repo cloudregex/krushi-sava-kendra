@@ -20,7 +20,7 @@ const ProductCreate = () => {
     expiryRequired: false, isActive: true
   });
 
-  const [unitRows, setUnitRows] = useState([{ id: 'primary-row', value: 1, unit: '' }]);
+  const [unitRows, setUnitRows] = useState([{ id: 'primary-row', value: 1, unit: '', amount: '' }]);
   const [tempUnit, setTempUnit] = useState({ productName: '', primary: '', alternative: '', tax: '', amount: '', conversion: '' });
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const ProductCreate = () => {
             conversion: conversionFactor,
             productName: `${r.value} ${r.unit} = ${formData.unitValue} ${formData.unit}`,
             tax: formData.tax || '0',
-            amount: '0'
+            amount: r.amount || '0'
           };
         });
 
@@ -94,7 +94,7 @@ const ProductCreate = () => {
   };
 
   const addUnitRow = () => {
-    setUnitRows([...unitRows, { id: Date.now(), value: 1, unit: '' }]);
+    setUnitRows([...unitRows, { id: Date.now(), value: 1, unit: '', amount: '' }]);
   };
 
   const removeUnitRow = (id) => {
@@ -143,7 +143,7 @@ const ProductCreate = () => {
           </div>
           <button type="button" className="btn-agro btn-outline" onClick={() => navigate('/products')}>
             <ArrowLeft size={16} /> Back
-          </button> 
+          </button>
         </div>
 
         <div style={{ padding: '15px 20px' }}>
@@ -230,6 +230,7 @@ const ProductCreate = () => {
                       <th style={{ width: '50px', textAlign: 'center' }}>#</th>
                       <th style={{ textAlign: 'left' }}>VALUE</th>
                       <th style={{ textAlign: 'left' }}>UNIT</th>
+                      <th style={{ textAlign: 'left' }}>SALE PRICE</th>
                       <th style={{ width: '100px', textAlign: 'center' }}>ACTION</th>
                     </tr>
                   </thead>
@@ -262,24 +263,34 @@ const ProductCreate = () => {
                             })}
                           />
                         </td>
+                        <td>
+                          <FormField
+                            noLabel
+                            noMargin
+                            type="number"
+                            value={row.amount}
+                            onChange={(e) => handleUnitRowChange(row.id, 'amount', e.target.value)}
+                            placeholder="Price"
+                          />
+                        </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
                             type="button"
                             className="btn-agro"
-                            style={{ 
-                                background: '#f43f5e', 
-                                color: 'white', 
-                                border: 'none', 
-                                fontSize: '11px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                margin: '0 auto',
-                                opacity: index === 0 ? 0.4 : 1,
-                                cursor: index === 0 ? 'not-allowed' : 'pointer'
-                              }}
-                              onClick={() => index !== 0 && removeUnitRow(row.id)}
-                              disabled={index === 0}
+                            style={{
+                              background: '#f43f5e',
+                              color: 'white',
+                              border: 'none',
+                              fontSize: '11px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              margin: '0 auto',
+                              opacity: index === 0 ? 0.4 : 1,
+                              cursor: index === 0 ? 'not-allowed' : 'pointer'
+                            }}
+                            onClick={() => index !== 0 && removeUnitRow(row.id)}
+                            disabled={index === 0}
                           >
                             <Trash2 size={12} /> Remove
                           </button>

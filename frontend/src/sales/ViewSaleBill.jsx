@@ -130,7 +130,7 @@ const ViewSaleBill = () => {
     }}>
       <style>{`
         @media print {
-          @page { size: A4; margin: 4mm; }
+          @page { size: A4; margin: 5mm; }
           body, html { 
             background: white !important; 
             margin: 0 !important; 
@@ -167,18 +167,18 @@ const ViewSaleBill = () => {
           }
           
           /* Readability & Spacing */
-          h1 { font-size: 26px !important; margin: 0 !important; }
-          h2 { font-size: 20px !important; margin: 0 !important; }
-          h3 { font-size: 12px !important; margin-bottom: 4px !important; }
-          p { font-size: 13px !important; margin: 3px 0 !important; }
+          h1 { font-size: 22px !important; margin: 0 !important; }
+          h2 { font-size: 18px !important; margin: 0 !important; }
+          h3 { font-size: 11px !important; margin-bottom: 2px !important; }
+          p { font-size: 11px !important; margin: 2px 0 !important; }
 
-          .invoice-box > div { margin-top: 15px !important; }
-          .invoice-box > div:first-child { margin-top: 0 !important; padding-bottom: 10px !important; border-bottom: 2px solid #1e293b !important; }
+          .invoice-box > div { margin-top: 10px !important; }
+          .invoice-box > div:first-child { margin-top: 0 !important; padding-bottom: 5px !important; border-bottom: 2px solid #1e293b !important; }
 
           table, .invoice-table, .tax-breakdown-table { 
             width: 100% !important; 
             border-collapse: collapse !important; 
-            margin-top: 10px !important;
+            margin-top: 8px !important;
             display: table !important;
           }
           tr { display: table-row !important; page-break-inside: avoid !important; }
@@ -190,37 +190,39 @@ const ViewSaleBill = () => {
           }
           
           .invoice-table th { 
-            background: #e2e8f0 !important; 
+            background: #f1f5f9 !important; 
             color: black !important; 
             border: 1px solid #000 !important; 
-            padding: 10px !important;
-            font-size: 12px !important;
+            padding: 6px 4px !important;
+            font-size: 11px !important;
             font-weight: bold !important;
           }
           .invoice-table td { 
             border: 1px solid #000 !important; 
-            padding: 10px !important;
-            font-size: 13px !important;
+            padding: 6px 4px !important;
+            font-size: 11px !important;
           }
           .tax-breakdown-table th, .tax-breakdown-table td { 
             border: 1px solid #000 !important; 
-            padding: 6px !important;
-            font-size: 11px !important;
+            padding: 4px !important;
+            font-size: 9px !important;
           }
           .grand-total-section {
             background: #f8fafc !important;
-            padding: 15px !important;
+            padding: 10px !important;
             border: 1px solid #000 !important;
-            border-radius: 8px !important;
+            border-radius: 6px !important;
           }
-          .grand-total-section div { font-size: 14px !important; margin-bottom: 4px !important; }
+          .grand-total-section div { font-size: 12px !important; margin-bottom: 2px !important; }
           .grand-total-section > div:nth-child(4) { 
-             font-size: 20px !important; 
-             padding-top: 8px !important; 
-             margin-top: 8px !important; 
+             font-size: 18px !important; 
+             padding-top: 4px !important; 
+             margin-top: 4px !important; 
           }
-          .terms-section { padding: 10px !important; margin-top: 10px !important; }
-          .terms-section ul { margin: 0 !important; padding-left: 18px !important; font-size: 11px !important; }
+          .terms-section { padding: 6px !important; margin-top: 6px !important; }
+          .terms-section ul { margin: 0 !important; padding-left: 14px !important; font-size: 10px !important; }
+          .amount-words { font-size: 11px !important; }
+          .signature-section { margin-top: 15px !important; }
         }
 
         .invoice-box {
@@ -465,7 +467,7 @@ const ViewSaleBill = () => {
         </div>
 
         {/* Signatures */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px', breakInside: 'avoid' }}>
+        <div className="signature-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px', breakInside: 'avoid' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ borderTop: '1.5px solid #1e293b', width: '160px', marginBottom: '8px' }}></div>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Customer Signature</p>
