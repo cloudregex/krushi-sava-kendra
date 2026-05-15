@@ -13,11 +13,31 @@ const PurchaseReturn = () => {
     { id: 'RET-002', purchaseId: 'PUR-505', supplierId: 'SUP-105', returnDate: '2026-04-29', totalAmount: 850.00, reason: 'Expired Stock' },
   ]);
 
+  const [confirmModal, setConfirmModal] = useState({ show: false, id: null });
+
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this purchase return?")) {
-      setReturns(returns.filter(r => r.id !== id));
-      toast.success("Purchase return deleted successfully");
+    setConfirmModal({ show: true, id });
+  };
+
+  const confirmDelete = () => {
+    const { id } = confirmModal;
+    setConfirmModal({ show: false, id: null });
+    setReturns(returns.filter(r => r.id !== id));
+    toast.success("Purchase return deleted successfully");
+  };
+
+  const handlePrint = (id) => {
+    const iframeId = 'print-iframe';
+    let iframe = document.getElementById(iframeId);
+    if (iframe) {
+      document.body.removeChild(iframe);
     }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    iframe.style.display = 'none';
+    iframe.src = `/purchase/returns/view/${id}?print=true&quiet=true`;
+    document.body.appendChild(iframe);
+    toast.loading("Preparing print...", { duration: 2000 });
   };
 
   const filteredReturns = returns.filter(r =>
@@ -101,7 +121,7 @@ const PurchaseReturn = () => {
                         <button
                           className="btn-action print"
                           title="Print"
-                          onClick={() => navigate(`/purchase/returns/view/${item.id}?print=true`)}
+                          onClick={() => handlePrint(item.id)}
                           style={{ color: '#10b981', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
                         >
                           <Printer size={16} />
@@ -134,6 +154,108 @@ const PurchaseReturn = () => {
           </div>
         </div>
       </div>
+      {/* Confirmation Modal */}
+      {confirmModal.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              background: '#fef2f2',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              color: '#ef4444'
+            }}>
+              <Trash2 size={30} />
+            </div>
+            
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>Confirm Delete?</h3>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '25px' }}>
+              Are you sure you want to delete this purchase return? <br/>
+              <strong style={{ color: '#ef4444' }}>This action cannot be undone.</strong>
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setConfirmModal({ show: false, id: null })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f1f5f9'}
+                onMouseOut={(e) => e.target.style.background = '#f8fafc'}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: 'white',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+          
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };
