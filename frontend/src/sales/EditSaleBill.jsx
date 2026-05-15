@@ -518,9 +518,23 @@ const EditSaleBill = () => {
                           Prev: {child.prevBatchNo || 'No History'}
                         </div>
                       )}
-                      <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={child.batchNo} 
+                        readOnly 
+                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }} 
+                      />
                     </td>
-                    <td style={{ verticalAlign: 'top' }}><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                    <td style={{ verticalAlign: 'top' }}>
+                      <input 
+                        type="date" 
+                        className="form-control" 
+                        value={child.expiryDate} 
+                        readOnly 
+                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }} 
+                      />
+                    </td>
                     <td style={{ verticalAlign: 'top' }}>
                       <input
                         type="text"
