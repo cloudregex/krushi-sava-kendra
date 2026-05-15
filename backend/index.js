@@ -19,6 +19,7 @@ const activityRoutes = require("./src/routes/activityRoutes");
 const translateRoutes = require("./src/routes/translateRoutes");
 const purchaseRoutes = require("./src/routes/purchaseRoutes");
 const purchaseOrderRoutes = require("./src/routes/purchaseOrderRoutes");
+const purchaseReturnRoutes = require("./src/routes/purchaseReturnRoutes");
 const saleRoutes = require("./src/routes/saleRoutes");
 
 // Load Associations
@@ -46,6 +47,7 @@ app.use("/api/activity-logs", activityRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
+app.use("/api/purchase-returns", purchaseReturnRoutes);
 app.use("/api/sales", saleRoutes);
 
 // Basic Route
@@ -60,13 +62,14 @@ const startServer = async () => {
 
     // Clean up any stale backup tables
     try {
-      await sequelize.query("DROP TABLE IF EXISTS `Products_backup`;");
-      await sequelize.query("DROP TABLE IF EXISTS `Admins_backup`;");
-      await sequelize.query("DROP TABLE IF EXISTS `Customers_backup`;");
-      await sequelize.query("DROP TABLE IF EXISTS `Sales_backup`;");
-      await sequelize.query("DROP TABLE IF EXISTS `SaleItems_backup`;");
-      await sequelize.query("DROP TABLE IF EXISTS `Purchases_backup`;");
-    } catch (e) {}
+      const [results] = await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_backup';");
+      const backupTables = results.map(r => r.name);
+      for (const table of backupTables) {
+        await sequelize.query(`DROP TABLE IF EXISTS \`${table}\`;`);
+      }
+    } catch (e) {
+      console.error("Cleanup error:", e);
+    }
 
     // Disable FK checks so Sequelize can alter referenced tables
     await sequelize.query("PRAGMA foreign_keys = OFF;");

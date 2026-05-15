@@ -1,51 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, Calendar, User, AlertCircle, Printer } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 import '../mastermodel/styles/MasterModel.css';
 
 const ViewPurchaseReturn = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [returnData, setReturnData] = useState(null);
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReturnData = async () => {
-      const mockMaster = {
-        id: id,
-        purchaseId: 'PUR-501',
-        supplierId: 'SUP-101',
-        supplierName: 'Agro Traders Pvt Ltd',
-        mobile: '9988776655',
-        returnDate: '2026-04-28',
-        totalAmount: 1200.50,
-        reason: 'Damaged Products Received',
-        status: 'Processed'
-      };
-
-      const mockItems = [
-        { id: 1, productName: 'Urea Fertilizer 50kg', batchNo: 'B-2309', quantity: 1, rate: 450.00, taxAmount: 22.50, amount: 472.50 },
-        { id: 2, productName: 'Glyphosate Weedicide 1L', batchNo: 'G-1102', quantity: 2, rate: 350.00, taxAmount: 28.00, amount: 728.00 }
-      ];
-
-      setReturnData(mockMaster);
-      setItems(mockItems);
+      try {
+        setLoading(true);
+        const response = await ApiService.getById('purchase-returns', id);
+        if (response) {
+          setReturnData(response);
+          setItems(response.items || []);
+        }
+      } catch (error) {
+        console.error("Fetch Return Error:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-
     fetchReturnData();
   }, [id]);
 
   const queryParams = new URLSearchParams(location.search);
   const isQuiet = queryParams.get('quiet') === 'true';
 
-  if (!returnData) {
-    return <div className="agro-container flex-center" style={{ height: '50vh' }}>Loading return details...</div>;
-  }
+  if (loading) return <div className="agro-container flex-center" style={{ height: '50vh' }}>Loading return details...</div>;
+  if (!returnData) return <div className="agro-container flex-center" style={{ height: '50vh' }}>Return record not found!</div>;
 
   return (
     <div className="agro-container print-area" style={{ 
       padding: isQuiet ? '0' : '0 25px',
-      background: isQuiet ? 'white' : 'transparent'
+      background: isQuiet ? 'white' : 'transparent',
+      minHeight: isQuiet ? 'auto' : '100vh'
     }}>
       <style>
         {`
@@ -59,6 +54,7 @@ const ViewPurchaseReturn = () => {
             }
           }
           @media print {
+            @page { size: A4; margin: 10mm; }
             .no-print { display: none !important; }
             .agro-container { padding: 0 !important; }
             .agro-unified-card { box-shadow: none !important; border: none !important; margin: 0 !important; }
@@ -95,7 +91,7 @@ const ViewPurchaseReturn = () => {
             background: 'white'
           }}>
             <div>
-              <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Purchase Return: {returnData.id}</h2>
+              <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Purchase Return: {returnData.returnNo}</h2>
               <p style={{ fontSize: '12px', margin: 0 }}>Supplier refund and inventory correction</p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -120,12 +116,12 @@ const ViewPurchaseReturn = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <p style={{ margin: 0, fontSize: '10px', color: '#be123c', textTransform: 'uppercase', fontWeight: '700' }}>Supplier</p>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>{returnData.supplierName}</p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Contact: {returnData.mobile}</p>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>{returnData.Supplier?.name}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Contact: {returnData.Supplier?.mobile}</p>
                   </div>
                   <div>
                     <p style={{ margin: 0, fontSize: '10px', color: '#be123c', textTransform: 'uppercase', fontWeight: '700' }}>Purchase ID</p>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '800' }}>{returnData.purchaseId}</p>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '800' }}>{returnData.purchaseId || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -176,15 +172,15 @@ const ViewPurchaseReturn = () => {
                             <RotateCcw size={14} />
                           </div>
                           <div>
-                            <p style={{ margin: 0, fontWeight: '700', fontSize: '13px' }}>{item.productName}</p>
+                            <p style={{ margin: 0, fontWeight: '700', fontSize: '13px' }}>{item.Product?.name}</p>
                             <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Batch: {item.batchNo}</p>
                           </div>
                         </div>
                       </td>
-                      <td style={{ textAlign: 'center', fontWeight: '700', color: '#ef4444' }}>-{item.quantity}</td>
-                      <td style={{ textAlign: 'right' }}>{item.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', color: '#64748b' }}>{item.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '800', color: '#ef4444' }}>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ textAlign: 'center', fontWeight: '700', color: '#ef4444' }}>-{item.quantity} {item.unit}</td>
+                      <td style={{ textAlign: 'right' }}>{(parseFloat(item.purchasePrice) || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', color: '#64748b' }}>{(parseFloat(item.taxAmount) || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '800', color: '#ef4444' }}>{(parseFloat(item.totalAmount) || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -194,7 +190,7 @@ const ViewPurchaseReturn = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <div style={{ minWidth: '320px', padding: '18px', background: '#fff1f2', borderRadius: '16px', border: '1px solid #fecdd3', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'right' }}>
                 <p style={{ margin: 0, fontSize: '12px', color: '#be123c', fontWeight: '700' }}>TOTAL DEBIT AMOUNT</p>
-                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#ef4444' }}>₹{returnData.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#ef4444' }}>₹{(parseFloat(returnData.grandTotal) || 0).toFixed(2)}</h2>
                 <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#be123c', fontStyle: 'italic' }}>
                   Debit note issued for supplier refund
                 </p>

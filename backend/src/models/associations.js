@@ -2,6 +2,8 @@ const Purchase = require('./Purchase');
 const PurchaseItem = require('./PurchaseItem');
 const PurchaseOrder = require('./PurchaseOrder');
 const PurchaseOrderItem = require('./PurchaseOrderItem');
+const PurchaseReturn = require('./PurchaseReturn');
+const PurchaseReturnItem = require('./PurchaseReturnItem');
 const Supplier = require('./Supplier');
 const Product = require('./Product');
 const Sale = require('./Sale');
@@ -27,6 +29,7 @@ SaleItem.belongsTo(Sale, { foreignKey: 'saleId' });
 
 SaleItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(SaleItem, { foreignKey: 'productId' });
+
 // Purchase Order Associations
 PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
 Supplier.hasMany(PurchaseOrder, { foreignKey: 'supplierId' });
@@ -37,11 +40,23 @@ PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'purchaseOrderId' });
 PurchaseOrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'Product' });
 Product.hasMany(PurchaseOrderItem, { foreignKey: 'productId' });
 
+// Purchase Return Associations
+PurchaseReturn.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
+Supplier.hasMany(PurchaseReturn, { foreignKey: 'supplierId' });
+
+PurchaseReturn.hasMany(PurchaseReturnItem, { foreignKey: 'purchaseReturnId', as: 'items' });
+PurchaseReturnItem.belongsTo(PurchaseReturn, { foreignKey: 'purchaseReturnId' });
+
+PurchaseReturnItem.belongsTo(Product, { foreignKey: 'productId', as: 'Product' });
+Product.hasMany(PurchaseReturnItem, { foreignKey: 'productId' });
+
 module.exports = {
   Purchase,
   PurchaseItem,
   PurchaseOrder,
   PurchaseOrderItem,
+  PurchaseReturn,
+  PurchaseReturnItem,
   Supplier,
   Product,
   Sale,

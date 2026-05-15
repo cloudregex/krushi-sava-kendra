@@ -143,7 +143,9 @@ const NewPurchaseReturn = () => {
       dueAmount: due,
       discount: discVal,
       discountType: discType,
-      ...paymentFields
+      cashAmount: cash,
+      upiAmount: upi,
+      swipeAmount: swipe
     }));
   };
 
@@ -269,8 +271,30 @@ const NewPurchaseReturn = () => {
   };
 
   const handleSubmit = async () => {
-    // Implement save return logic
-    toast.success("Return logic to be implemented");
+    if (!master.supplierId) {
+      toast.error("Please select a supplier");
+      return;
+    }
+    const validItems = items.filter(item => item.productId && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error("Please add at least one valid item to return");
+      return;
+    }
+
+    const payload = {
+      ...master,
+      items: validItems
+    };
+
+    try {
+      toast.loading("Processing return...", { id: 'save-return' });
+      await ApiService.add('purchase-returns', payload);
+      toast.success("Purchase return recorded successfully", { id: 'save-return' });
+      navigate('/purchase/returns');
+    } catch (error) {
+      console.error("Error saving return:", error);
+      toast.error("Failed to record purchase return", { id: 'save-return' });
+    }
   };
 
   return (
@@ -488,15 +512,15 @@ const NewPurchaseReturn = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                       <span style={{ color: '#4b5563' }}>Subtotal</span>
-                      <span style={{ fontWeight: '700' }}>₹{master.subtotal.toFixed(2)}</span>
+                      <span style={{ fontWeight: '700' }}>₹{(parseFloat(master.subtotal) || 0).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                       <span style={{ color: '#4b5563' }}>Tax Amount</span>
-                      <span style={{ fontWeight: '700' }}>₹{master.totalTaxAmount.toFixed(2)}</span>
+                      <span style={{ fontWeight: '700' }}>₹{(parseFloat(master.totalTaxAmount) || 0).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                       <span style={{ color: '#4b5563' }}>Discount</span>
-                      <span style={{ fontWeight: '700', color: '#ef4444' }}>-₹{master.discount.toFixed(2)}</span>
+                      <span style={{ fontWeight: '700', color: '#ef4444' }}>-₹{(parseFloat(master.discount) || 0).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                       <span style={{ color: '#4b5563' }}>Round Off</span>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RotateCcw, Search, AlertCircle, Calendar, User, FileText, IndianRupee, Eye, Printer, Edit, Trash2 } from 'lucide-react';
+import { ApiService } from '../mastermodel/services/ApiService';
 import toast from 'react-hot-toast';
 
 import '../mastermodel/styles/MasterModel.css';
@@ -8,10 +9,25 @@ import '../mastermodel/styles/MasterModel.css';
 const PurchaseReturn = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [returns, setReturns] = useState([
-    { id: 'RET-001', purchaseId: 'PUR-501', supplierId: 'SUP-101', returnDate: '2026-04-28', totalAmount: 1200.50, reason: 'Damaged Products' },
-    { id: 'RET-002', purchaseId: 'PUR-505', supplierId: 'SUP-105', returnDate: '2026-04-29', totalAmount: 850.00, reason: 'Expired Stock' },
-  ]);
+  const [returns, setReturns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReturns();
+  }, []);
+
+  const fetchReturns = async () => {
+    try {
+      setLoading(true);
+      const data = await ApiService.getAll('purchase-returns');
+      setReturns(data || []);
+    } catch (error) {
+      console.error("Error fetching returns:", error);
+      toast.error("Failed to load purchase returns");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [confirmModal, setConfirmModal] = useState({ show: false, id: null });
 
@@ -19,11 +35,17 @@ const PurchaseReturn = () => {
     setConfirmModal({ show: true, id });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     const { id } = confirmModal;
     setConfirmModal({ show: false, id: null });
-    setReturns(returns.filter(r => r.id !== id));
-    toast.success("Purchase return deleted successfully");
+    try {
+      await ApiService.delete('purchase-returns', id);
+      toast.success("Purchase return deleted successfully");
+      fetchReturns();
+    } catch (error) {
+      console.error("Error deleting return:", error);
+      toast.error("Failed to delete return");
+    }
   };
 
   const handlePrint = (id) => {
@@ -97,11 +119,14 @@ const PurchaseReturn = () => {
               <tbody>
                 {filteredReturns.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.id}</td>
-                    <td>{item.purchaseId}</td>
-                    <td>{item.supplierId}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || item.id}</td>
+                    <td>{item.purchaseId || 'N/A'}</td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{item.Supplier?.name || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.supplierId}</div>
+                    </td>
                     <td>{item.returnDate}</td>
-                    <td style={{ fontWeight: '700' }}>₹{item.totalAmount.toFixed(2)}</td>
+                    <td style={{ fontWeight: '700' }}>₹{(parseFloat(item.grandTotal) || 0).toFixed(2)}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                         <AlertCircle size={14} color="#f59e0b" />
