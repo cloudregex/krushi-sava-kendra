@@ -1,9 +1,28 @@
 const Supplier = require('../models/Supplier');
 const { logActivity } = require('../helper/logger');
+const { Op } = require('sequelize');
 
 exports.getAll = async (req, res) => {
     try {
-        const items = await Supplier.findAll();
+        const { q, limit } = req.query;
+        let queryOptions = {};
+
+        if (q) {
+            queryOptions.where = {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${q}%` } },
+                    { mobile: { [Op.like]: `%${q}%` } },
+                    { address: { [Op.like]: `%${q}%` } },
+                    { gstNo: { [Op.like]: `%${q}%` } }
+                ]
+            };
+        }
+
+        if (limit) {
+            queryOptions.limit = parseInt(limit, 10);
+        }
+
+        const items = await Supplier.findAll(queryOptions);
         res.status(200).json(items);
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft, Calendar, Truck, CreditCard, Package, RotateCcw, FileText } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
+import AsyncSupplierSelect from './AsyncSupplierSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
 
@@ -323,7 +324,7 @@ const NewPurchaseReturn = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '15px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Supplier</label>
-                  <SearchableSelect options={suppliers} value={master.supplierId} onChange={(val) => handleMasterChange('supplierId', val)} placeholder="Search Supplier..." height="36px" />
+                  <AsyncSupplierSelect value={master.supplierId} onChange={(val) => handleMasterChange('supplierId', val)} placeholder="Search Supplier..." height="36px" />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Original Inv No.</label>

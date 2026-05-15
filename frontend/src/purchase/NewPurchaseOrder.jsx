@@ -3,6 +3,7 @@ import { Save, ArrowLeft, Plus, Trash2, Truck, Calendar, ShoppingBag, Package } 
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
+import AsyncSupplierSelect from './AsyncSupplierSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
 
@@ -214,8 +215,7 @@ const NewPurchaseOrder = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '10px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '12px', marginBottom: '3px' }}>Supplier</label>
-                  <SearchableSelect
-                    options={suppliers}
+                  <AsyncSupplierSelect
                     value={master.supplierId}
                     onChange={(val) => setMaster({ ...master, supplierId: val })}
                     placeholder="Search Supplier..."

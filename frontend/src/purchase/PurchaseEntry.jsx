@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ApiService } from "../mastermodel/services/ApiService";
 import SearchableSelect from "./SearchableSelect";
+import AsyncSupplierSelect from "./AsyncSupplierSelect";
 import toast from "react-hot-toast";
 import "../mastermodel/styles/MasterModel.css";
 
@@ -554,8 +555,7 @@ const PurchaseEntry = () => {
                   >
                     Supplier
                   </label>
-                  <SearchableSelect
-                    options={suppliers}
+                  <AsyncSupplierSelect
                     value={master.supplierId}
                     onChange={(val) => handleMasterChange("supplierId", val)}
                     placeholder="Search Supplier..."
