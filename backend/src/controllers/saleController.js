@@ -125,3 +125,121 @@ exports.getSaleById = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch sale details', error: error.message });
     }
 };
+
+exports.updateSale = async (req, res) => {
+    const t = await Sale.sequelize.transaction();
+    try {
+        const saleId = req.params.id;
+        const sale = await Sale.findByPk(saleId, { include: [{ model: SaleItem, as: 'items' }] });
+        if (!sale) {
+            await t.rollback();
+            return res.status(404).json({ message: 'Sale not found' });
+        }
+
+        // 1. Revert Old Sale Data
+        for (const item of sale.items) {
+            const product = await Product.findByPk(item.productId, { transaction: t });
+            if (product) {
+                product.stock += (parseFloat(item.quantity) + parseFloat(item.freeQuantity || 0));
+                await product.save({ transaction: t });
+            }
+        }
+        if (sale.customerId) {
+            const customer = await Customer.findByPk(sale.customerId, { transaction: t });
+            if (customer) {
+                customer.balance -= parseFloat(sale.balanceAmount);
+                await customer.save({ transaction: t });
+            }
+        }
+        await SaleItem.destroy({ where: { saleId }, transaction: t });
+
+        // 2. Apply New Sale Data
+        const {
+            customerId, billDate, subtotal, taxAmount, discountAmount,
+            grandTotal, paidAmount, balanceAmount, paymentMode, notes, items
+        } = req.body;
+
+        await sale.update({
+            customerId, billDate, subtotal, taxAmount, discountAmount,
+            grandTotal, paidAmount, balanceAmount, paymentMode, notes
+        }, { transaction: t });
+
+        for (const item of items) {
+            await SaleItem.create({
+                saleId: sale.id,
+                productId: item.productId,
+                batchNo: item.batchNo,
+                expiryDate: item.expiryDate,
+                quantity: item.quantity,
+                freeQuantity: item.freeQuantity,
+                unit: item.unit,
+                rate: item.rate,
+                discount: item.discount,
+                taxPercent: item.taxPercent,
+                taxAmount: item.taxAmount,
+                totalAmount: item.totalAmount
+            }, { transaction: t });
+
+            const product = await Product.findByPk(item.productId, { transaction: t });
+            if (product) {
+                product.stock -= (parseFloat(item.quantity) + parseFloat(item.freeQuantity || 0));
+                await product.save({ transaction: t });
+            }
+        }
+
+        if (customerId) {
+            const customer = await Customer.findByPk(customerId, { transaction: t });
+            if (customer) {
+                customer.balance += parseFloat(balanceAmount);
+                await customer.save({ transaction: t });
+            }
+        }
+
+        await t.commit();
+        res.json({ message: 'Sale updated successfully', sale });
+    } catch (error) {
+        await t.rollback();
+        console.error('Update Sale Error:', error);
+        res.status(500).json({ message: 'Failed to update sale', error: error.message });
+    }
+};
+
+exports.deleteSale = async (req, res) => {
+    const t = await Sale.sequelize.transaction();
+    try {
+        const saleId = req.params.id;
+        const sale = await Sale.findByPk(saleId, { include: [{ model: SaleItem, as: 'items' }] });
+        if (!sale) {
+            await t.rollback();
+            return res.status(404).json({ message: 'Sale not found' });
+        }
+
+        // Revert stock
+        for (const item of sale.items) {
+            const product = await Product.findByPk(item.productId, { transaction: t });
+            if (product) {
+                product.stock += (parseFloat(item.quantity) + parseFloat(item.freeQuantity || 0));
+                await product.save({ transaction: t });
+            }
+        }
+
+        // Revert customer balance
+        if (sale.customerId) {
+            const customer = await Customer.findByPk(sale.customerId, { transaction: t });
+            if (customer) {
+                customer.balance -= parseFloat(sale.balanceAmount);
+                await customer.save({ transaction: t });
+            }
+        }
+
+        await SaleItem.destroy({ where: { saleId }, transaction: t });
+        await sale.destroy({ transaction: t });
+        
+        await t.commit();
+        res.json({ message: 'Sale deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Delete Sale Error:', error);
+        res.status(500).json({ message: 'Failed to delete sale', error: error.message });
+    }
+};

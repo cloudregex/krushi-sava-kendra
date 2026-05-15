@@ -12,6 +12,8 @@ const SaleBill = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [billToDelete, setBillToDelete] = useState(null);
 
   useEffect(() => {
     fetchBills();
@@ -30,6 +32,7 @@ const SaleBill = () => {
     }
   };
 
+<<<<<<< HEAD
   const [confirmModal, setConfirmModal] = useState({ show: false, id: null });
 
   const handleDelete = async (id) => {
@@ -49,7 +52,10 @@ const SaleBill = () => {
     }
   };
 
+=======
+>>>>>>> 52a9f042572fead0f0351550fba8a6849bb7b814
   const handlePrint = (id) => {
+    toast.loading("Preparing invoice...", { id: 'print-toast', duration: 1500 });
     const iframeId = 'print-iframe';
     let iframe = document.getElementById(iframeId);
     if (iframe) {
@@ -57,12 +63,36 @@ const SaleBill = () => {
     }
     iframe = document.createElement('iframe');
     iframe.id = iframeId;
-    iframe.style.display = 'none';
-    iframe.src = `/sales/bills/view/${id}?print=true&quiet=true`;
+    // CRITICAL: Chrome may block window.print() if the iframe is positioned far off-screen (-9999px).
+    // Instead, we position it behind the current page and make it fully transparent.
+    iframe.style.position = 'absolute';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.left = '0';
+    iframe.style.top = '0';
+    iframe.style.opacity = '0';
+    iframe.style.zIndex = '-1';
+    iframe.style.pointerEvents = 'none';
+    // Use the standalone print route
+    iframe.src = `/print/sale/${id}?print=true&quiet=true`;
     document.body.appendChild(iframe);
-    toast.loading("Preparing print...", { duration: 2000 });
   };
 
+  const handleDeleteClick = (bill) => {
+    setBillToDelete(bill);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await ApiService.delete('sales', billToDelete.id);
+      setDeleteModalOpen(false);
+      setBillToDelete(null);
+      fetchBills();
+    } catch (error) {
+      console.error("Delete Error:", error);
+    }
+  };
   const getStatus = (bill) => {
     if (bill.balanceAmount <= 0) return 'Paid';
     if (bill.paidAmount > 0) return 'Partial';
@@ -206,41 +236,39 @@ const SaleBill = () => {
                       })()}
                     </td>
                     <td>{getStatusBadge(getStatus(bill))}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button
-                          className="action-icon-btn view"
-                          title="View"
-                          onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
-                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn print"
-                          title="Print"
-                          onClick={() => handlePrint(bill.id)}
-                          style={{ color: '#16a34a', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Printer size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn edit"
-                          title="Edit"
-                          onClick={() => navigate(`/sales/entry/${bill.id}`)}
-                          style={{ color: '#eab308', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          className="action-icon-btn delete"
-                          title="Delete"
-                          onClick={() => handleDelete(bill.id)}
-                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                    <td style={{ textAlign: 'left' }}>
+                      {hasPermission('sale', 'view') && (
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <button
+                            onClick={() => navigate(`/sales/bills/view/${bill.id}`)}
+                            style={{ background: 'none', border: 'none', color: '#3b82f6', padding: 0, cursor: 'pointer', display: 'flex' }}
+                            title="View Bill"
+                          >
+                            <Eye size={18} strokeWidth={2} />
+                          </button>
+                          <button
+                            onClick={() => handlePrint(bill.id)}
+                            style={{ background: 'none', border: 'none', color: '#16a34a', padding: 0, cursor: 'pointer', display: 'flex' }}
+                            title="Print Bill"
+                          >
+                            <Printer size={18} strokeWidth={2} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/sales/bills/edit/${bill.id}`)}
+                            style={{ background: 'none', border: 'none', color: '#eab308', padding: 0, cursor: 'pointer', display: 'flex' }}
+                            title="Edit Bill"
+                          >
+                            <Edit size={18} strokeWidth={2} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(bill)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', padding: 0, cursor: 'pointer', display: 'flex' }}
+                            title="Delete Bill"
+                          >
+                            <Trash2 size={18} strokeWidth={2} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -252,6 +280,7 @@ const SaleBill = () => {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
       {/* Confirmation Modal */}
       {confirmModal.show && (
         <div style={{
@@ -336,11 +365,37 @@ const SaleBill = () => {
                 }}
                 onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+=======
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '25px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', color: '#ef4444' }}>
+              <Trash2 size={30} />
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Delete Sale Bill?</h3>
+            </div>
+            <p style={{ margin: '0 0 25px 0', fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
+              Are you sure you want to delete bill <strong>{billToDelete?.invoiceNo}</strong>? This action cannot be undone and will revert the stock inventory.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                className="btn-agro btn-outline"
+                onClick={() => { setDeleteModalOpen(false); setBillToDelete(null); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-agro btn-primary"
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                onClick={confirmDelete}
+>>>>>>> 52a9f042572fead0f0351550fba8a6849bb7b814
               >
                 Yes, Delete
               </button>
             </div>
           </div>
+<<<<<<< HEAD
           
           <style>{`
             @keyframes fadeIn {
@@ -352,6 +407,8 @@ const SaleBill = () => {
               to { transform: translateY(0); opacity: 1; }
             }
           `}</style>
+=======
+>>>>>>> 52a9f042572fead0f0351550fba8a6849bb7b814
         </div>
       )}
     </div>

@@ -33,6 +33,7 @@ import SaleReturn from './sales/SaleReturn';
 import NewSaleReturn from './sales/NewSaleReturn';
 import ViewSaleReturn from './sales/ViewSaleReturn';
 import ViewSaleBill from './sales/ViewSaleBill';
+import EditSaleBill from './sales/EditSaleBill';
 
 import PurchaseBill from './purchase/PurchaseBill';
 import ViewPurchaseBill from './purchase/ViewPurchaseBill';
@@ -52,6 +53,9 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register-admin" element={<AdminRegister />} />
+      
+      {/* Standalone Print Route (Bypasses Layout completely for perfect full-page printing) */}
+      <Route path="/print/sale/:id" element={<ProtectedRoute><ViewSaleBill /></ProtectedRoute>} />
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" />} />
@@ -95,10 +99,10 @@ const AppRoutes = () => {
           <Route path="edit/:id" element={<UnitEdit />} />
         </Route>
 
-        {/* Sales Routes */}
         <Route path="sales">
           <Route path="bills" element={<SaleBill />} />
           <Route path="bills/view/:id" element={<ViewSaleBill />} />
+          <Route path="bills/edit/:id" element={<EditSaleBill />} />
           <Route path="entry" element={<SaleEntry />} />
           <Route path="entry/:id" element={<SaleEntry />} />
           <Route path="quotations" element={<Quotation />} />

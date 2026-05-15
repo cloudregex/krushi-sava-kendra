@@ -32,16 +32,21 @@ const ViewSaleBill = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!loading && billData && items && items.length > 0 && !printProcessed.current) {
+    if (!loading && billData && !printProcessed.current) {
       const queryParams = new URLSearchParams(location.search);
       if (queryParams.get('print') === 'true') {
         printProcessed.current = true;
         const timer = setTimeout(() => {
+          console.log("Triggering Print...");
+          window.focus();
           window.print();
-          if (queryParams.get('quiet') !== 'true') {
-            navigate('/sales/bills');
-          }
-        }, 1000);
+          // Auto-navigate back after printing (only if not in quiet/iframe mode)
+          setTimeout(() => {
+            if (!isQuiet) {
+              navigate('/sales/bills');
+            }
+          }, 500);
+        }, 500); // 500ms for faster printing
         return () => clearTimeout(timer);
       }
     }
@@ -49,6 +54,29 @@ const ViewSaleBill = () => {
 
   const queryParams = new URLSearchParams(location.search);
   const isQuiet = queryParams.get('quiet') === 'true';
+
+  const calculatedTaxBreakdown = React.useMemo(() => {
+    if (!items || items.length === 0) return [];
+    const hsnMap = {};
+    items.forEach(child => {
+      const hsn = child.product?.hsnCode || child.hsnCode || 'N/A';
+      const taxP = parseFloat(child.taxPercent) || (child.product ? parseFloat(child.product.tax) : 0) || 0;
+      const rowGross = (parseFloat(child.quantity) || 0) * (parseFloat(child.rate) || 0);
+      const rowDisc = parseFloat(child.discount) || 0;
+      const taxableVal = rowGross - rowDisc;
+      const rowTax = (taxableVal * taxP) / 100;
+
+      if (!hsnMap[hsn]) {
+        hsnMap[hsn] = { hsn, taxRate: taxP, taxableVal, cgstRate: taxP / 2, sgstRate: taxP / 2, cgstAmount: rowTax / 2, sgstAmount: rowTax / 2, totalTax: rowTax };
+      } else {
+        hsnMap[hsn].taxableVal += taxableVal;
+        hsnMap[hsn].cgstAmount += rowTax / 2;
+        hsnMap[hsn].sgstAmount += rowTax / 2;
+        hsnMap[hsn].totalTax += rowTax;
+      }
+    });
+    return Object.values(hsnMap);
+  }, [items]);
 
   // Helper: Amount in Words
   const numberToWords = (num) => {
@@ -69,7 +97,7 @@ const ViewSaleBill = () => {
       str += (Number(nArr[5]) !== 0) ? ((str !== '') ? 'and ' : '') + (a[Number(nArr[5])] || b[nArr[5][0]] + ' ' + a[nArr[5][1]]) : '';
       return str;
     };
-    
+
     const amount = Math.floor(num);
     const paise = Math.round((num - amount) * 100);
     let result = inWords(amount) + 'Rupees ';
@@ -168,11 +196,7 @@ const ViewSaleBill = () => {
         </div>
       )}
 
-      <div className="invoice-box" style={{ 
-        boxShadow: isQuiet ? 'none' : '0 4px 25px rgba(0,0,0,0.1)', 
-        border: isQuiet ? 'none' : '1px solid #e2e8f0',
-        padding: isQuiet ? '20px' : '40px'
-      }}>
+      <div className="invoice-box print-area">
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
           <div>
@@ -204,34 +228,37 @@ const ViewSaleBill = () => {
               {billData.customer?.gstNo && <strong>GSTIN: {billData.customer?.gstNo}</strong>}
             </p>
           </div>
+          <div style={{ textAlign: 'right' }}>
+            {/* Additional details like Transporter or Vehicle No can go here */}
+          </div>
         </div>
 
         {/* Items Table */}
-        <table className="invoice-table">
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', border: '1px solid #e2e8f0' }}>
           <thead>
-            <tr>
-              <th style={{ width: '40px' }}>Sr.</th>
-              <th>Product Name</th>
-              <th style={{ width: '80px' }}>HSN</th>
-              <th style={{ width: '80px', textAlign: 'center' }}>Qty</th>
-              <th style={{ width: '100px', textAlign: 'right' }}>Rate</th>
-              <th style={{ width: '80px', textAlign: 'right' }}>GST %</th>
-              <th style={{ width: '120px', textAlign: 'right' }}>Total (₹)</th>
+            <tr style={{ background: '#1e293b', color: 'white', fontSize: '12px' }}>
+              <th style={{ width: '50px', textAlign: 'center', padding: '10px', border: '1px solid #e2e8f0' }}>SR.</th>
+              <th style={{ textAlign: 'left', padding: '10px', border: '1px solid #e2e8f0' }}>PRODUCT NAME</th>
+              <th style={{ width: '80px', textAlign: 'center', padding: '10px', border: '1px solid #e2e8f0' }}>HSN</th>
+              <th style={{ width: '80px', textAlign: 'center', padding: '10px', border: '1px solid #e2e8f0' }}>QTY</th>
+              <th style={{ width: '100px', textAlign: 'right', padding: '10px', border: '1px solid #e2e8f0' }}>RATE</th>
+              <th style={{ width: '80px', textAlign: 'center', padding: '10px', border: '1px solid #e2e8f0' }}>GST %</th>
+              <th style={{ width: '120px', textAlign: 'right', padding: '10px', border: '1px solid #e2e8f0' }}>TOTAL (₹)</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => (
-              <tr key={item.id}>
-                <td style={{ textAlign: 'center' }}>{idx + 1}</td>
-                <td>
+              <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ textAlign: 'center', padding: '10px', borderRight: '1px solid #e2e8f0' }}>{idx + 1}</td>
+                <td style={{ padding: '10px', borderRight: '1px solid #e2e8f0' }}>
                   <strong>{item.product?.name}</strong>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>Batch: {item.batchNo}</div>
                 </td>
-                <td>{item.product?.hsnCode || 'N/A'}</td>
-                <td style={{ textAlign: 'center' }}>{item.quantity} {item.unit}</td>
-                <td style={{ textAlign: 'right' }}>{(parseFloat(item.rate) || 0).toFixed(2)}</td>
-                <td style={{ textAlign: 'right' }}>{item.taxPercent}%</td>
-                <td style={{ textAlign: 'right', fontWeight: '700' }}>{(parseFloat(item.totalAmount) || 0).toFixed(2)}</td>
+                <td style={{ textAlign: 'center', padding: '10px', borderRight: '1px solid #e2e8f0' }}>{item.product?.hsnCode || 'N/A'}</td>
+                <td style={{ textAlign: 'center', padding: '10px', borderRight: '1px solid #e2e8f0' }}>{item.quantity} {item.unit}</td>
+                <td style={{ textAlign: 'right', padding: '10px', borderRight: '1px solid #e2e8f0' }}>{(parseFloat(item.rate) || 0).toFixed(2)}</td>
+                <td style={{ textAlign: 'center', padding: '10px', borderRight: '1px solid #e2e8f0' }}>{item.taxPercent}%</td>
+                <td style={{ textAlign: 'right', fontWeight: '700', padding: '10px' }}>{(parseFloat(item.totalAmount) || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -255,7 +282,7 @@ const ViewSaleBill = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
               <span>Subtotal:</span>
               <span style={{ fontWeight: '700' }}>₹{(parseFloat(billData.subtotal) || 0).toFixed(2)}</span>
@@ -277,20 +304,20 @@ const ViewSaleBill = () => {
                 <span>Paid Amount:</span>
                 <span style={{ fontWeight: '800' }}>₹{(parseFloat(billData.paidAmount) || 0).toFixed(2)}</span>
               </div>
-              
+
               {/* Payment Mode Breakdown */}
               {(() => {
                 const pm = billData.paymentMode;
                 if (!pm) return null;
                 if (typeof pm === 'string') return <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'right' }}>(Paid via {pm})</div>;
-                
+
                 try {
-                  const parsed = typeof pm === 'string' ? JSON.parse(pm) : pm;
+                  const pmObj = typeof pm === 'string' ? JSON.parse(pm) : pm;
                   const modes = [];
-                  if (parsed.cash > 0) modes.push(`Cash: ₹${parsed.cash.toFixed(2)}`);
-                  if (parsed.upi > 0) modes.push(`UPI: ₹${parsed.upi.toFixed(2)}`);
-                  if (parsed.swipe > 0) modes.push(`Swipe: ₹${parsed.swipe.toFixed(2)}`);
-                  
+                  if (pmObj.cash > 0) modes.push(`Cash: ₹${pmObj.cash}`);
+                  if (pmObj.upi > 0) modes.push(`UPI: ₹${pmObj.upi}`);
+                  if (pmObj.swipe > 0) modes.push(`Swipe: ₹${pmObj.swipe}`);
+
                   if (modes.length > 0) {
                     return (
                       <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -304,7 +331,7 @@ const ViewSaleBill = () => {
               })()}
             </div>
             {billData.balanceAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#e11d48', background: '#fff1f2', padding: '5px', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#e11d48', background: '#fff1f2', padding: '5px 8px', borderRadius: '4px', marginTop: '5px', border: '1px solid #ffe4e6' }}>
                 <span>Balance Due:</span>
                 <span style={{ fontWeight: '800' }}>₹{(parseFloat(billData.balanceAmount) || 0).toFixed(2)}</span>
               </div>
@@ -314,49 +341,67 @@ const ViewSaleBill = () => {
 
         {/* GST Analysis Table */}
         <div style={{ marginTop: '30px' }}>
-           <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', marginBottom: '5px' }}>GST Breakdown:</h3>
-           <table className="tax-breakdown-table">
-             <thead>
-               <tr>
-                 <th>HSN/SAC</th>
-                 <th>Taxable Value</th>
-                 <th>CGST %</th>
-                 <th>CGST Amt</th>
-                 <th>SGST %</th>
-                 <th>SGST Amt</th>
-                 <th>Total Tax</th>
-               </tr>
-             </thead>
-             <tbody>
-               {billData.taxBreakdown ? billData.taxBreakdown.map((tax, i) => (
-                 <tr key={i}>
-                   <td>{tax.hsn}</td>
-                   <td>{(tax.taxableVal || 0).toFixed(2)}</td>
-                   <td>{tax.cgstRate}%</td>
-                   <td>{tax.cgstAmount.toFixed(2)}</td>
-                   <td>{tax.sgstRate}%</td>
-                   <td>{tax.sgstAmount.toFixed(2)}</td>
-                   <td>{tax.totalTax.toFixed(2)}</td>
-                 </tr>
-               )) : (
-                 <tr>
-                   <td colSpan="7">Consolidated Tax Calculation Applied</td>
-                 </tr>
-               )}
-             </tbody>
-           </table>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+            <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', margin: 0 }}>GST Breakdown:</h3>
+            <span style={{ fontSize: '10px', fontWeight: '800', color: '#16a34a' }}>INTRA-STATE SALE (CGST + SGST)</span>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px', border: '1px solid #e2e8f0' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', color: '#1e293b' }}>
+                <th rowSpan="2" style={{ padding: '10px', border: '1px solid #e2e8f0' }}>HSN CODE</th>
+                <th rowSpan="2" style={{ padding: '10px', border: '1px solid #e2e8f0' }}>TAX RATE (%)</th>
+                <th colSpan="2" style={{ padding: '8px', border: '1px solid #e2e8f0' }}>CGST</th>
+                <th colSpan="2" style={{ padding: '8px', border: '1px solid #e2e8f0' }}>SGST</th>
+                <th rowSpan="2" style={{ padding: '10px', border: '1px solid #e2e8f0' }}>TOTAL TAX (₹)</th>
+              </tr>
+              <tr style={{ background: '#f8fafc', color: '#1e293b' }}>
+                <th style={{ padding: '8px', border: '1px solid #e2e8f0', fontSize: '10px' }}>RATE (%)</th>
+                <th style={{ padding: '8px', border: '1px solid #e2e8f0', fontSize: '10px' }}>AMOUNT (₹)</th>
+                <th style={{ padding: '8px', border: '1px solid #e2e8f0', fontSize: '10px' }}>RATE (%)</th>
+                <th style={{ padding: '8px', border: '1px solid #e2e8f0', fontSize: '10px' }}>AMOUNT (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Dynamically calculated tax breakdown */}
+              {calculatedTaxBreakdown && calculatedTaxBreakdown.length > 0 ? calculatedTaxBreakdown.map((tax, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '10px', fontWeight: '700', border: '1px solid #e2e8f0' }}>{tax.hsn}</td>
+                  <td style={{ padding: '10px', fontWeight: '700', border: '1px solid #e2e8f0' }}>{tax.taxRate}%</td>
+                  <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{tax.cgstRate.toFixed(2)}%</td>
+                  <td style={{ padding: '10px', fontWeight: '600', border: '1px solid #e2e8f0' }}>{tax.cgstAmount.toFixed(2)}</td>
+                  <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{tax.sgstRate.toFixed(2)}%</td>
+                  <td style={{ padding: '10px', fontWeight: '600', border: '1px solid #e2e8f0' }}>{tax.sgstAmount.toFixed(2)}</td>
+                  <td style={{ padding: '10px', fontWeight: '800', color: '#166534', border: '1px solid #e2e8f0' }}>{tax.totalTax.toFixed(2)}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="7" style={{ padding: '10px', fontStyle: 'italic', color: '#64748b', border: '1px solid #e2e8f0' }}>Consolidated Tax Calculation Applied</td>
+                </tr>
+              )}
+              {/* Total Row */}
+              <tr style={{ background: '#f0fdf4', fontWeight: '900', color: '#166534' }}>
+                <td colSpan="3" style={{ textAlign: 'left', padding: '12px 15px', border: '1px solid #bbf7d0' }}>TOTAL</td>
+                <td style={{ padding: '12px', border: '1px solid #bbf7d0' }}>₹{((parseFloat(billData.taxAmount) || 0) / 2).toFixed(2)}</td>
+                <td style={{ padding: '12px', border: '1px solid #bbf7d0' }}></td>
+                <td style={{ padding: '12px', border: '1px solid #bbf7d0' }}>₹{((parseFloat(billData.taxAmount) || 0) / 2).toFixed(2)}</td>
+                <td style={{ padding: '12px', fontSize: '14px', border: '1px solid #bbf7d0' }}>₹{(parseFloat(billData.taxAmount) || 0).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
         </div>
 
         {/* Signatures */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '60px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ borderTop: '1px solid #cbd5e1', width: '150px', margin: '0 auto 10px auto' }}></div>
-            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Customer Signature</p>
+            <div style={{ borderTop: '1.5px solid #1e293b', width: '160px', marginBottom: '8px' }}></div>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Customer Signature</p>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ margin: '0 0 35px 0', fontSize: '12px', fontWeight: '800' }}>For KRUSHI SEVA KENDRA</p>
-            <div style={{ borderTop: '1px solid #cbd5e1', width: '180px', margin: '0 auto 10px auto' }}></div>
-            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Authorized Signatory</p>
+            <p style={{ margin: '0 0 30px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>For KRUSHI SEVA KENDRA</p>
+            <div style={{ borderTop: '1.5px solid #1e293b', width: '200px', marginBottom: '8px' }}></div>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Authorized Signatory</p>
           </div>
         </div>
       </div>
