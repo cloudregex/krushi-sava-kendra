@@ -49,7 +49,6 @@ const SaleBill = () => {
   };
 
   const handlePrint = (id) => {
-    toast.loading("Preparing invoice...", { id: 'print-toast', duration: 1500 });
     const iframeId = 'print-iframe';
     let iframe = document.getElementById(iframeId);
     if (iframe) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Printer, Download, Mail, Share2, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Download, Mail, Share2, CheckCircle, Clock } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
 import '../mastermodel/styles/MasterModel.css';
 
@@ -11,7 +11,6 @@ const ViewSaleBill = () => {
   const [billData, setBillData] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const printProcessed = React.useRef(false);
 
   useEffect(() => {
     const fetchBillData = async () => {
@@ -30,27 +29,6 @@ const ViewSaleBill = () => {
     };
     fetchBillData();
   }, [id]);
-
-  useEffect(() => {
-    if (!loading && billData && !printProcessed.current) {
-      const queryParams = new URLSearchParams(location.search);
-      if (queryParams.get('print') === 'true') {
-        printProcessed.current = true;
-        const timer = setTimeout(() => {
-          console.log("Triggering Print...");
-          window.focus();
-          window.print();
-          // Auto-navigate back after printing (only if not in quiet/iframe mode)
-          setTimeout(() => {
-            if (!isQuiet) {
-              navigate('/sales/bills');
-            }
-          }, 500);
-        }, 500); // 500ms for faster printing
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [loading, billData, items, location.search, navigate]);
 
   const queryParams = new URLSearchParams(location.search);
   const isQuiet = queryParams.get('quiet') === 'true';
@@ -114,19 +92,20 @@ const ViewSaleBill = () => {
     <div className="invoice-outer-wrapper" style={{ padding: isQuiet ? '0' : '20px', background: isQuiet ? 'white' : '#f8fafc', minHeight: '100vh' }}>
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
+          @page { size: A4; margin: 5mm; }
           body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .invoice-outer-wrapper { padding: 0 !important; background: white !important; }
+          .invoice-outer-wrapper { padding: 0 !important; background: white !important; min-height: auto !important; }
           
           .invoice-box { 
             box-shadow: none !important; 
             border: 1px solid #000 !important; 
             margin: 0 !important; 
             width: 100% !important;
-            padding: 15px !important;
+            padding: 10mm !important;
             visibility: visible !important;
             display: block !important;
+            border-radius: 0 !important;
           }
 
           .invoice-box * {
@@ -139,37 +118,38 @@ const ViewSaleBill = () => {
           table, .invoice-table { 
             width: 100% !important; 
             border-collapse: collapse !important; 
-            margin-top: 15px !important;
+            margin-top: 10px !important;
             display: table !important;
           }
-          tr { display: table-row !important; }
-          th, td { display: table-cell !important; }
+          tr { display: table-row !important; page-break-inside: avoid !important; }
+          th, td { display: table-cell !important; padding: 6px !important; font-size: 11px !important; }
           
           .invoice-table th { 
             background: #f0f0f0 !important; 
             color: black !important; 
             border: 1px solid #000 !important; 
-            font-size: 11px !important;
-            padding: 8px !important;
-            text-align: left !important;
           }
           .invoice-table td { 
             border: 1px solid #000 !important; 
-            padding: 8px !important; 
-            font-size: 12px !important;
           }
           .tax-breakdown-table th, .tax-breakdown-table td { 
             border: 1px solid #000 !important; 
+            font-size: 9px !important;
+            padding: 4px !important;
+          }
+          .grand-total-section {
+            background: #f8fafc !important;
+            -webkit-print-color-adjust: exact;
           }
         }
 
         .invoice-box {
           background: white;
-          max-width: 850px;
+          max-width: 1000px;
           margin: 0 auto;
           padding: 40px;
-          border-radius: 8px;
-          box-shadow: 0 4px 25px rgba(0,0,0,0.1);
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
           border: 1px solid #e2e8f0;
           color: #1e293b;
           font-family: 'Inter', -apple-system, sans-serif;
@@ -178,8 +158,8 @@ const ViewSaleBill = () => {
         .invoice-table th { padding: 12px 10px; background: #1e293b; color: white; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e2e8f0; }
         .invoice-table td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         .tax-breakdown-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
-        .tax-breakdown-table th { background: #f8fafc; padding: 6px; border: 1px solid #e2e8f0; text-align: center; }
-        .tax-breakdown-table td { padding: 6px; border: 1px solid #e2e8f0; text-align: center; }
+        .tax-breakdown-table th { background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; text-align: center; color: #475569; }
+        .tax-breakdown-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
       `}</style>
 
       {/* Top Actions */}
@@ -188,17 +168,12 @@ const ViewSaleBill = () => {
           <button className="btn-agro btn-outline" onClick={() => navigate('/sales/bills')} style={{ gap: '8px' }}>
             <ArrowLeft size={18} /> Back to Bills
           </button>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px' }}>
-              <Printer size={18} /> Print Invoice
-            </button>
-          </div>
         </div>
       )}
 
       <div className="invoice-box print-area">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1e293b', paddingBottom: '15px', breakInside: 'avoid' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b' }}>KRUSHI SEVA KENDRA</h1>
             <p style={{ margin: '5px 0', fontSize: '13px', color: '#64748b' }}>
@@ -218,7 +193,7 @@ const ViewSaleBill = () => {
         </div>
 
         {/* Bill To */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '20px', breakInside: 'avoid' }}>
           <div>
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', marginBottom: '8px', letterSpacing: '1px' }}>Billed To:</h3>
             <p style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>{billData.customer?.name}</p>
@@ -282,26 +257,26 @@ const ViewSaleBill = () => {
             </div>
           </div>
 
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-              <span>Subtotal:</span>
-              <span style={{ fontWeight: '700' }}>₹{(parseFloat(billData.subtotal) || 0).toFixed(2)}</span>
+          <div className="grand-total-section" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+              <span style={{ color: '#64748b', fontWeight: '500' }}>Subtotal:</span>
+              <span style={{ fontWeight: '700', color: '#1e293b' }}>₹{(parseFloat(billData.subtotal) || 0).toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-              <span>GST Amount:</span>
-              <span style={{ fontWeight: '700' }}>₹{(parseFloat(billData.taxAmount) || 0).toFixed(2)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+              <span style={{ color: '#64748b', fontWeight: '500' }}>GST Amount:</span>
+              <span style={{ fontWeight: '700', color: '#1e293b' }}>₹{(parseFloat(billData.taxAmount) || 0).toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#ef4444' }}>
-              <span>Total Discount:</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: '#ef4444' }}>
+              <span style={{ fontWeight: '500' }}>Total Discount:</span>
               <span style={{ fontWeight: '700' }}>- ₹{(parseFloat(billData.discountAmount) || 0).toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: '900', borderTop: '2px solid #1e293b', paddingTop: '8px', marginTop: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '24px', fontWeight: '900', borderTop: '2px solid #1e293b', paddingTop: '12px', marginTop: '8px', color: '#0f172a' }}>
               <span>Grand Total:</span>
               <span>₹{(parseFloat(billData.grandTotal) || 0).toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '5px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#16a34a' }}>
-                <span>Paid Amount:</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: '#16a34a' }}>
+                <span style={{ fontWeight: '600' }}>Paid Amount:</span>
                 <span style={{ fontWeight: '800' }}>₹{(parseFloat(billData.paidAmount) || 0).toFixed(2)}</span>
               </div>
 
@@ -309,7 +284,7 @@ const ViewSaleBill = () => {
               {(() => {
                 const pm = billData.paymentMode;
                 if (!pm) return null;
-                if (typeof pm === 'string') return <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'right' }}>(Paid via {pm})</div>;
+                if (typeof pm === 'string') return <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', fontStyle: 'italic' }}>(Paid via {pm})</div>;
 
                 try {
                   const pmObj = typeof pm === 'string' ? JSON.parse(pm) : pm;
@@ -320,7 +295,7 @@ const ViewSaleBill = () => {
 
                   if (modes.length > 0) {
                     return (
-                      <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px', fontStyle: 'italic' }}>
                         {modes.map((m, i) => <span key={i}>({m})</span>)}
                       </div>
                     );
@@ -331,8 +306,8 @@ const ViewSaleBill = () => {
               })()}
             </div>
             {billData.balanceAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#e11d48', background: '#fff1f2', padding: '5px 8px', borderRadius: '4px', marginTop: '5px', border: '1px solid #ffe4e6' }}>
-                <span>Balance Due:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: '#e11d48', background: '#fff1f2', padding: '8px 12px', borderRadius: '8px', marginTop: '8px', border: '1px solid #ffe4e6' }}>
+                <span style={{ fontWeight: '600' }}>Balance Due:</span>
                 <span style={{ fontWeight: '800' }}>₹{(parseFloat(billData.balanceAmount) || 0).toFixed(2)}</span>
               </div>
             )}
@@ -340,7 +315,7 @@ const ViewSaleBill = () => {
         </div>
 
         {/* GST Analysis Table */}
-        <div style={{ marginTop: '30px' }}>
+        <div style={{ marginTop: '30px', breakInside: 'avoid' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', margin: 0 }}>GST Breakdown:</h3>
@@ -393,7 +368,7 @@ const ViewSaleBill = () => {
         </div>
 
         {/* Signatures */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '25px', padding: '0 30px', breakInside: 'avoid' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ borderTop: '1.5px solid #1e293b', width: '160px', marginBottom: '8px' }}></div>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>Customer Signature</p>
