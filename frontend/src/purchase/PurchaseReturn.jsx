@@ -108,7 +108,6 @@ const PurchaseReturn = () => {
               <thead>
                 <tr>
                   <th>Return ID</th>
-                  <th>Purchase ID</th>
                   <th>Supplier</th>
                   <th>Date</th>
                   <th>Total Amount</th>
@@ -120,7 +119,6 @@ const PurchaseReturn = () => {
                 {filteredReturns.map((item) => (
                   <tr key={item.id}>
                     <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || item.id}</td>
-                    <td>{item.purchaseId || 'N/A'}</td>
                     <td>
                       <div style={{ fontWeight: '600' }}>{item.Supplier?.name || 'Unknown'}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.supplierId}</div>
@@ -172,7 +170,7 @@ const PurchaseReturn = () => {
                   </tr>
                 ))}
                 {filteredReturns.length === 0 && (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
+                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>
             </table>
