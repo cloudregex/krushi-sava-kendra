@@ -158,7 +158,7 @@ const PurchaseBill = () => {
                   <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px' }}>Loading bills...</td></tr>
                 ) : filteredBills.map((bill) => (
                   <tr key={bill.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>#PUR-{bill.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>PUR-{new Date(bill.billDate || bill.createdAt).getFullYear()}-{String(bill.id).padStart(6, '0')}</td>
                     <td style={{ fontSize: '12px' }}>{bill.supplierInvoiceNumber || '-'}</td>
                     <td>
                       <div style={{ fontWeight: '600' }}>{bill.Supplier?.name || 'N/A'}</div>

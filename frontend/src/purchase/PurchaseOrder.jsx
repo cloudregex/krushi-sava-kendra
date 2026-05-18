@@ -135,7 +135,7 @@ const PurchaseOrder = () => {
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>PO-{order.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary)' }}>PO-{new Date(order.orderDate || order.createdAt).getFullYear()}-{String(order.id).padStart(6, '0')}</td>
                     <td>{order.Supplier?.name || order.supplierId}</td>
                     <td>{order.orderDate}</td>
                     <td>{order.expiryDate}</td>

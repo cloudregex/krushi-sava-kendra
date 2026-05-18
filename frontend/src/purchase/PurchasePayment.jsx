@@ -74,7 +74,7 @@ const PurchasePayment = () => {
           </button>
           <div>
             <h2 style={{ fontSize: '20px', margin: 0, fontWeight: '800', color: '#1e293b' }}>Make Payment</h2>
-            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Settle dues for Bill #{bill.id}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Settle dues for Bill PUR-{new Date(bill.billDate || bill.createdAt).getFullYear()}-{String(bill.id).padStart(6, '0')}</p>
           </div>
         </div>
 

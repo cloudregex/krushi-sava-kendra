@@ -115,7 +115,7 @@ const ViewPurchaseOrder = () => {
             background: 'white'
           }}>
             <div>
-              <h2 style={{ fontSize: '18px', marginBottom: '1px' }}>Purchase Order: {orderData.id}</h2>
+              <h2 style={{ fontSize: '18px', marginBottom: '1px' }}>Purchase Order: PO-{new Date(orderData.orderDate || orderData.createdAt).getFullYear()}-{String(orderData.id).padStart(6, '0')}</h2>
               <p style={{ fontSize: '12px', margin: 0 }}>Planned procurement for inventory restocking</p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>

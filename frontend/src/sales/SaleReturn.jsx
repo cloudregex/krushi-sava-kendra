@@ -90,7 +90,7 @@ const SaleReturn = () => {
                   <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
                 ) : filteredReturns.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || item.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || `SRTN-${new Date(item.returnDate || item.createdAt || new Date()).getFullYear()}-${String(item.id).padStart(6, '0')}`}</td>
                     <td>{item.saleInvoiceNo || item.saleId}</td>
                     <td>
                       <div style={{ fontWeight: '600' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>

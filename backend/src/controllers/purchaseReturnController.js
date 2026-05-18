@@ -13,7 +13,8 @@ exports.createReturn = async (req, res) => {
     // Generate Return No
     const lastReturn = await PurchaseReturn.findOne({ order: [['id', 'DESC']] });
     const nextId = lastReturn ? lastReturn.id + 1 : 1;
-    const returnNo = `RET-${String(nextId).padStart(3, '0')}`;
+    const year = new Date().getFullYear();
+    const returnNo = `PRTN-${year}-${String(nextId).padStart(6, '0')}`;
 
     const newReturn = await PurchaseReturn.create({
       returnNo,

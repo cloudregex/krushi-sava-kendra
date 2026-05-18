@@ -109,7 +109,7 @@ const Quotation = () => {
                   <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>Loading quotations...</td></tr>
                 ) : filteredQuotations.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#8b5cf6' }}>{item.quotationNo || item.id}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#8b5cf6' }}>{item.quotationNo || `QTN-${new Date(item.date || item.createdAt || new Date()).getFullYear()}-${String(item.id).padStart(6, '0')}`}</td>
                     <td>
                       <div style={{ fontWeight: '600' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.customerId}</div>

@@ -241,7 +241,7 @@ const ViewPurchaseBill = () => {
             <p style={{ margin: '2px 0', color: '#555' }}>Supplier ID: {billData.supplierId}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: '2px 0' }}><strong>Invoice No:</strong> PUR-{billData.id}</p>
+            <p style={{ margin: '2px 0' }}><strong>Invoice No:</strong> PUR-{new Date(billData.billDate || billData.createdAt).getFullYear()}-{String(billData.id).padStart(6, '0')}</p>
             <p style={{ margin: '2px 0' }}><strong>Ref Inv No:</strong> {billData.supplierInvoiceNumber || '-'}</p>
             <p style={{ margin: '2px 0' }}><strong>Date:</strong> {billData.billDate}</p>
             <p style={{ margin: '2px 0' }}><strong>Payment Mode:</strong> {billData.paymentType}</p>

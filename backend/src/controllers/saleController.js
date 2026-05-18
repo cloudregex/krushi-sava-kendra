@@ -99,7 +99,7 @@ exports.getNextInvoiceNo = async (req, res) => {
         }
         
         const year = new Date().getFullYear();
-        const invoiceNo = `INV-${year}-${String(nextNo).padStart(4, '0')}`;
+        const invoiceNo = `SALE-${year}-${String(nextNo).padStart(6, '0')}`;
         res.json({ invoiceNo });
     } catch (error) {
         res.status(500).json({ message: 'Failed to generate invoice number', error: error.message });

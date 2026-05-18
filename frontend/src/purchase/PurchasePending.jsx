@@ -86,7 +86,7 @@ const PurchasePending = () => {
               ) : filteredBills.length > 0 ? (
                 filteredBills.map((bill) => (
                   <tr key={bill.id}>
-                    <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{bill.id}</td>
+                    <td style={{ fontWeight: '700', color: 'var(--primary)' }}>PUR-{new Date(bill.billDate || bill.createdAt).getFullYear()}-{String(bill.id).padStart(6, '0')}</td>
                     <td>
                       <div style={{ fontWeight: '600', color: '#1e293b' }}>{bill.Supplier?.name}</div>
                       <div style={{ fontSize: '11px', color: '#64748b' }}>Inv: {bill.supplierInvoiceNumber || 'N/A'}</div>

@@ -65,7 +65,7 @@ const PurchasePaymentHistory = () => {
             </div>
             <div style={{ background: 'white', padding: '15px', borderRadius: '10px', border: '1px solid var(--border-light)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Bill ID / Invoice</p>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>#{bill.id} <span style={{ color: '#9ca3af', fontWeight: '500' }}>({bill.supplierInvoiceNumber || 'N/A'})</span></p>
+              <p style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>PUR-{new Date(bill.billDate || bill.createdAt).getFullYear()}-{String(bill.id).padStart(6, '0')} <span style={{ color: '#9ca3af', fontWeight: '500' }}>({bill.supplierInvoiceNumber || 'N/A'})</span></p>
             </div>
           </div>
           

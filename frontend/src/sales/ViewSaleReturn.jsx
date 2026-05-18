@@ -81,7 +81,7 @@ const ViewSaleReturn = () => {
           background: 'white'
         }}>
           <div>
-            <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Sale Return: {returnData.id}</h2>
+            <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>Sale Return: SRTN-{new Date(returnData.returnDate || returnData.createdAt || new Date()).getFullYear()}-{String(returnData.id).padStart(6, '0')}</h2>
             <p style={{ fontSize: '12px', margin: 0 }}>Customer refund and inventory adjustment</p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
