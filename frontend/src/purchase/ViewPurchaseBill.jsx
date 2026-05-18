@@ -27,7 +27,10 @@ const ViewPurchaseBill = () => {
             taxAmount: parseFloat(data.totalTaxAmount) || 0,
             totalAmount: parseFloat(data.subtotal) || 0,
             paidAmount: parseFloat(data.paidAmount) || 0,
-            dueAmount: parseFloat(data.dueAmount) || 0
+            dueAmount: parseFloat(data.dueAmount) || 0,
+            cashAmount: parseFloat(data.cashAmount) || 0,
+            upiAmount: parseFloat(data.upiAmount) || 0,
+            swipeAmount: parseFloat(data.swipeAmount) || 0
           });
           setItems(data.items || []);
         }
@@ -244,7 +247,20 @@ const ViewPurchaseBill = () => {
             <p style={{ margin: '2px 0' }}><strong>Invoice No:</strong> PUR-{new Date(billData.billDate || billData.createdAt).getFullYear()}-{String(billData.id).padStart(6, '0')}</p>
             <p style={{ margin: '2px 0' }}><strong>Ref Inv No:</strong> {billData.supplierInvoiceNumber || '-'}</p>
             <p style={{ margin: '2px 0' }}><strong>Date:</strong> {billData.billDate}</p>
-            <p style={{ margin: '2px 0' }}><strong>Payment Mode:</strong> {billData.paymentType}</p>
+            <p style={{ margin: '2px 0' }}>
+              <strong>Payment Mode:</strong>{' '}
+              {(() => {
+                const cash = billData.cashAmount;
+                const upi = billData.upiAmount;
+                const swipe = billData.swipeAmount;
+                if (cash === 0 && upi === 0 && swipe === 0) return billData.paymentType || 'N/A';
+                const parts = [];
+                if (cash > 0) parts.push(`Cash: ₹${cash.toFixed(2)}`);
+                if (upi > 0) parts.push(`UPI: ₹${upi.toFixed(2)}`);
+                if (swipe > 0) parts.push(`Swipe: ₹${swipe.toFixed(2)}`);
+                return parts.join(', ');
+              })()}
+            </p>
           </div>
         </div>
 

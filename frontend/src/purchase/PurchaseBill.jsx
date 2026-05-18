@@ -169,7 +169,25 @@ const PurchaseBill = () => {
                     <td style={{ color: '#16a34a', fontWeight: '600' }}>₹{(parseFloat(bill.paidAmount) || 0).toFixed(2)}</td>
                     <td style={{ color: (parseFloat(bill.dueAmount) || 0) > 0 ? '#ef4444' : 'inherit', fontWeight: '600' }}>₹{(parseFloat(bill.dueAmount) || 0).toFixed(2)}</td>
                     <td>
-                      <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '5px', fontSize: '11px' }}>{bill.paymentType || 'Mixed'}</span>
+                      {(() => {
+                        const cash = parseFloat(bill.cashAmount) || 0;
+                        const upi = parseFloat(bill.upiAmount) || 0;
+                        const swipe = parseFloat(bill.swipeAmount) || 0;
+                        const pt = bill.paymentType;
+                        
+                        if (cash === 0 && upi === 0 && swipe === 0) {
+                          if (!pt) return <span style={{ color: '#94a3b8', fontSize: '11px' }}>N/A</span>;
+                          return <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', color: '#475569' }}>{pt}</span>;
+                        }
+
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            {cash > 0 && <span style={{ fontSize: '10px', color: '#15803d', fontWeight: '700', background: '#f0fdf4', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>💵 Cash: ₹{cash.toFixed(2)}</span>}
+                            {upi > 0 && <span style={{ fontSize: '10px', color: '#1d4ed8', fontWeight: '700', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>📱 UPI: ₹{upi.toFixed(2)}</span>}
+                            {swipe > 0 && <span style={{ fontSize: '10px', color: '#7e22ce', fontWeight: '700', background: '#faf5ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e9d5ff' }}>💳 Swipe: ₹{swipe.toFixed(2)}</span>}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td>{getStatusBadge(getStatus(bill))}</td>
                     <td style={{ textAlign: 'center' }}>
