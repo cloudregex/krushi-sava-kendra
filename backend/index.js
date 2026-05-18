@@ -22,6 +22,7 @@ const purchaseOrderRoutes = require("./src/routes/purchaseOrderRoutes");
 const purchaseReturnRoutes = require("./src/routes/purchaseReturnRoutes");
 const saleRoutes = require("./src/routes/saleRoutes");
 const quotationRoutes = require("./src/routes/quotationRoutes");
+const saleReturnRoutes = require("./src/routes/saleReturnRoutes");
 
 // Load Associations
 require("./src/models/associations");
@@ -49,6 +50,7 @@ app.use("/api/translate", translateRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/purchase-returns", purchaseReturnRoutes);
+app.use("/api/sales/returns", saleReturnRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/quotations", quotationRoutes);
 

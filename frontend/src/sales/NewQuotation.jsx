@@ -41,7 +41,7 @@ const NewQuotation = () => {
   const [master, setMaster] = useState({
     quotationNo: '',
     customerId: '',
-    date: new Date().toISOString().split('T')[0],
+    date: '',
     validUntil: '',
     subtotal: 0,
     taxAmount: 0,
@@ -412,7 +412,7 @@ const NewQuotation = () => {
           ...prev,
           customerBalance: customer?.balance || 0,
           quotationNo: qtnData.quotationNo || '',
-          date: new Date().toISOString().split('T')[0]
+          date: prev.date || ''
         }));
       }).catch(err => console.error("Quotation fetch error:", err));
     }
@@ -451,6 +451,7 @@ const NewQuotation = () => {
 
   const handleSaveQuotation = async () => {
     if (!master.customerId) return toast.error("Please select a customer");
+    if (!master.date) return toast.error("Please select a quotation date");
     const validItems = children.filter(c => c.productId && c.quantity > 0);
     if (validItems.length === 0) return toast.error("Please add at least one product");
 
