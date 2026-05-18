@@ -146,8 +146,8 @@ const SaleEntry = () => {
         masterDiscountAmount: mDisc,
         totalDiscount: totalBillDiscount,
         grandTotal: finalGrandTotal,
-        paidAmount: totalPaid,
-        pendingAmount: Math.max(0, finalGrandTotal - totalPaid),
+        paidAmount: parseFloat(totalPaid.toFixed(2)),
+        pendingAmount: parseFloat(Math.max(0, finalGrandTotal - totalPaid).toFixed(2)),
         taxBreakdown: Object.values(hsnMap)
       };
     });
@@ -161,8 +161,8 @@ const SaleEntry = () => {
 
       if (field === 'productId') {
         if (extraData) {
-          // Only reset if product actually changed to prevent overwriting user input during re-renders
-          if (child.productId !== value) {
+          // Use String comparison to prevent unnecessary resets due to type mismatch
+          if (String(child.productId) !== String(value)) {
             u.productName = extraData.name || '';
             u.hsnCode = extraData.hsnCode || '';
             u.currentStock = extraData.currentStock || 0;
@@ -177,44 +177,50 @@ const SaleEntry = () => {
             u.quantity = 1;
             u.freeQuantity = 0;
             u.discount = 0;
-          }
+            // Reset edited flags as this is a new product selection
+            u.saleRateEdited = false;
+            u.batchNoEdited = false;
+            u.expiryDateEdited = false;
 
-          if (value) {
-            ApiService.getById('products', `${value}/latest-batch`).then(res => {
-              if (res) {
-                setChildren(prevRows => prevRows.map(row => {
-                  if (row.id === id) {
-                    const newBatch = row.batchNoEdited ? row.batchNo : (res.batchNo || row.batchNo);
-                    const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate || row.expiryDate);
-                    const newRate = row.saleRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
+            // Trigger batch fetch only if product actually changed
+            if (value) {
+              ApiService.getById('products', `${value}/latest-batch`).then(res => {
+                if (res) {
+                   setChildren(prevRows => prevRows.map(row => {
+                     if (row.id === id) {
+                        const newBatch = row.batchNoEdited ? row.batchNo : '';
+                        const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate ? res.expiryDate.split('T')[0] : row.expiryDate);
+                        const newRate = row.saleRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
 
-                    const qty = parseFloat(row.quantity) || 0;
-                    const rate = parseFloat(newRate) || 0;
-                    const rowSub = qty * rate;
-                    let actualDisc = 0;
-                    const dVal = parseFloat(row.discount) || 0;
-                    if (row.discountType === 'percent') {
-                      actualDisc = (rowSub * dVal) / 100;
-                    } else {
-                      actualDisc = dVal;
-                    }
-                    const taxP = parseFloat(row.taxPercent) || 0;
-                    const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+                       const qty = parseFloat(row.quantity) || 0;
+                       const rate = parseFloat(newRate) || 0;
+                       const rowSub = qty * rate;
+                       let actualDisc = 0;
+                       const dVal = parseFloat(row.discount) || 0;
+                       if (row.discountType === 'percent') {
+                         actualDisc = (rowSub * dVal) / 100;
+                       } else {
+                         actualDisc = dVal;
+                       }
+                       const taxP = parseFloat(row.taxPercent) || 0;
+                       const rowTax = ((rowSub - actualDisc) * taxP) / 100;
 
-                    return {
-                      ...row,
-                      batchNo: newBatch,
-                      expiryDate: newExpiry,
-                      saleRate: newRate,
-                      amount: rowSub,
-                      taxAmount: rowTax,
-                      actualDiscount: actualDisc
-                    };
-                  }
-                  return row;
-                }));
-              }
-            }).catch(err => console.log("Batch fetch error:", err));
+                       return {
+                         ...row,
+                         batchNo: newBatch,
+                         prevBatchNo: res.batchNo || '',
+                         expiryDate: newExpiry,
+                         saleRate: newRate,
+                         amount: rowSub,
+                         taxAmount: rowTax,
+                         actualDiscount: actualDisc
+                       };
+                     }
+                     return row;
+                   }));
+                }
+              }).catch(err => console.log("Batch fetch error:", err));
+            }
           }
         } else {
           const fresh = newRow();
@@ -231,12 +237,23 @@ const SaleEntry = () => {
         u.conversionFactor = mu ? (parseFloat(mu.conversion) || 1) : 1;
       }
 
+      // Sync Quantity if Stock Increment is changed manually
+      if (field === 'stockIncrement') {
+        const factor = parseFloat(u.conversionFactor) || 1;
+        const incVal = parseFloat(value) || 0;
+        const fQty = parseFloat(u.freeQuantity) || 0;
+        // Formula: stockIncrement = (qty + freeQty) / factor
+        // So: qty = (stockIncrement * factor) - freeQty
+        u.quantity = Math.max(0, (incVal * factor) - fQty);
+      }
+
       const qty = parseFloat(u.quantity) || 0;
       const freeQty = parseFloat(u.freeQuantity) || 0;
       const rate = parseFloat(u.saleRate) || 0;
       const taxP = parseFloat(u.taxPercent) || 0;
       const factor = parseFloat(u.conversionFactor) || 1;
 
+      // Recalculate Stock Increment if Quantity/Unit changes
       if (['quantity', 'freeQuantity', 'unit', 'productId'].includes(field)) {
         u.stockIncrement = (qty + freeQty) / factor;
       }
@@ -474,7 +491,6 @@ const SaleEntry = () => {
                       <th style={{ minWidth: "220px", fontSize: "10px", letterSpacing: "0.05em", textAlign: "left", paddingLeft: "15px" }}>PRODUCT NAME</th>
                       <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>BATCH</th>
                       <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>EXPIRY</th>
-                      <th style={{ minWidth: "90px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>AVAILABLE QTY</th>
                       <th style={{ minWidth: "70px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>SOLD QTY</th>
                       <th style={{ minWidth: "100px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>UNIT</th>
                       <th style={{ minWidth: "110px", fontSize: "10px", textAlign: "center", letterSpacing: "0.05em" }}>STOCK DECREMENT</th>
@@ -488,134 +504,123 @@ const SaleEntry = () => {
                   <tbody>
                     {children.map((child, idx) => (
                       <tr key={child.id}>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <SearchableSelect
-                            options={products}
-                            value={child.productId}
-                            onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
-                            placeholder="Select Product"
-                            height="36px"
-                          />
-                          {child.productId && (
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '10px', fontWeight: '700' }}>
-                              <span style={{ color: '#64748b' }}>HSN: <span style={{ color: '#0f172a' }}>{child.hsnCode}</span></span>
-                              <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={child.productId && child.currentStock !== 0 ? child.currentStock : ''}
-                            readOnly
-                            style={{
-                              height: '36px',
-                              textAlign: 'center',
-                              fontWeight: '800',
-                              color: child.currentStock > 0 ? '#16a34a' : '#ef4444',
-                              background: '#f8fafc',
-                              cursor: 'not-allowed'
-                            }}
-                          />
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <input
-                            ref={el => qtyRefs.current[child.id] = el}
-                            type="number" className="form-control" value={child.quantity || ''}
-                            onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
-                            style={{
-                              height: '36px',
-                              textAlign: 'center',
-                              fontWeight: '700',
-                              borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
-                              color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
-                            }}
-                          />
-                          {child.productId && child.quantity > child.currentStock && (
-                            <div style={{ color: '#ef4444', fontSize: '10px', fontWeight: '800', marginTop: '2px' }}>EXCEEDS STOCK!</div>
-                          )}
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <select
-                            className="form-control"
-                            value={child.unit}
-                            onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
-                            style={{ height: '36px', fontSize: '12px', textAlign: 'center', padding: '0 5px', width: '100%', minWidth: '90px' }}
-                          >
-                            <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
-                            {child.multiUnits && child.multiUnits.map((mu, i) => (
-                              mu.alternative !== (child.primaryUnit || child.unit) && (
-                                <option key={i} value={mu.alternative}>{mu.alternative}</option>
-                              )
-                            ))}
-                          </select>
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={child.stockIncrement || ''}
-                              onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
-                              style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
-                            />
-                            {child.primaryUnit && (
-                              <span style={{
-                                position: 'absolute',
-                                right: '4px',
-                                fontSize: '10px',
-                                fontWeight: '800',
-                                color: 'var(--primary)',
-                                background: '#eff6ff',
-                                padding: '2px 4px',
-                                borderRadius: '4px',
-                                pointerEvents: 'none',
-                                border: '1px solid #dbeafe'
-                              }}>
-                                {child.primaryUnit}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.saleRate} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={child.discount || ''}
-                              onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
-                              style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
-                            />
-                            <select
-                              value={child.discountType}
-                              onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
-                              style={{ border: 'none', borderLeft: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', padding: '0 5px', cursor: 'pointer', outline: 'none' }}
-                            >
-                              <option value="percent">%</option>
-                              <option value="amount">₹</option>
-                            </select>
-                          </div>
-                        </td>
-                        <td style={{ verticalAlign: 'top' }}><input type="number" className="form-control" value={child.taxPercent || ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
-                        <td style={{ verticalAlign: 'top' }}>
-                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
-                            ₹{child.amount.toFixed(2)}
-                          </div>
-                        </td>
-                        <td style={{ verticalAlign: 'top', textAlign: 'center' }}>
-                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <button onClick={() => removeChildRow(child.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           {child.productId && (
+                             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '4px', fontSize: '10px', fontWeight: '700' }}>
+                               <span style={{ color: '#64748b' }}>HSN: <span style={{ color: '#0f172a' }}>{child.hsnCode}</span></span>
+                               <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
+                             </div>
+                           )}
+                           <SearchableSelect
+                             options={products}
+                             value={child.productId}
+                             onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
+                             placeholder="Select Product"
+                             height="36px"
+                           />
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           {child.productId && (
+                             <div style={{ fontSize: '9px', fontWeight: '800', color: '#0284c7', textAlign: 'center', marginBottom: '2px' }}>
+                               Prev: {child.prevBatchNo || 'None'}
+                             </div>
+                           )}
+                           <input type="text" className="form-control" value={child.batchNo} onChange={(e) => handleChildChange(child.id, 'batchNo', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="date" className="form-control" value={child.expiryDate} onChange={(e) => handleChildChange(child.id, 'expiryDate', e.target.value)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           <input
+                             ref={el => qtyRefs.current[child.id] = el}
+                             type="number" className="form-control" value={child.quantity ?? ''}
+                             onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
+                             style={{
+                               height: '36px',
+                               textAlign: 'center',
+                               fontWeight: '700',
+                               borderColor: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : '#e2e8f0',
+                               color: (child.productId && child.quantity > child.currentStock) ? '#ef4444' : 'inherit'
+                             }}
+                           />
+                           {child.productId && child.quantity > child.currentStock && (
+                             <div style={{ color: '#ef4444', fontSize: '10px', fontWeight: '800', marginTop: '2px' }}>EXCEEDS STOCK!</div>
+                           )}
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           <select
+                             className="form-control"
+                             value={child.unit}
+                             onChange={(e) => handleChildChange(child.id, 'unit', e.target.value)}
+                             style={{ height: '36px', fontSize: '12px', textAlign: 'center', padding: '0 5px', width: '100%', minWidth: '90px' }}
+                           >
+                             <option value={child.primaryUnit || child.unit}>{child.primaryUnit || child.unit}</option>
+                             {child.multiUnits && child.multiUnits.map((mu, i) => (
+                               mu.alternative !== (child.primaryUnit || child.unit) && (
+                                 <option key={i} value={mu.alternative}>{mu.alternative}</option>
+                               )
+                             ))}
+                           </select>
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                             <input
+                               type="number"
+                               className="form-control"
+                               value={child.stockIncrement ?? ''}
+                               onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
+                               style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
+                             />
+                             {child.primaryUnit && (
+                               <span style={{
+                                 position: 'absolute',
+                                 right: '4px',
+                                 fontSize: '10px',
+                                 fontWeight: '800',
+                                 color: 'var(--primary)',
+                                 background: '#eff6ff',
+                                 padding: '2px 4px',
+                                 borderRadius: '4px',
+                                 pointerEvents: 'none',
+                                 border: '1px solid #dbeafe'
+                               }}>
+                                 {child.primaryUnit}
+                               </span>
+                             )}
+                           </div>
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.saleRate ?? ''} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
+                             <input
+                               type="number"
+                               className="form-control"
+                               value={child.discount ?? ''}
+                               onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
+                               style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
+                             />
+                             <select
+                               value={child.discountType}
+                               onChange={(e) => handleChildChange(child.id, 'discountType', e.target.value)}
+                               style={{ border: 'none', borderLeft: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', padding: '0 5px', cursor: 'pointer', outline: 'none' }}
+                             >
+                               <option value="percent">%</option>
+                               <option value="amount">₹</option>
+                             </select>
+                           </div>
+                         </td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent ?? ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                         <td style={{ verticalAlign: 'bottom' }}>
+                           <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
+                             ₹{child.amount.toFixed(2)}
+                           </div>
+                         </td>
+                         <td style={{ verticalAlign: 'bottom', textAlign: 'center' }}>
+                           <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                             <button onClick={() => removeChildRow(child.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
+                               <Trash2 size={18} />
+                             </button>
+                           </div>
+                         </td>
+                       </tr>
                     ))}
                   </tbody>
                 </table>
@@ -634,6 +639,7 @@ const SaleEntry = () => {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "15px" }}>
                   {/* Row 1: 4 Fields */}
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
+                    <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>Discount</div>
                     <input
                       type="number"
                       style={{ border: "none", background: "transparent", padding: "8px 12px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }}

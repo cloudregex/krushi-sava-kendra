@@ -7,16 +7,38 @@ const { logActivity } = require('../helper/logger');
 exports.getLatestBatch = async (req, res) => {
     try {
         console.log("🔍 FETCHING BATCH FOR PRODUCT ID:", req.params.id);
-        const [lastSale, lastPurchase, product] = await Promise.all([
+        
+        // 1. Find the latest PurchaseItem with a non-empty batch number
+        const lastPurchaseWithBatch = await PurchaseItem.findOne({
+            where: { 
+                productId: req.params.id,
+                batchNo: { [Op.and]: [{ [Op.ne]: '' }, { [Op.ne]: null }, { [Op.ne]: 'Invalid date' }] }
+            },
+            order: [['createdAt', 'DESC']],
+            attributes: ['batchNo', 'expiryDate', 'salePrice', 'createdAt']
+        });
+
+        // 2. Find the latest SaleItem with a non-empty batch number (as fallback)
+        const lastSaleWithBatch = await SaleItem.findOne({
+            where: { 
+                productId: req.params.id,
+                batchNo: { [Op.and]: [{ [Op.ne]: '' }, { [Op.ne]: null }, { [Op.ne]: 'Invalid date' }] }
+            },
+            order: [['createdAt', 'DESC']],
+            attributes: ['batchNo', 'expiryDate', 'rate', 'createdAt']
+        });
+
+        // 3. Find the absolute latest transaction (regardless of batch empty/not empty) to determine latest rate
+        const [lastSaleAny, lastPurchaseAny, product] = await Promise.all([
             SaleItem.findOne({
                 where: { productId: req.params.id },
                 order: [['createdAt', 'DESC']],
-                attributes: ['batchNo', 'expiryDate', 'rate', 'createdAt']
+                attributes: ['rate', 'createdAt']
             }),
             PurchaseItem.findOne({
                 where: { productId: req.params.id },
                 order: [['createdAt', 'DESC']],
-                attributes: ['batchNo', 'expiryDate', 'salePrice', 'createdAt']
+                attributes: ['salePrice', 'createdAt']
             }),
             Product.findByPk(req.params.id)
         ]);
@@ -25,28 +47,29 @@ exports.getLatestBatch = async (req, res) => {
         let latestExpiry = '';
         let latestSaleRate = '';
         
-        // 1. Try to get rate from the very latest transaction (Purchase or Sale)
-        if (lastSale && lastPurchase) {
-            if (new Date(lastSale.createdAt) > new Date(lastPurchase.createdAt)) {
-                latestBatch = lastSale.batchNo;
-                latestExpiry = lastSale.expiryDate;
-                latestSaleRate = lastSale.rate;
+        // Prioritize Purchase batch because purchase is the true source of stock batches
+        if (lastPurchaseWithBatch) {
+            latestBatch = lastPurchaseWithBatch.batchNo;
+            latestExpiry = lastPurchaseWithBatch.expiryDate;
+        } else if (lastSaleWithBatch) {
+            latestBatch = lastSaleWithBatch.batchNo;
+            latestExpiry = lastSaleWithBatch.expiryDate;
+        }
+        
+        // Rate fallback logic from absolute latest transaction
+        if (lastSaleAny && lastPurchaseAny) {
+            if (new Date(lastSaleAny.createdAt) > new Date(lastPurchaseAny.createdAt)) {
+                latestSaleRate = lastSaleAny.rate;
             } else {
-                latestBatch = lastPurchase.batchNo;
-                latestExpiry = lastPurchase.expiryDate;
-                latestSaleRate = lastPurchase.salePrice;
+                latestSaleRate = lastPurchaseAny.salePrice;
             }
-        } else if (lastSale) {
-            latestBatch = lastSale.batchNo;
-            latestExpiry = lastSale.expiryDate;
-            latestSaleRate = lastSale.rate;
-        } else if (lastPurchase) {
-            latestBatch = lastPurchase.batchNo;
-            latestExpiry = lastPurchase.expiryDate;
-            latestSaleRate = lastPurchase.salePrice;
+        } else if (lastSaleAny) {
+            latestSaleRate = lastSaleAny.rate;
+        } else if (lastPurchaseAny) {
+            latestSaleRate = lastPurchaseAny.salePrice;
         }
 
-        // 2. If the latest rate is 0 or empty, search for ANY recent transaction with a non-zero price
+        // 4. If the latest rate is 0 or empty, search for ANY recent transaction with a non-zero price
         if (!latestSaleRate || parseFloat(latestSaleRate) === 0) {
             const [anyPurchase, anySale] = await Promise.all([
                 PurchaseItem.findOne({
@@ -70,7 +93,7 @@ exports.getLatestBatch = async (req, res) => {
             }
         }
 
-        // 3. Fallback to Product's default price from multiUnits if still 0
+        // 5. Fallback to Product's default price from multiUnits if still 0
         if ((!latestSaleRate || parseFloat(latestSaleRate) === 0) && product && product.multiUnits && product.multiUnits.length > 0) {
             const unitWithPrice = product.multiUnits.find(u => parseFloat(u.amount) > 0);
             if (unitWithPrice) {
@@ -83,7 +106,7 @@ exports.getLatestBatch = async (req, res) => {
         if (latestExpiry === 'Invalid date') latestExpiry = '';
         if (latestBatch === 'Invalid date') latestBatch = '';
 
-        console.log(`✅ Result for Product ${req.params.id}: Rate=${latestSaleRate}, Batch=${latestBatch}`);
+        console.log(`✅ Result for Product ${req.params.id}: Rate=${latestSaleRate}, Batch=${latestBatch}, Expiry=${latestExpiry}`);
 
         res.status(200).json({ 
             batchNo: latestBatch || '', 

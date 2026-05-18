@@ -23,6 +23,7 @@ const newRow = () => ({
   currentStock: 0,
   hsnCode: "",
   batchNo: "",
+  prevBatchNo: "",
   purchaseQty: 1,
   freeQty: 1,
   unitValue: 1,
@@ -281,6 +282,25 @@ const PurchaseEntry = () => {
             });
           }
           u.availableUnits = prodUnits.filter(Boolean);
+
+          // Fetch latest batch info
+          ApiService.getById("products", `${value}/latest-batch`)
+            .then((res) => {
+              if (res) {
+                setChildren((prevRows) =>
+                  prevRows.map((row) => {
+                    if (row.id === id) {
+                      return {
+                        ...row,
+                        prevBatchNo: res.batchNo || "",
+                      };
+                    }
+                    return row;
+                  })
+                );
+              }
+            })
+            .catch((err) => console.log("Batch fetch error:", err));
         } else {
           // Clear info if product is discarded
           u.productName = "";
@@ -864,6 +884,11 @@ const PurchaseEntry = () => {
                           </div>
                         </td>
                         <td style={{ minWidth: "80px", padding: "0 4px" }}>
+                          {child.productId && (
+                            <div style={{ fontSize: '9px', fontWeight: '800', color: '#0284c7', textAlign: 'center', marginBottom: '2px' }}>
+                              Prev: {child.prevBatchNo || 'None'}
+                            </div>
+                          )}
                           <input
                             type="text"
                             className="form-control"
