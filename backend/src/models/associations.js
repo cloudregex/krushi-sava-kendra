@@ -20,7 +20,7 @@ Purchase.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
 Supplier.hasMany(Purchase, { foreignKey: 'supplierId' });
 
 Purchase.hasMany(PurchaseItem, { foreignKey: 'purchaseId', as: 'items' });
-PurchaseItem.belongsTo(Purchase, { foreignKey: 'purchaseId' });
+PurchaseItem.belongsTo(Purchase, { foreignKey: 'purchaseId', as: 'Purchase' });
 
 PurchaseItem.belongsTo(Product, { foreignKey: 'productId', as: 'Product' });
 Product.hasMany(PurchaseItem, { foreignKey: 'productId' });
@@ -30,7 +30,7 @@ Sale.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 Customer.hasMany(Sale, { foreignKey: 'customerId' });
 
 Sale.hasMany(SaleItem, { foreignKey: 'saleId', as: 'items' });
-SaleItem.belongsTo(Sale, { foreignKey: 'saleId' });
+SaleItem.belongsTo(Sale, { foreignKey: 'saleId', as: 'Sale' });
 
 SaleItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(SaleItem, { foreignKey: 'productId' });
