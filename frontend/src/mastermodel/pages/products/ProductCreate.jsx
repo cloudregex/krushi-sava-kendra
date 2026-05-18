@@ -16,7 +16,7 @@ const ProductCreate = () => {
 
   const [formData, setFormData] = useState({
     name: '', marathiName: '', hsnCode: '', category: '', tax: '',
-    company: '', unit: '', unitValue: 1, minStock: '', currentStock: '',
+    barcode: '', unit: '', unitValue: 1, minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
   });
 
@@ -168,7 +168,7 @@ const ProductCreate = () => {
 
               <div className="agro-grid-2">
                 <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required placeholder="Select Tax %" />
-                <FormField label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="e.g. ABC Ltd" />
+                <FormField label="Barcode" name="barcode" value={formData.barcode} onChange={handleChange} placeholder="e.g. 123456789012" />
               </div>
             </div>
 

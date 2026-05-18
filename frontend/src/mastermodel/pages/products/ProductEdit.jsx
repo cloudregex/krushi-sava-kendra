@@ -18,7 +18,7 @@ const ProductEdit = () => {
 
   const [formData, setFormData] = useState({
     name: '', marathiName: '', hsnCode: '', category: '', tax: '',
-    company: '', unit: '', unitValue: 1, minStock: '', currentStock: '',
+    barcode: '', unit: '', unitValue: 1, minStock: '', currentStock: '',
     expiryRequired: false, isActive: true
   });
 
@@ -218,7 +218,7 @@ const ProductEdit = () => {
 
               <div className="agro-grid-2">
                 <SearchableSelect label="Tax" options={taxes} value={formData.tax} onChange={(e) => setFormData(prev => ({ ...prev, tax: e.target.value }))} required />
-                <FormField label="Company" name="company" value={formData.company} onChange={handleChange} />
+                <FormField label="Barcode" name="barcode" value={formData.barcode} onChange={handleChange} placeholder="e.g. 123456789012" />
               </div>
             </div>
 
