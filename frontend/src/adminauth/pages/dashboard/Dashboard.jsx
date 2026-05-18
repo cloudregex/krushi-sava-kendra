@@ -227,7 +227,7 @@ const Dashboard = () => {
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Latest 5 transactions</p>
             </div>
             <button 
-              onClick={() => navigate('/billing')}
+              onClick={() => navigate('/activity-logs')}
               style={{ padding: '8px 16px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
             >
               View All

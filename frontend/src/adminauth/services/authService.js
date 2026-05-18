@@ -1,4 +1,5 @@
 import api from '../utils/api';
+import { clearAuthStorage } from '../utils/session';
 
 const authService = {
   login: async (email, password) => {
@@ -48,8 +49,7 @@ const authService = {
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthStorage();
   },
 };
 

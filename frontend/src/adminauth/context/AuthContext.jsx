@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import { clearAuthStorage, getStoredSession, getTokenExpiryTime } from '../utils/session';
 
 const AuthContext = createContext(null);
 
@@ -8,13 +9,46 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+    const savedSession = getStoredSession();
+    if (savedSession) {
+      setUser(savedSession);
     }
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    const handleLogoutEvent = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('auth:logout', handleLogoutEvent);
+    return () => window.removeEventListener('auth:logout', handleLogoutEvent);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.token) return undefined;
+
+    const expiryTime = getTokenExpiryTime(user.token);
+    if (!expiryTime) {
+      clearAuthStorage();
+      setUser(null);
+      return undefined;
+    }
+
+    const timeout = expiryTime - Date.now();
+    if (timeout <= 0) {
+      clearAuthStorage();
+      setUser(null);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      clearAuthStorage();
+      setUser(null);
+    }, timeout);
+
+    return () => window.clearTimeout(timer);
+  }, [user]);
 
   const login = async (email, password) => {
     try {

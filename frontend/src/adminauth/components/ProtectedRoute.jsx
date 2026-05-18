@@ -6,10 +6,10 @@ const ProtectedRoute = ({ children, module, action }) => {
   const { user, loading, hasPermission } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/register-admin" />;
+  if (!user) return <Navigate to="/login" replace />;
   
   if (module && action && !hasPermission(module, action)) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
