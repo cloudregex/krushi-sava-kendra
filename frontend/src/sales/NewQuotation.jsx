@@ -41,7 +41,7 @@ const NewQuotation = () => {
   const [master, setMaster] = useState({
     quotationNo: '',
     customerId: '',
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     validUntil: '',
     subtotal: 0,
     taxAmount: 0,
@@ -412,7 +412,7 @@ const NewQuotation = () => {
           ...prev,
           customerBalance: customer?.balance || 0,
           quotationNo: qtnData.quotationNo || '',
-          date: prev.date || ''
+          date: new Date().toISOString().split('T')[0]
         }));
       }).catch(err => console.error("Quotation fetch error:", err));
     }
