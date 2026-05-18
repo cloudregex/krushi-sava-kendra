@@ -44,6 +44,9 @@ import ViewPurchaseOrder from './purchase/ViewPurchaseOrder';
 import PurchaseReturn from './purchase/PurchaseReturn';
 import NewPurchaseReturn from './purchase/NewPurchaseReturn';
 import ViewPurchaseReturn from './purchase/ViewPurchaseReturn';
+import PurchasePending from './purchase/PurchasePending';
+import PurchasePayment from './purchase/PurchasePayment';
+import PurchasePaymentHistory from './purchase/PurchasePaymentHistory';
 import StockMaster from './stock/StockMaster';
 import StockChild from './stock/StockChild';
 import ExpiryTracking from './stock/ExpiryTracking';
@@ -126,6 +129,9 @@ const AppRoutes = () => {
           <Route path="returns" element={<PurchaseReturn />} />
           <Route path="returns/new" element={<NewPurchaseReturn />} />
           <Route path="returns/view/:id" element={<ViewPurchaseReturn />} />
+          <Route path="pending" element={<PurchasePending />} />
+          <Route path="pending/pay/:id" element={<PurchasePayment />} />
+          <Route path="pending/history/:id" element={<PurchasePaymentHistory />} />
           <Route index element={<ModulePage title="Purchases" module="purchase" />} />
         </Route>
 

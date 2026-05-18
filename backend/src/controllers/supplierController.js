@@ -33,7 +33,18 @@ exports.getById = async (req, res) => {
     try {
         const item = await Supplier.findByPk(req.params.id);
         if (item) {
-            res.status(200).json(item);
+            // Calculate total pending due
+            const { Purchase } = require('../models/associations');
+            const { Op } = require('sequelize');
+            const totalDue = await Purchase.sum('dueAmount', {
+                where: {
+                    supplierId: req.params.id,
+                    dueAmount: { [Op.gt]: 0 }
+                }
+            });
+            const data = item.toJSON();
+            data.totalDue = totalDue || 0;
+            res.status(200).json(data);
         } else {
             res.status(404).json({ message: 'Supplier not found' });
         }

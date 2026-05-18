@@ -9,6 +9,7 @@ const Product = require('./Product');
 const Sale = require('./Sale');
 const SaleItem = require('./SaleItem');
 const Customer = require('./Customer');
+const SupplierPayment = require('./SupplierPayment');
 
 // Associations
 Purchase.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
@@ -50,6 +51,13 @@ PurchaseReturnItem.belongsTo(PurchaseReturn, { foreignKey: 'purchaseReturnId' })
 PurchaseReturnItem.belongsTo(Product, { foreignKey: 'productId', as: 'Product' });
 Product.hasMany(PurchaseReturnItem, { foreignKey: 'productId' });
 
+// Supplier Payment Associations
+SupplierPayment.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
+Supplier.hasMany(SupplierPayment, { foreignKey: 'supplierId' });
+
+SupplierPayment.belongsTo(Purchase, { foreignKey: 'purchaseId', as: 'PurchaseBill' });
+Purchase.hasMany(SupplierPayment, { foreignKey: 'purchaseId', as: 'payments' });
+
 module.exports = {
   Purchase,
   PurchaseItem,
@@ -58,6 +66,7 @@ module.exports = {
   PurchaseReturn,
   PurchaseReturnItem,
   Supplier,
+  SupplierPayment,
   Product,
   Sale,
   SaleItem,
