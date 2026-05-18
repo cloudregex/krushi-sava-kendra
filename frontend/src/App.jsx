@@ -187,7 +187,7 @@ const AppRoutes = () => {
         <Route path="user-profile" element={<UserProfile />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/register-admin" />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 };

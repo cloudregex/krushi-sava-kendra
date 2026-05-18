@@ -20,6 +20,16 @@ exports.registerAdmin = async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
 
+    const adminCount = await Admin.count();
+    if (adminCount > 0) {
+      return res.status(403).json({
+        status: false,
+        errors: {
+          auth: 'Superadmin account is already registered. Please login with an existing account.',
+        },
+      });
+    }
+
     const adminExists = await Admin.findOne({ where: { email } });
     if (adminExists) {
       return res.status(400).json({ message: 'Admin already exists' });

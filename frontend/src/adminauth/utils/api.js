@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthStorage, isTokenExpired, notifySessionLogout } from './session';
 
 const api = axios.create({
   baseURL: 'http://localhost:4000/api', // Adjust according to your backend port
@@ -12,6 +13,11 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
+      if (isTokenExpired(token)) {
+        clearAuthStorage();
+        notifySessionLogout('expired');
+        return Promise.reject(new Error('Session expired, please login again'));
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -25,10 +31,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // window.location.href = '/login'; // Optional: Redirect to login
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || '';
+
+    if (status === 401 && !requestUrl.includes('/auth/login')) {
+      clearAuthStorage();
+      notifySessionLogout('expired');
     }
     return Promise.reject(error);
   }
