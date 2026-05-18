@@ -49,9 +49,25 @@ exports.createReturn = async (req, res) => {
       // Update Product Stock (Deduct from inventory for Purchase Return)
       const product = await Product.findByPk(item.productId, { transaction: t });
       if (product) {
-        // Decrease stock (assuming quantity is the normalized/base unit quantity)
-        product.openingStock = (parseFloat(product.openingStock) || 0) - (parseFloat(item.quantity) || 0);
+        product.currentStock = (parseFloat(product.currentStock) || 0) - (parseFloat(item.quantity) || 0);
         await product.save({ transaction: t });
+      }
+    }
+
+    // Update original purchase due amount if linked
+    if (purchaseId) {
+      const Purchase = require('../models/Purchase');
+      const originalPurchase = await Purchase.findByPk(purchaseId, { transaction: t });
+      if (originalPurchase) {
+        // Decrease due amount by the grand total of the return
+        // Ensure due amount doesn't go below 0
+        const returnAmount = parseFloat(grandTotal) || 0;
+        const currentDue = parseFloat(originalPurchase.dueAmount) || 0;
+        const newDue = Math.max(0, currentDue - returnAmount);
+        
+        await originalPurchase.update({ 
+          dueAmount: newDue
+        }, { transaction: t });
       }
     }
 
@@ -109,8 +125,21 @@ exports.deleteReturn = async (req, res) => {
     for (const item of returnData.items) {
       const product = await Product.findByPk(item.productId, { transaction: t });
       if (product) {
-        product.openingStock = (parseFloat(product.openingStock) || 0) + (parseFloat(item.quantity) || 0);
+        product.currentStock = (parseFloat(product.currentStock) || 0) + (parseFloat(item.quantity) || 0);
         await product.save({ transaction: t });
+      }
+    }
+
+    // Revert original purchase due amount if linked
+    if (returnData.purchaseId) {
+      const Purchase = require('../models/Purchase');
+      const originalPurchase = await Purchase.findByPk(returnData.purchaseId, { transaction: t });
+      if (originalPurchase) {
+        const returnAmount = parseFloat(returnData.grandTotal) || 0;
+        const currentDue = parseFloat(originalPurchase.dueAmount) || 0;
+        await originalPurchase.update({ 
+          dueAmount: currentDue + returnAmount
+        }, { transaction: t });
       }
     }
 

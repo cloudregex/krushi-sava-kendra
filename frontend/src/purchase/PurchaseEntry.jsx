@@ -389,8 +389,23 @@ const PurchaseEntry = () => {
     }
   };
 
+  const [supplierDue, setSupplierDue] = useState(0);
+
   const handleMasterChange = (field, value) => {
-    if (
+    if (field === "supplierId") {
+      setMaster((prev) => ({ ...prev, [field]: value }));
+      if (value) {
+        ApiService.getById("suppliers", value)
+          .then((data) => {
+            if (data && data.totalDue !== undefined) {
+              setSupplierDue(data.totalDue);
+            }
+          })
+          .catch((err) => console.error("Supplier fetch due error:", err));
+      } else {
+        setSupplierDue(0);
+      }
+    } else if (
       ["discount", "discountType", "cashAmount", "upiAmount", "swipeAmount"].includes(field)
     ) {
       const newFields = { [field]: value };
@@ -561,6 +576,11 @@ const PurchaseEntry = () => {
                     placeholder="Search Supplier..."
                     height="36px"
                   />
+                  {supplierDue > 0 && (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#ef4444', fontWeight: '700' }}>
+                      Previous Pending: ₹{supplierDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </div>
+                  )}
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label

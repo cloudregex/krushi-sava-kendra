@@ -1,22 +1,37 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Package, Search, CheckCircle, XCircle } from 'lucide-react';
 import '../mastermodel/styles/MasterModel.css';
 
-const mockStockMaster = [
-  { id: 'SM001', productName: 'Urea 45%', totalQuantity: 1000, totalAvailable: 850 },
-  { id: 'SM002', productName: 'DAP Fertilizer', totalQuantity: 500, totalAvailable: 200 },
-  { id: 'SM003', productName: 'Pesticide X', totalQuantity: 200, totalAvailable: 0 },
-];
+import api from '../adminauth/utils/api';
 
 const StockMaster = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStock();
+  }, []);
+
+  const fetchStock = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/products');
+      setProducts(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredMaster = useMemo(() => {
-    return mockStockMaster.filter(item =>
-      item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(item.id).toLowerCase().includes(searchTerm.toLowerCase())
+    return products.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.marathiName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.hsnCode || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [searchTerm, products]);
 
   return (
     <div className="agro-container">
@@ -55,26 +70,31 @@ const StockMaster = () => {
             <table className="agro-table">
               <thead>
                 <tr>
-                  <th>Master ID</th>
+                  <th>HSN Code</th>
                   <th>Product Name</th>
-                  <th>Total Quantity</th>
-                  <th>Total Available Stock</th>
+                  <th>Category</th>
+                  <th>Current Stock</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredMaster.map(item => (
+                {loading ? (
+                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>Loading stock data...</td></tr>
+                ) : filteredMaster.map(item => (
                   <tr key={item.id}>
-                    <td>{item.id}</td>
-                    <td style={{ fontWeight: '600' }}>{item.productName}</td>
-                    <td>{item.totalQuantity}</td>
+                    <td>{item.hsnCode}</td>
                     <td>
-                      <span style={{ fontWeight: '700', color: item.totalAvailable > 0 ? '#16a34a' : '#ef4444' }}>
-                        {item.totalAvailable}
+                      <div style={{ fontWeight: '600' }}>{item.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{item.marathiName}</div>
+                    </td>
+                    <td>{item.category}</td>
+                    <td>
+                      <span style={{ fontWeight: '700', color: item.currentStock > 0 ? '#16a34a' : '#ef4444' }}>
+                        {item.currentStock} {item.unit}
                       </span>
                     </td>
                     <td>
-                      {item.totalAvailable > 0 ? (
+                      {item.currentStock > 0 ? (
                         <span className="badge badge-success"><CheckCircle size={12} style={{ marginRight: '4px' }} /> In Stock</span>
                       ) : (
                         <span className="badge badge-danger"><XCircle size={12} style={{ marginRight: '4px' }} /> Out of Stock</span>

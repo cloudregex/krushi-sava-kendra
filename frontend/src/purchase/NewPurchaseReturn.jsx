@@ -4,6 +4,7 @@ import { Plus, Trash2, Save, ArrowLeft, Calendar, Truck, CreditCard, Package, Ro
 import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import AsyncSupplierSelect from './AsyncSupplierSelect';
+import api from '../adminauth/utils/api';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
 
@@ -59,6 +60,8 @@ const NewPurchaseReturn = () => {
     reason: '',
     roundOff: 0
   });
+
+  const [supplierBills, setSupplierBills] = useState([]);
 
   const [items, setItems] = useState([newItem()]);
   const rowToFocus = useRef(null);
@@ -188,6 +191,18 @@ const NewPurchaseReturn = () => {
           u.freeQty = 0;
           u.quantity = getStockIncrement(u.unit, 1, u.unitValue);
 
+          // Fetch Batch Info
+          api.get(`/purchases/product/${value}/batches`).then(res => {
+            if (res.data && res.data.length > 0) {
+              const latest = res.data[0];
+              setItems(prev => prev.map(it => it.id === id ? {
+                ...it,
+                batchNo: latest.batchNo || '',
+                expiryDate: latest.expiryDate || ''
+              } : it));
+            }
+          }).catch(err => console.error("Error fetching batches:", err));
+
           const prodUnits = [extraData.unit];
           if (extraData.multiUnits && Array.isArray(extraData.multiUnits)) {
             extraData.multiUnits.forEach(mu => {
@@ -263,7 +278,39 @@ const NewPurchaseReturn = () => {
   };
 
   const handleMasterChange = (field, value) => {
-    if (['discount', 'discountType', 'cashAmount', 'upiAmount', 'swipeAmount'].includes(field)) {
+    if (field === 'supplierId') {
+      setMaster(prev => ({ ...prev, [field]: value, purchaseId: '' }));
+      if (value) {
+        api.get('/purchases/pending').then(res => {
+          const filtered = (res.data || []).filter(b => String(b.supplierId) === String(value));
+          setSupplierBills(filtered);
+        }).catch(err => console.error("Error fetching bills:", err));
+      } else {
+        setSupplierBills([]);
+      }
+    } else if (field === 'purchaseId') {
+      setMaster(prev => ({ ...prev, [field]: value }));
+      if (value) {
+        api.get(`/purchases/${value}`).then(res => {
+          if (res.data && res.data.items) {
+            const billItems = res.data.items.map(item => ({
+              ...newItem(),
+              productId: item.productId,
+              productName: item.Product?.name || '',
+              hsnCode: item.Product?.hsnCode || '',
+              purchasePrice: item.purchasePrice,
+              taxPercent: item.taxPercent,
+              unit: item.unit,
+              purchaseQty: item.purchaseQty,
+              currentStock: item.Product?.currentStock || 0,
+              // Other fields will be handled by calculateTotals later
+            }));
+            setItems(billItems);
+            calculateTotals(billItems, master.discount);
+          }
+        }).catch(err => console.error("Error fetching bill items:", err));
+      }
+    } else if (['discount', 'discountType', 'cashAmount', 'upiAmount', 'swipeAmount'].includes(field)) {
       const newFields = { [field]: value };
       calculateTotals(items, field === 'discount' ? value : master.discount, newFields);
     } else {
@@ -327,8 +374,15 @@ const NewPurchaseReturn = () => {
                   <AsyncSupplierSelect value={master.supplierId} onChange={(val) => handleMasterChange('supplierId', val)} placeholder="Search Supplier..." height="36px" />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Original Inv No.</label>
-                  <input type="text" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.purchaseId} onChange={(e) => handleMasterChange('purchaseId', e.target.value)} placeholder="PUR-101" />
+                  <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Reason for Return</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    style={{ height: '36px', fontSize: '13px' }} 
+                    value={master.reason} 
+                    onChange={(e) => handleMasterChange('reason', e.target.value)} 
+                    placeholder="Enter reason..."
+                  />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Return Date</label>
@@ -501,8 +555,8 @@ const NewPurchaseReturn = () => {
                 </div>
 
                 <div style={{ marginTop: '20px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '5px', display: 'block' }}>Remark / Reason</label>
-                  <textarea className="form-control" style={{ height: '80px', background: '#ffffff' }} value={master.reason} onChange={(e) => handleMasterChange('reason', e.target.value)} placeholder="Reason for return..." />
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '5px', display: 'block' }}>Remark</label>
+                  <textarea className="form-control" style={{ height: '80px', background: '#ffffff' }} value={master.reason} onChange={(e) => handleMasterChange('reason', e.target.value)} placeholder="Enter remark here..." />
                 </div>
               </div>
 
