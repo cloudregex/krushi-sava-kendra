@@ -29,6 +29,7 @@ import SaleBill from './sales/SaleBill';
 import SaleEntry from './sales/SaleEntry';
 import Quotation from './sales/Quotation';
 import NewQuotation from './sales/NewQuotation';
+import ViewQuotation from './sales/ViewQuotation';
 import SaleReturn from './sales/SaleReturn';
 import NewSaleReturn from './sales/NewSaleReturn';
 import ViewSaleReturn from './sales/ViewSaleReturn';
@@ -59,6 +60,7 @@ const AppRoutes = () => {
       
       {/* Standalone Print Route (Bypasses Layout completely for perfect full-page printing) */}
       <Route path="/print/sale/:id" element={<ProtectedRoute><ViewSaleBill /></ProtectedRoute>} />
+      <Route path="/print/quotation/:id" element={<ProtectedRoute><ViewQuotation /></ProtectedRoute>} />
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" />} />
@@ -110,6 +112,8 @@ const AppRoutes = () => {
           <Route path="entry/:id" element={<SaleEntry />} />
           <Route path="quotations" element={<Quotation />} />
           <Route path="quotations/new" element={<NewQuotation />} />
+          <Route path="quotations/edit/:id" element={<NewQuotation />} />
+          <Route path="quotations/view/:id" element={<ViewQuotation />} />
           <Route path="returns" element={<SaleReturn />} />
           <Route path="returns/new" element={<NewSaleReturn />} />
           <Route path="returns/view/:id" element={<ViewSaleReturn />} />

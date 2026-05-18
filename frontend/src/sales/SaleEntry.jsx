@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft, Calendar, User, CreditCard, IndianRupee, Package, Search, Info, Printer } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
+import api from '../adminauth/utils/api';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
@@ -84,12 +85,78 @@ const SaleEntry = () => {
         console.log("Saleable Products:", saleable);
         setProducts(saleable);
         setUnits(unitData);
+
+        // Convert Quotation to Bill loader
+        if (location.state?.quotationData) {
+          const qtnId = location.state.quotationData.id;
+          try {
+            const [qtn, invData] = await Promise.all([
+              ApiService.getById('quotations', qtnId),
+              ApiService.getAll('sales/next-invoice')
+            ]);
+            
+            if (qtn) {
+              const customer = custData.find(c => String(c.id) === String(qtn.customerId));
+              
+              setMaster(prev => ({
+                ...prev,
+                invoiceNo: invData.invoiceNo || '',
+                customerId: qtn.customerId,
+                billDate: new Date().toISOString().split('T')[0],
+                customerBalance: customer?.balance || 0,
+                discountAmount: qtn.discountAmount || 0,
+                discountType: 'amount',
+                notes: qtn.notes || ''
+              }));
+              
+              const mappedRows = qtn.items.map(item => {
+                const prod = saleable.find(p => String(p.id) === String(item.productId));
+                const primaryUnit = prod?.unit || '';
+                const multiUnits = prod?.multiUnits || [];
+                const factor = item.conversionFactor || 1;
+                
+                return {
+                  id: Date.now() + Math.random(),
+                  productId: item.productId,
+                  productName: prod?.name || '',
+                  primaryUnit: primaryUnit,
+                  hsnCode: prod?.hsnCode || '',
+                  batchNo: item.batchNo || '',
+                  expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
+                  currentStock: prod?.currentStock || 0,
+                  quantity: item.quantity,
+                  freeQuantity: item.freeQuantity || 0,
+                  unit: item.unit || primaryUnit,
+                  saleRate: item.rate,
+                  discount: item.discount || 0,
+                  discountType: 'amount',
+                  taxPercent: item.taxPercent || 0,
+                  taxAmount: item.taxAmount || 0,
+                  amount: item.totalAmount || 0,
+                  stockIncrement: item.stockIncrement || ((parseFloat(item.quantity) || 0) + (parseFloat(item.freeQuantity) || 0)) / factor,
+                  conversionFactor: factor,
+                  multiUnits: multiUnits,
+                  saleRateEdited: true,
+                  batchNoEdited: !!item.batchNo,
+                  expiryDateEdited: !!item.expiryDate
+                };
+              });
+              
+              setChildren(mappedRows);
+              toast.success("Quotation Loaded Successfully!");
+              window.history.replaceState({}, document.title);
+            }
+          } catch (err) {
+            console.error("Quotation load error:", err);
+            toast.error("Failed to load quotation details");
+          }
+        }
       } catch (error) {
         console.error("Fetch error:", error);
       }
     };
     fetchData();
-  }, []);
+  }, [location.state]);
 
   const calculateTotals = (rows) => {
     let subtotal = 0, totalTax = 0, totalRowDiscount = 0;
@@ -431,6 +498,8 @@ const SaleEntry = () => {
         subtotal: master.subtotal,
         taxAmount: master.taxAmount,
         discountAmount: master.totalDiscount,
+        discountType: master.discountType,
+        discountValue: parseFloat(master.discountAmount) || 0,
         grandTotal: master.grandTotal,
         paidAmount: master.paidAmount,
         balanceAmount: master.pendingAmount,
@@ -443,7 +512,7 @@ const SaleEntry = () => {
         items: validItems.map(c => ({
           productId: c.productId,
           batchNo: c.batchNo,
-          expiryDate: c.expiryDate,
+          expiryDate: c.expiryDate || null,
           quantity: parseFloat(c.quantity),
           freeQuantity: parseFloat(c.freeQuantity) || 0,
           unit: c.unit,
@@ -460,8 +529,20 @@ const SaleEntry = () => {
       const response = await ApiService.add('sales', payload);
 
       if (response && response.sale) {
-        toast.success("Sale Saved Successfully!");
-        navigate('/sales/bills');
+        // जर Quotation Convert flow असेल तर Quotation status 'Accepted' करा
+        const quotationId = location.state?.quotationData?.id;
+        if (quotationId) {
+          try {
+            await api.patch(`/quotations/${quotationId}/accept`);
+          } catch (qErr) {
+            console.warn('Quotation accept failed (non-critical):', qErr);
+          }
+          toast.success("Bill Saved! Quotation Accepted ✅");
+          navigate('/sales/quotations');   // Quotation list ला परत जा
+        } else {
+          toast.success("Sale Bill Saved Successfully!");
+          navigate('/sales/bills');        // Normal flow → Sale Bills ला जा
+        }
       }
     } catch (error) {
       console.error("Save Sale Error:", error);
@@ -470,8 +551,9 @@ const SaleEntry = () => {
   };
 
   const handleCancel = () => {
+    const isFromQuotation = !!location.state?.quotationData;
     if (window.confirm("Are you sure you want to cancel this sale? Any unsaved changes will be lost.")) {
-      navigate('/sales/bills');
+      navigate(isFromQuotation ? '/sales/quotations' : '/sales/bills');
     }
   };
 
@@ -496,15 +578,21 @@ const SaleEntry = () => {
         >
           <div>
             <h2 style={{ fontSize: "18px", marginBottom: "1px" }}>
-              Professional Sale Bill
+              {location.state?.quotationData ? '📋 Convert Quotation to Bill' : 'New Sale Bill'}
             </h2>
             <p style={{ fontSize: "12px", margin: 0 }}>
-              Krushi Seva Kendra Billing System
+              {location.state?.quotationData
+                ? `Quotation: ${location.state.quotationData.quotationNo || `#${location.state.quotationData.id}`}`
+                : 'Krushi Seva Kendra Billing System'
+              }
             </p>
           </div>
           <button
             className="btn-agro btn-outline"
-            onClick={() => navigate('/sales/bills')}
+            onClick={() => {
+              const isFromQuotation = !!location.state?.quotationData;
+              navigate(isFromQuotation ? '/sales/quotations' : '/sales/bills');
+            }}
             style={{ height: "34px", padding: "0 12px", fontSize: "12px" }}
           >
             <ArrowLeft size={16} /> Back

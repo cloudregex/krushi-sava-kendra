@@ -1,13 +1,13 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-const Sale = sequelize.define('Sale', {
+const Quotation = sequelize.define('Quotation', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    invoiceNo: {
+    quotationNo: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
@@ -16,9 +16,13 @@ const Sale = sequelize.define('Sale', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    billDate: {
+    date: {
         type: DataTypes.DATEONLY,
         allowNull: false
+    },
+    validUntil: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
     },
     subtotal: {
         type: DataTypes.FLOAT,
@@ -44,17 +48,9 @@ const Sale = sequelize.define('Sale', {
         type: DataTypes.FLOAT,
         allowNull: false
     },
-    paidAmount: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    balanceAmount: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    paymentMode: {
-        type: DataTypes.JSON, // { cash: 0, upi: 0, swipe: 0 }
-        allowNull: true
+    status: {
+        type: DataTypes.STRING, // 'Pending', 'Accepted', 'Expired'
+        defaultValue: 'Pending'
     },
     notes: {
         type: DataTypes.TEXT,
@@ -64,4 +60,4 @@ const Sale = sequelize.define('Sale', {
     timestamps: true
 });
 
-module.exports = Sale;
+module.exports = Quotation;

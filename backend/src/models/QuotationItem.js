@@ -1,67 +1,62 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-const Sale = sequelize.define('Sale', {
+const QuotationItem = sequelize.define('QuotationItem', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    invoiceNo: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    customerId: {
+    quotationId: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    billDate: {
-        type: DataTypes.DATEONLY,
+    productId: {
+        type: DataTypes.INTEGER,
         allowNull: false
     },
-    subtotal: {
+    batchNo: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    expiryDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
+    quantity: {
         type: DataTypes.FLOAT,
         allowNull: false
+    },
+    freeQuantity: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    unit: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    rate: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
+    discount: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    taxPercent: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
     },
     taxAmount: {
         type: DataTypes.FLOAT,
         defaultValue: 0
     },
-    discountAmount: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    discountType: {
-        type: DataTypes.STRING,
-        defaultValue: 'percent'
-    },
-    discountValue: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    grandTotal: {
+    totalAmount: {
         type: DataTypes.FLOAT,
         allowNull: false
-    },
-    paidAmount: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    balanceAmount: {
-        type: DataTypes.FLOAT,
-        defaultValue: 0
-    },
-    paymentMode: {
-        type: DataTypes.JSON, // { cash: 0, upi: 0, swipe: 0 }
-        allowNull: true
-    },
-    notes: {
-        type: DataTypes.TEXT,
-        allowNull: true
     }
 }, {
     timestamps: true
 });
 
-module.exports = Sale;
+module.exports = QuotationItem;
