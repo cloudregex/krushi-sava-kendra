@@ -21,6 +21,7 @@ const purchaseRoutes = require("./src/routes/purchaseRoutes");
 const purchaseOrderRoutes = require("./src/routes/purchaseOrderRoutes");
 const purchaseReturnRoutes = require("./src/routes/purchaseReturnRoutes");
 const saleRoutes = require("./src/routes/saleRoutes");
+const quotationRoutes = require("./src/routes/quotationRoutes");
 
 // Load Associations
 require("./src/models/associations");
@@ -49,6 +50,7 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/purchase-returns", purchaseReturnRoutes);
 app.use("/api/sales", saleRoutes);
+app.use("/api/quotations", quotationRoutes);
 
 // Basic Route
 app.get("/", (req, res) => {

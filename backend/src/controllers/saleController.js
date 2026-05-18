@@ -9,14 +9,14 @@ exports.createSale = async (req, res) => {
     try {
         const { 
             invoiceNo, customerId, billDate, subtotal, taxAmount, 
-            discountAmount, grandTotal, paidAmount, balanceAmount, 
+            discountAmount, discountType, discountValue, grandTotal, paidAmount, balanceAmount, 
             paymentMode, notes, items 
         } = req.body;
 
         // 1. Create Sale
         const sale = await Sale.create({
             invoiceNo, customerId, billDate, subtotal, taxAmount,
-            discountAmount, grandTotal, paidAmount, balanceAmount,
+            discountAmount, discountType, discountValue, grandTotal, paidAmount, balanceAmount,
             paymentMode, notes
         }, { transaction: t });
 
@@ -156,12 +156,12 @@ exports.updateSale = async (req, res) => {
         // 2. Apply New Sale Data
         const {
             customerId, billDate, subtotal, taxAmount, discountAmount,
-            grandTotal, paidAmount, balanceAmount, paymentMode, notes, items
+            discountType, discountValue, grandTotal, paidAmount, balanceAmount, paymentMode, notes, items
         } = req.body;
 
         await sale.update({
             customerId, billDate, subtotal, taxAmount, discountAmount,
-            grandTotal, paidAmount, balanceAmount, paymentMode, notes
+            discountType, discountValue, grandTotal, paidAmount, balanceAmount, paymentMode, notes
         }, { transaction: t });
 
         for (const item of items) {
