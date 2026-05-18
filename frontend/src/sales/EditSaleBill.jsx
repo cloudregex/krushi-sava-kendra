@@ -20,7 +20,7 @@ const newRow = () => ({
   unit: '',
   saleRate: '',
   discount: 0,
-  discountType: 'amount',
+  discountType: 'percent',
   taxPercent: 0,
   taxAmount: 0,
   amount: 0,
@@ -39,6 +39,7 @@ const EditSaleBill = () => {
   const [units, setUnits] = useState([]);
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
+  const exceedsTimeoutRefs = useRef({});
 
   const [master, setMaster] = useState({
     invoiceNo: '',
@@ -47,7 +48,7 @@ const EditSaleBill = () => {
     subtotal: 0,
     taxAmount: 0,
     discountAmount: 0,
-    discountType: 'amount',
+    discountType: 'percent',
     grandTotal: 0,
     cashPaid: '',
     upiPaid: '',
@@ -55,6 +56,7 @@ const EditSaleBill = () => {
     paidAmount: 0,
     pendingAmount: 0,
     totalDiscount: 0,
+    roundOff: 0,
     notes: '',
     customerBalance: 0,
     taxBreakdown: []
@@ -62,6 +64,12 @@ const EditSaleBill = () => {
 
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      Object.values(exceedsTimeoutRefs.current).forEach(t => clearTimeout(t));
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,7 +110,7 @@ const EditSaleBill = () => {
             subtotal: parseFloat(sale.subtotal) || 0,
             taxAmount: parseFloat(sale.taxAmount) || 0,
             discountAmount: parseFloat(sale.discountAmount) || 0,
-            discountType: 'amount',
+            discountType: (parseFloat(sale.discountAmount) || 0) > 0 ? 'amount' : 'percent',
             grandTotal: parseFloat(sale.grandTotal) || 0,
             cashPaid: pm.cash || '',
             upiPaid: pm.upi || '',
@@ -146,7 +154,7 @@ const EditSaleBill = () => {
               unit: item.unit || '',
               saleRate: parseFloat(item.rate) || 0,
               discount: parseFloat(item.discount) || 0,
-              discountType: 'amount',
+              discountType: (parseFloat(item.discount) || 0) > 0 ? 'amount' : 'percent',
               taxPercent: parseFloat(item.taxPercent) || 0,
               taxAmount: parseFloat(item.taxAmount) || 0,
               amount: parseFloat(item.totalAmount) || 0,
@@ -206,7 +214,9 @@ const EditSaleBill = () => {
       }
 
       const totalBillDiscount = totalRowDiscount + mDisc;
-      const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const rawGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const finalGrandTotal = Math.round(rawGrandTotal);
+      const rOff = parseFloat((finalGrandTotal - rawGrandTotal).toFixed(2));
       const totalPaid = cPaid + uPaid + sPaid;
 
       // Tax Breakdown
@@ -237,6 +247,7 @@ const EditSaleBill = () => {
         masterDiscountAmount: mDisc,
         totalDiscount: totalBillDiscount,
         grandTotal: finalGrandTotal,
+        roundOff: rOff,
         paidAmount: parseFloat(totalPaid.toFixed(2)),
         pendingAmount: parseFloat(Math.max(0, finalGrandTotal - totalPaid).toFixed(2)),
         taxBreakdown: Object.values(hsnMap)
@@ -279,33 +290,43 @@ const EditSaleBill = () => {
                 if (res) {
                   setChildren(prevRows => prevRows.map(row => {
                     if (row.id === id) {
-                        const newBatch = row.batchNoEdited ? row.batchNo : '';
-                       const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate ? res.expiryDate.split('T')[0] : row.expiryDate);
-                       const newRate = row.saleRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
+                         const prod = products.find(p => String(p.id) === String(row.productId));
+                         let defaultRate = '';
+                         if (prod) {
+                           defaultRate = (prod.saleRate !== undefined && prod.saleRate !== null && prod.saleRate !== '') 
+                             ? prod.saleRate 
+                             : (prod.multiUnits && prod.multiUnits.length > 0 ? prod.multiUnits[0].amount : '');
+                         }
 
-                      const qty = parseFloat(row.quantity) || 0;
-                      const rate = parseFloat(newRate) || 0;
-                      const rowSub = qty * rate;
-                      let actualDisc = 0;
-                      const dVal = parseFloat(row.discount) || 0;
-                      if (row.discountType === 'percent') {
-                        actualDisc = (rowSub * dVal) / 100;
-                      } else {
-                        actualDisc = dVal;
-                      }
-                      const taxP = parseFloat(row.taxPercent) || 0;
-                      const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+                         const isRateEdited = row.saleRateEdited || (row.saleRate !== '' && String(row.saleRate) !== String(defaultRate));
 
-                       return {
-                         ...row,
-                         batchNo: newBatch,
-                         prevBatchNo: res.batchNo || '',
-                         expiryDate: newExpiry,
-                         saleRate: newRate,
-                         amount: rowSub,
-                         taxAmount: rowTax,
-                         actualDiscount: actualDisc
-                       };
+                         const newBatch = row.batchNoEdited ? row.batchNo : '';
+                         const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate ? res.expiryDate.split('T')[0] : row.expiryDate);
+                         const newRate = isRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
+
+                         const qty = parseFloat(row.quantity) || 0;
+                         const rate = parseFloat(newRate) || 0;
+                         const rowSub = qty * rate;
+                         let actualDisc = 0;
+                         const dVal = parseFloat(row.discount) || 0;
+                         if (row.discountType === 'percent') {
+                           actualDisc = (rowSub * dVal) / 100;
+                         } else {
+                           actualDisc = dVal;
+                         }
+                         const taxP = parseFloat(row.taxPercent) || 0;
+                         const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+
+                         return {
+                           ...row,
+                           batchNo: newBatch,
+                           prevBatchNo: res.batchNo || '',
+                           expiryDate: newExpiry,
+                           saleRate: newRate,
+                           amount: rowSub,
+                           taxAmount: rowTax,
+                           actualDiscount: actualDisc
+                         };
                     }
                     return row;
                   }));
@@ -324,8 +345,16 @@ const EditSaleBill = () => {
       if (field === 'saleRate') u.saleRateEdited = true;
 
       if (field === 'unit') {
+        const prod = products.find(p => String(p.id) === String(u.productId));
         const mu = u.multiUnits.find(m => m.alternative === value);
         u.conversionFactor = mu ? (parseFloat(mu.conversion) || 1) : 1;
+        if (value === u.primaryUnit) {
+          if (prod) {
+            u.saleRate = (prod.saleRate !== undefined && prod.saleRate !== null && prod.saleRate !== '') ? prod.saleRate : '';
+          }
+        } else if (mu && mu.amount !== undefined && mu.amount !== null && mu.amount !== '') {
+          u.saleRate = mu.amount;
+        }
       }
 
       // Sync Quantity if Stock Increment is changed manually
@@ -369,6 +398,52 @@ const EditSaleBill = () => {
     setChildren(updated);
     // Removed direct calculateTotals call to prevent flickering
 
+    // Exceeds stock auto-reset logic
+    if (['quantity', 'stockIncrement', 'productId'].includes(field)) {
+      const targetRow = updated.find(r => r.id === id);
+      if (targetRow && targetRow.productId) {
+        const qty = parseFloat(targetRow.quantity) || 0;
+        const currentStock = parseFloat(targetRow.currentStock) || 0;
+
+        if (exceedsTimeoutRefs.current[id]) {
+          clearTimeout(exceedsTimeoutRefs.current[id]);
+          delete exceedsTimeoutRefs.current[id];
+        }
+
+        if (qty > currentStock) {
+          exceedsTimeoutRefs.current[id] = setTimeout(() => {
+            setChildren(prevRows => prevRows.map(row => {
+              if (row.id === id && (parseFloat(row.quantity) || 0) > (parseFloat(row.currentStock) || 0)) {
+                let u = { ...row, quantity: row.currentStock };
+                const q = parseFloat(u.currentStock) || 0;
+                const freeQty = parseFloat(u.freeQuantity) || 0;
+                const rate = parseFloat(u.saleRate) || 0;
+                const taxP = parseFloat(u.taxPercent) || 0;
+                const factor = parseFloat(u.conversionFactor) || 1;
+
+                u.stockIncrement = (q + freeQty) / factor;
+                const rowSub = q * rate;
+                let actualDisc = 0;
+                const dVal = parseFloat(u.discount) || 0;
+                if (u.discountType === 'percent') {
+                  actualDisc = (rowSub * dVal) / 100;
+                } else {
+                  actualDisc = dVal;
+                }
+                const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+                u.amount = q * rate;
+                u.taxAmount = rowTax;
+                u.actualDiscount = actualDisc;
+                return u;
+              }
+              return row;
+            }));
+            delete exceedsTimeoutRefs.current[id];
+          }, 2500);
+        }
+      }
+    }
+
     if (field === 'productId' && value) {
       setTimeout(() => qtyRefs.current[id]?.focus(), 50);
     }
@@ -398,6 +473,10 @@ const EditSaleBill = () => {
   };
 
   const removeChildRow = (id) => {
+    if (exceedsTimeoutRefs.current[id]) {
+      clearTimeout(exceedsTimeoutRefs.current[id]);
+      delete exceedsTimeoutRefs.current[id];
+    }
     if (children.length > 1) {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
@@ -647,7 +726,7 @@ const EditSaleBill = () => {
                         <input
                           type="number"
                           className="form-control"
-                          value={child.discount ?? ''}
+                          value={child.discount || ''}
                           onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
                           style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
                         />
@@ -661,7 +740,7 @@ const EditSaleBill = () => {
                         </select>
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent ?? ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent || ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
                     <td style={{ verticalAlign: 'bottom' }}>
                        <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
                         ₹{child.amount.toFixed(2)}
@@ -762,6 +841,16 @@ const EditSaleBill = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '13px', opacity: 0.9 }}>Bill Discount</span>
                 <span style={{ fontSize: '13px', fontWeight: '700' }}>- ₹{parseFloat(master.masterDiscountAmount || 0).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>Round Off</span>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  color: (master.roundOff || 0) < 0 ? '#4ade80' : (master.roundOff || 0) > 0 ? '#93c5fd' : 'rgba(255,255,255,0.7)'
+                }}>
+                  {(master.roundOff || 0) < 0 ? `- ₹${Math.abs(master.roundOff).toFixed(2)}` : (master.roundOff || 0) > 0 ? `+ ₹${master.roundOff.toFixed(2)}` : `₹0.00`}
+                </span>
               </div>
               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '16px', fontWeight: '800' }}>GRAND TOTAL</span>

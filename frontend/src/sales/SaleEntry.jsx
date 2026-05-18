@@ -20,7 +20,7 @@ const newRow = () => ({
   unit: '',
   saleRate: '',
   discount: 0,
-  discountType: 'amount',
+  discountType: 'percent',
   taxPercent: 0,
   taxAmount: 0,
   amount: 0,
@@ -36,6 +36,7 @@ const SaleEntry = () => {
   const [units, setUnits] = useState([]);
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
+  const exceedsTimeoutRefs = useRef({});
 
   const [master, setMaster] = useState({
     invoiceNo: '',
@@ -44,7 +45,7 @@ const SaleEntry = () => {
     subtotal: 0,
     taxAmount: 0,
     discountAmount: 0,
-    discountType: 'amount',
+    discountType: 'percent',
     grandTotal: 0,
     cashPaid: '',
     upiPaid: '',
@@ -52,6 +53,7 @@ const SaleEntry = () => {
     paidAmount: 0,
     pendingAmount: 0,
     totalDiscount: 0,
+    roundOff: 0,
     notes: '',
     customerBalance: 0,
     taxBreakdown: []
@@ -59,6 +61,12 @@ const SaleEntry = () => {
 
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      Object.values(exceedsTimeoutRefs.current).forEach(t => clearTimeout(t));
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,7 +123,9 @@ const SaleEntry = () => {
       }
 
       const totalBillDiscount = totalRowDiscount + mDisc;
-      const finalGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const rawGrandTotal = Math.max(0, subtotal + totalTax - totalBillDiscount);
+      const finalGrandTotal = Math.round(rawGrandTotal);
+      const rOff = parseFloat((finalGrandTotal - rawGrandTotal).toFixed(2));
       const totalPaid = cPaid + uPaid + sPaid;
 
       // Tax Breakdown
@@ -146,6 +156,7 @@ const SaleEntry = () => {
         masterDiscountAmount: mDisc,
         totalDiscount: totalBillDiscount,
         grandTotal: finalGrandTotal,
+        roundOff: rOff,
         paidAmount: parseFloat(totalPaid.toFixed(2)),
         pendingAmount: parseFloat(Math.max(0, finalGrandTotal - totalPaid).toFixed(2)),
         taxBreakdown: Object.values(hsnMap)
@@ -186,11 +197,21 @@ const SaleEntry = () => {
             if (value) {
               ApiService.getById('products', `${value}/latest-batch`).then(res => {
                 if (res) {
-                   setChildren(prevRows => prevRows.map(row => {
-                     if (row.id === id) {
-                        const newBatch = row.batchNoEdited ? row.batchNo : '';
-                        const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate ? res.expiryDate.split('T')[0] : row.expiryDate);
-                        const newRate = row.saleRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
+                    setChildren(prevRows => prevRows.map(row => {
+                      if (row.id === id) {
+                         const prod = products.find(p => String(p.id) === String(row.productId));
+                         let defaultRate = '';
+                         if (prod) {
+                           defaultRate = (prod.saleRate !== undefined && prod.saleRate !== null && prod.saleRate !== '') 
+                             ? prod.saleRate 
+                             : (prod.multiUnits && prod.multiUnits.length > 0 ? prod.multiUnits[0].amount : '');
+                         }
+
+                         const isRateEdited = row.saleRateEdited || (row.saleRate !== '' && String(row.saleRate) !== String(defaultRate));
+
+                         const newBatch = row.batchNoEdited ? row.batchNo : '';
+                         const newExpiry = row.expiryDateEdited ? row.expiryDate : (res.expiryDate ? res.expiryDate.split('T')[0] : row.expiryDate);
+                         const newRate = isRateEdited ? row.saleRate : (res.saleRate || row.saleRate);
 
                        const qty = parseFloat(row.quantity) || 0;
                        const rate = parseFloat(newRate) || 0;
@@ -233,8 +254,16 @@ const SaleEntry = () => {
       if (field === 'saleRate') u.saleRateEdited = true;
 
       if (field === 'unit') {
+        const prod = products.find(p => String(p.id) === String(u.productId));
         const mu = u.multiUnits.find(m => m.alternative === value);
         u.conversionFactor = mu ? (parseFloat(mu.conversion) || 1) : 1;
+        if (value === u.primaryUnit) {
+          if (prod) {
+            u.saleRate = (prod.saleRate !== undefined && prod.saleRate !== null && prod.saleRate !== '') ? prod.saleRate : '';
+          }
+        } else if (mu && mu.amount !== undefined && mu.amount !== null && mu.amount !== '') {
+          u.saleRate = mu.amount;
+        }
       }
 
       // Sync Quantity if Stock Increment is changed manually
@@ -277,6 +306,52 @@ const SaleEntry = () => {
 
     setChildren(updated);
     // Removed direct calculateTotals call to prevent flickering
+
+    // Exceeds stock auto-reset logic
+    if (['quantity', 'stockIncrement', 'productId'].includes(field)) {
+      const targetRow = updated.find(r => r.id === id);
+      if (targetRow && targetRow.productId) {
+        const qty = parseFloat(targetRow.quantity) || 0;
+        const currentStock = parseFloat(targetRow.currentStock) || 0;
+
+        if (exceedsTimeoutRefs.current[id]) {
+          clearTimeout(exceedsTimeoutRefs.current[id]);
+          delete exceedsTimeoutRefs.current[id];
+        }
+
+        if (qty > currentStock) {
+          exceedsTimeoutRefs.current[id] = setTimeout(() => {
+            setChildren(prevRows => prevRows.map(row => {
+              if (row.id === id && (parseFloat(row.quantity) || 0) > (parseFloat(row.currentStock) || 0)) {
+                let u = { ...row, quantity: row.currentStock };
+                const q = parseFloat(u.currentStock) || 0;
+                const freeQty = parseFloat(u.freeQuantity) || 0;
+                const rate = parseFloat(u.saleRate) || 0;
+                const taxP = parseFloat(u.taxPercent) || 0;
+                const factor = parseFloat(u.conversionFactor) || 1;
+
+                u.stockIncrement = (q + freeQty) / factor;
+                const rowSub = q * rate;
+                let actualDisc = 0;
+                const dVal = parseFloat(u.discount) || 0;
+                if (u.discountType === 'percent') {
+                  actualDisc = (rowSub * dVal) / 100;
+                } else {
+                  actualDisc = dVal;
+                }
+                const rowTax = ((rowSub - actualDisc) * taxP) / 100;
+                u.amount = q * rate;
+                u.taxAmount = rowTax;
+                u.actualDiscount = actualDisc;
+                return u;
+              }
+              return row;
+            }));
+            delete exceedsTimeoutRefs.current[id];
+          }, 2500);
+        }
+      }
+    }
 
     if (field === 'productId' && value) {
       setTimeout(() => qtyRefs.current[id]?.focus(), 50);
@@ -327,6 +402,10 @@ const SaleEntry = () => {
   };
 
   const removeChildRow = (id) => {
+    if (exceedsTimeoutRefs.current[id]) {
+      clearTimeout(exceedsTimeoutRefs.current[id]);
+      delete exceedsTimeoutRefs.current[id];
+    }
     if (children.length > 1) {
       const updated = children.filter(c => c.id !== id);
       setChildren(updated);
@@ -593,7 +672,7 @@ const SaleEntry = () => {
                              <input
                                type="number"
                                className="form-control"
-                               value={child.discount ?? ''}
+                               value={child.discount || ''}
                                onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
                                style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
                              />
@@ -607,7 +686,7 @@ const SaleEntry = () => {
                              </select>
                            </div>
                          </td>
-                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent ?? ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent || ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
                          <td style={{ verticalAlign: 'bottom' }}>
                            <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
                              ₹{child.amount.toFixed(2)}
@@ -701,6 +780,15 @@ const SaleEntry = () => {
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
                     <span>Bill Discount</span>
                     <span style={{ fontWeight: "600", color: "#ef4444" }}>- ₹{(parseFloat(master.masterDiscountAmount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#334155" }}>
+                    <span>Round Off</span>
+                    <span style={{
+                      fontWeight: "700",
+                      color: (master.roundOff || 0) < 0 ? "#16a34a" : (master.roundOff || 0) > 0 ? "#4f46e5" : "#94a3b8"
+                    }}>
+                      {(master.roundOff || 0) < 0 ? `- ₹${Math.abs(master.roundOff).toFixed(2)}` : (master.roundOff || 0) > 0 ? `+ ₹${master.roundOff.toFixed(2)}` : `₹0.00`}
+                    </span>
                   </div>
                   <div style={{ margin: "15px 0", borderTop: "1px dashed #bbf7d0" }}></div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#166534" }}>

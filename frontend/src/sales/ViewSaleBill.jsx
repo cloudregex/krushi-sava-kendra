@@ -89,6 +89,15 @@ const ViewSaleBill = () => {
     return Object.values(hsnMap);
   }, [items]);
 
+  const roundOff = React.useMemo(() => {
+    if (!billData) return 0;
+    const sub = parseFloat(billData.subtotal) || 0;
+    const tax = parseFloat(billData.taxAmount) || 0;
+    const disc = parseFloat(billData.discountAmount) || 0;
+    const grand = parseFloat(billData.grandTotal) || 0;
+    return parseFloat((grand - (sub + tax - disc)).toFixed(2));
+  }, [billData]);
+
   // Helper: Amount in Words
   const numberToWords = (num) => {
     if (!num) return 'Zero Rupees Only';
@@ -214,7 +223,7 @@ const ViewSaleBill = () => {
             border-radius: 6px !important;
           }
           .grand-total-section div { font-size: 12px !important; margin-bottom: 2px !important; }
-          .grand-total-section > div:nth-child(4) { 
+          .grand-total-section > div:nth-child(5) { 
              font-size: 18px !important; 
              padding-top: 4px !important; 
              margin-top: 4px !important; 
@@ -368,6 +377,12 @@ const ViewSaleBill = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: '#ef4444' }}>
               <span style={{ fontWeight: '500' }}>Total Discount:</span>
               <span style={{ fontWeight: '700' }}>- ₹{(parseFloat(billData.discountAmount) || 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: roundOff < 0 ? '#16a34a' : roundOff > 0 ? '#4f46e5' : '#64748b' }}>
+              <span style={{ fontWeight: '500' }}>Round Off:</span>
+              <span style={{ fontWeight: '700' }}>
+                {roundOff < 0 ? `- ₹${Math.abs(roundOff).toFixed(2)}` : roundOff > 0 ? `+ ₹${roundOff.toFixed(2)}` : `₹0.00`}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '24px', fontWeight: '900', borderTop: '2px solid #1e293b', paddingTop: '12px', marginTop: '8px', color: '#0f172a' }}>
               <span>Grand Total:</span>
