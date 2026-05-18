@@ -51,10 +51,25 @@ const ViewPurchaseBill = () => {
       const queryParams = new URLSearchParams(location.search);
       if (queryParams.get('print') === 'true') {
         printProcessed.current = true;
+        
+        const handleAfterPrint = () => {
+          if (window.self !== window.top) return;
+          window.close();
+          setTimeout(() => {
+            navigate('/purchase/bills');
+          }, 100);
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
         setTimeout(() => {
           window.print();
-          navigate('/purchase/bills');
-        }, 500);
+          if (window.self === window.top) {
+            setTimeout(handleAfterPrint, 500);
+          }
+        }, 50);
+
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
       }
     }
   }, [loading, billData, location.search, navigate]);

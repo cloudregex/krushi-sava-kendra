@@ -30,6 +30,36 @@ const ViewPurchaseReturn = () => {
     fetchReturnData();
   }, [id]);
 
+  const printProcessed = React.useRef(false);
+
+  useEffect(() => {
+    if (!loading && returnData && !printProcessed.current) {
+      const queryParams = new URLSearchParams(location.search);
+      if (queryParams.get('print') === 'true') {
+        printProcessed.current = true;
+        
+        const handleAfterPrint = () => {
+          if (window.self !== window.top) return;
+          window.close();
+          setTimeout(() => {
+            navigate('/purchase/returns');
+          }, 100);
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        setTimeout(() => {
+          window.print();
+          if (window.self === window.top) {
+            setTimeout(handleAfterPrint, 500);
+          }
+        }, 50);
+
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+      }
+    }
+  }, [loading, returnData, location.search, navigate]);
+
   const queryParams = new URLSearchParams(location.search);
   const isQuiet = queryParams.get('quiet') === 'true';
 

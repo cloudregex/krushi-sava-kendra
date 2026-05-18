@@ -55,7 +55,7 @@ const PurchaseBill = () => {
   };
 
   const handlePrint = (id) => {
-    // Create a hidden iframe for background printing
+    toast.loading("Preparing print...", { id: "print-toast" });
     const iframeId = 'print-iframe';
     let iframe = document.getElementById(iframeId);
     if (iframe) {
@@ -63,11 +63,18 @@ const PurchaseBill = () => {
     }
     iframe = document.createElement('iframe');
     iframe.id = iframeId;
-    iframe.style.display = 'none';
-    // Use quiet=true to only show the bill content
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
     iframe.src = `/purchase/bills/view/${id}?print=true&quiet=true`;
     document.body.appendChild(iframe);
-    toast.loading("Preparing print...", { duration: 2000 });
+    
+    setTimeout(() => {
+      toast.dismiss("print-toast");
+    }, 2000);
   };
 
   const filteredBills = bills.filter(b => {
