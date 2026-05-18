@@ -31,7 +31,7 @@ const Product = sequelize.define('Product', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    company: {
+    barcode: {
         type: DataTypes.STRING,
         allowNull: true
     },

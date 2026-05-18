@@ -44,6 +44,7 @@ const PurchaseOrder = () => {
   };
 
   const handlePrint = (id) => {
+    toast.loading("Preparing print...", { id: "print-toast" });
     const iframeId = 'print-iframe';
     let iframe = document.getElementById(iframeId);
     if (iframe) {
@@ -51,10 +52,18 @@ const PurchaseOrder = () => {
     }
     iframe = document.createElement('iframe');
     iframe.id = iframeId;
-    iframe.style.display = 'none';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
     iframe.src = `/purchase/orders/view/${id}?print=true&quiet=true`;
     document.body.appendChild(iframe);
-    toast.loading("Preparing print...", { duration: 2000 });
+    
+    setTimeout(() => {
+      toast.dismiss("print-toast");
+    }, 2000);
   };
 
   const filteredOrders = orders.filter(o => {

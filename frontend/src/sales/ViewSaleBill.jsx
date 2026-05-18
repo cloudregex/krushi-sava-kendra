@@ -46,22 +46,26 @@ const ViewSaleBill = () => {
     if (!loading && billData && !printProcessed.current) {
       if (queryParams.get('print') === 'true') {
         printProcessed.current = true;
-        const timer = setTimeout(() => {
-          console.log("Triggering Print...");
+        
+        const handleAfterPrint = () => {
+          if (window.self !== window.top) return;
+          window.close();
+          setTimeout(() => {
+            navigate('/sales/bills');
+          }, 100);
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        setTimeout(() => {
           window.focus();
           window.print();
-          // After printing, if it's a standalone print tab, try to close it
-          setTimeout(() => {
-            // If we are in a standalone route (opened via window.open), close it
-            if (window.opener || window.location.pathname.startsWith('/print/')) {
-              window.close();
-            } else if (queryParams.get('quiet') !== 'true') {
-              // Fallback for regular view page with print=true
-              navigate('/sales/bills');
-            }
-          }, 500);
-        }, 500);
-        return () => clearTimeout(timer);
+          if (window.self === window.top) {
+            setTimeout(handleAfterPrint, 500);
+          }
+        }, 50);
+
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
       }
     }
   }, [loading, billData, items, location.search, navigate]);

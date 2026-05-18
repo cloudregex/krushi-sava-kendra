@@ -76,39 +76,74 @@ const SaleReturn = () => {
             <table className="agro-table">
               <thead>
                 <tr>
-                  <th>Return ID</th>
+                  <th style={{ paddingLeft: '15px' }}>Return ID</th>
                   <th>Sale ID</th>
                   <th>Customer</th>
                   <th>Date</th>
                   <th>Amount</th>
+                  <th>Refund Mode</th>
                   <th>Reason</th>
-                  <th style={{ textAlign: 'left' }}>Actions</th>
+                  <th style={{ textAlign: 'left', paddingRight: '15px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
                 ) : filteredReturns.map((item) => (
                   <tr key={item.id}>
-                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444' }}>{item.returnNo || `SRTN-${new Date(item.returnDate || item.createdAt || new Date()).getFullYear()}-${String(item.id).padStart(6, '0')}`}</td>
-                    <td>{item.saleInvoiceNo || item.saleId}</td>
+                    <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444', paddingLeft: '15px' }}>
+                      {item.returnNo || `SRTN-${new Date(item.returnDate || item.createdAt || new Date()).getFullYear()}-${String(item.id).padStart(6, '0')}`}
+                    </td>
+                    <td style={{ fontWeight: '600', color: '#475569' }}>
+                      {item.saleInvoiceNo || item.saleId || 'N/A'}
+                    </td>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {item.customerId}</div>
+                      <div style={{ fontWeight: '700', color: '#1e293b' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>ID: {item.customerId}</div>
                     </td>
                     <td>{item.returnDate}</td>
-                    <td style={{ fontWeight: '700' }}>₹{(item.totalAmount || 0).toFixed(2)}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>
+                      ₹{parseFloat(item.grandTotal ?? item.totalAmount ?? 0).toFixed(2)}
+                    </td>
                     <td>
-                      <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <AlertCircle size={14} color="#f59e0b" />
-                        {item.reason}
+                      {(() => {
+                        const mode = item.refundMode || 'Adjust';
+                        let bg = '#f3e8ff';
+                        let color = '#7e22ce';
+                        if (mode.toLowerCase() === 'cash') {
+                          bg = '#e6f4ea';
+                          color = '#137333';
+                        } else if (mode.toLowerCase() === 'upi') {
+                          bg = '#e8f0fe';
+                          color = '#1a73e8';
+                        }
+                        return (
+                          <span style={{ 
+                            background: bg, 
+                            color: color, 
+                            fontWeight: '800', 
+                            fontSize: '11px', 
+                            padding: '3px 8px', 
+                            borderRadius: '6px', 
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px' 
+                          }}>
+                            {mode}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '500' }}>
+                        <AlertCircle size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
+                        {item.reason || 'Customer Return'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'left' }}>
+                    <td style={{ textAlign: 'left', paddingRight: '15px' }}>
                       <button
                         className="btn-agro btn-outline"
                         onClick={() => navigate(`/sales/returns/view/${item.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }}
+                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px', fontWeight: '600' }}
                       >
                         View
                       </button>
@@ -116,7 +151,7 @@ const SaleReturn = () => {
                   </tr>
                 ))}
                 {!loading && filteredReturns.length === 0 && (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>No records found.</td></tr>
                 )}
               </tbody>
             </table>

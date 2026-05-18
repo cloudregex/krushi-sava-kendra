@@ -12,6 +12,8 @@ const Customer = require('./Customer');
 const SupplierPayment = require('./SupplierPayment');
 const Quotation = require('./Quotation');
 const QuotationItem = require('./QuotationItem');
+const SaleReturn = require('./SaleReturn');
+const SaleReturnItem = require('./SaleReturnItem');
 
 // Associations
 Purchase.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'Supplier' });
@@ -70,6 +72,16 @@ QuotationItem.belongsTo(Quotation, { foreignKey: 'quotationId' });
 QuotationItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(QuotationItem, { foreignKey: 'productId' });
 
+// Sale Return Associations
+SaleReturn.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+Customer.hasMany(SaleReturn, { foreignKey: 'customerId' });
+
+SaleReturn.hasMany(SaleReturnItem, { foreignKey: 'saleReturnId', as: 'items' });
+SaleReturnItem.belongsTo(SaleReturn, { foreignKey: 'saleReturnId' });
+
+SaleReturnItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Product.hasMany(SaleReturnItem, { foreignKey: 'productId' });
+
 module.exports = {
   Purchase,
   PurchaseItem,
@@ -84,5 +96,7 @@ module.exports = {
   SaleItem,
   Customer,
   Quotation,
-  QuotationItem
+  QuotationItem,
+  SaleReturn,
+  SaleReturnItem
 };

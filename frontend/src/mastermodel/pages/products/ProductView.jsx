@@ -95,8 +95,8 @@ const ProductView = () => {
               </div>
 
               <div style={{ padding: '12px 15px', background: '#fcfcfc', borderRadius: '10px', border: '1px solid var(--border-light)' }}>
-                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Company</label>
-                <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{formData.company || 'N/A'}</div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Barcode</label>
+                <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{formData.barcode || 'N/A'}</div>
               </div>
 
 
