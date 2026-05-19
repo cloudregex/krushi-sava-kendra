@@ -40,6 +40,7 @@ const NewSaleReturn = () => {
   const [products, setProducts] = useState([]);
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const [master, setMaster] = useState({
     customerId: '',
@@ -100,11 +101,11 @@ const NewSaleReturn = () => {
             discount: parseFloat(ret.discount) || 0,
             discountType: ret.discountType || '%',
             grandTotal: parseFloat(ret.grandTotal) || 0,
-            cashAmount: parseFloat(ret.cashAmount) || 0,
-            upiAmount: parseFloat(ret.upiAmount) || 0,
-            swipeAmount: parseFloat(ret.swipeAmount) || 0,
+            cashAmount: parseFloat(ret.cashAmount) || (ret.refundMode === 'Cash' ? parseFloat(ret.refundAmount) || 0 : 0),
+            upiAmount: parseFloat(ret.upiAmount) || (ret.refundMode === 'UPI' ? parseFloat(ret.refundAmount) || 0 : 0),
+            swipeAmount: parseFloat(ret.swipeAmount) || (ret.refundMode === 'Swipe' ? parseFloat(ret.refundAmount) || 0 : 0),
             creditAmount: parseFloat(ret.creditAmount) || 0,
-            paidAmount: parseFloat(ret.paidAmount) || 0,
+            paidAmount: parseFloat(ret.paidAmount) || parseFloat(ret.refundAmount) || 0,
             dueAmount: parseFloat(ret.dueAmount) || 0,
             reason: ret.reason || '',
             roundOff: parseFloat(ret.roundOff) || 0,
@@ -112,7 +113,7 @@ const NewSaleReturn = () => {
           });
 
           setItems(retItems.map(item => {
-            const prod = products.find(p => p.id === item.productId) || item.product || {};
+            const prod = products.find(p => String(p.id) === String(item.productId)) || item.product || {};
             const multiUnits = prod.multiUnits ? (typeof prod.multiUnits === 'string' ? JSON.parse(prod.multiUnits) : prod.multiUnits) : [];
             const availableUnits = [prod.unit, ...multiUnits.map(mu => mu.unitName)].filter(Boolean);
 
@@ -630,6 +631,9 @@ const NewSaleReturn = () => {
                                type="number"
                                className="form-control"
                                value={item.discountValue || ''}
+                               autoComplete="off"
+                               name="rowDiscount"
+                               data-lpignore="true"
                                onChange={(e) => handleItemChange(item.id, 'discountValue', e.target.value)}
                                onKeyDown={(e) => handleEnterNavigation(e, idx)}
                                style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
@@ -684,6 +688,9 @@ const NewSaleReturn = () => {
                       style={{ border: 'none', background: 'transparent', padding: '8px 12px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }}
                       value={master.discount === 0 || master.discount === '0' ? '' : master.discount}
                       onChange={(e) => handleMasterChange('discount', e.target.value)}
+                      autoComplete="off"
+                      name="masterSaleReturnDiscountAmount"
+                      data-lpignore="true"
                     />
                     <div style={{ background: '#f1f5f9', color: '#475569', fontWeight: '700', fontSize: '12px', borderRadius: '6px', minWidth: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                       <select style={{ border: 'none', background: 'transparent', fontWeight: '700', fontSize: '14px', color: '#475569', padding: '8px 5px', outline: 'none', cursor: 'pointer', width: '100%', textAlign: 'center' }} value={master.discountType} onChange={(e) => handleMasterChange('discountType', e.target.value)}>
@@ -696,19 +703,43 @@ const NewSaleReturn = () => {
                   {/* Cash Refund */}
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px', background: '#ffffff' }}>
                     <div style={{ background: '#f1f5f9', color: '#475569', fontWeight: '700', fontSize: '12px', padding: '8px 10px', borderRadius: '6px', minWidth: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>Refund Cash Amt</div>
-                    <input type="number" style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }} value={master.cashAmount === 0 || master.cashAmount === '0' ? '' : master.cashAmount} onChange={(e) => handleMasterChange('cashAmount', e.target.value)} />
+                    <input
+                      type="number"
+                      style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }}
+                      value={master.cashAmount === 0 || master.cashAmount === '0' ? '' : master.cashAmount}
+                      onChange={(e) => handleMasterChange('cashAmount', e.target.value)}
+                      autoComplete="off"
+                      name="refundCashAmount"
+                      data-lpignore="true"
+                    />
                   </div>
 
                   {/* UPI Refund */}
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px', background: '#ffffff' }}>
                     <div style={{ background: '#f1f5f9', color: '#475569', fontWeight: '700', fontSize: '12px', padding: '8px 10px', borderRadius: '6px', minWidth: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>Refund UPI Amt</div>
-                    <input type="number" style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }} value={master.upiAmount === 0 || master.upiAmount === '0' ? '' : master.upiAmount} onChange={(e) => handleMasterChange('upiAmount', e.target.value)} />
+                    <input
+                      type="number"
+                      style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }}
+                      value={master.upiAmount === 0 || master.upiAmount === '0' ? '' : master.upiAmount}
+                      onChange={(e) => handleMasterChange('upiAmount', e.target.value)}
+                      autoComplete="off"
+                      name="refundUpiAmount"
+                      data-lpignore="true"
+                    />
                   </div>
 
                   {/* Swipe Refund */}
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px', background: '#ffffff' }}>
                     <div style={{ background: '#f1f5f9', color: '#475569', fontWeight: '700', fontSize: '12px', padding: '8px 10px', borderRadius: '6px', minWidth: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>Refund Swipe Amt</div>
-                    <input type="number" style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }} value={master.swipeAmount === 0 || master.swipeAmount === '0' ? '' : master.swipeAmount} onChange={(e) => handleMasterChange('swipeAmount', e.target.value)} />
+                    <input
+                      type="number"
+                      style={{ border: 'none', background: 'transparent', padding: '8px', flex: 1, outline: 'none', fontSize: '15px', fontWeight: '700', color: '#0f172a', minWidth: 0 }}
+                      value={master.swipeAmount === 0 || master.swipeAmount === '0' ? '' : master.swipeAmount}
+                      onChange={(e) => handleMasterChange('swipeAmount', e.target.value)}
+                      autoComplete="off"
+                      name="refundSwipeAmount"
+                      data-lpignore="true"
+                    />
                   </div>
 
                   {/* Refund Paid */}
@@ -770,7 +801,7 @@ const NewSaleReturn = () => {
                     <span style={{ fontSize: '24px', fontWeight: '900' }}>₹{(parseFloat(master.grandTotal) || 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
-                    <button onClick={() => navigate('/sales/returns')} style={{ height: '42px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#475569', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.target.style.background = '#f8fafc'} onMouseOut={(e) => e.target.style.background = '#ffffff'}>
+                    <button onClick={() => setShowCancelModal(true)} style={{ height: '42px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#475569', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.target.style.background = '#f8fafc'} onMouseOut={(e) => e.target.style.background = '#ffffff'}>
                       Cancel
                     </button>
                     <button onClick={handleSubmit} style={{ height: '42px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#ffffff', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }} onMouseOver={(e) => e.target.style.background = '#dc2626'} onMouseOut={(e) => e.target.style.background = '#ef4444'}>
@@ -845,6 +876,77 @@ const NewSaleReturn = () => {
           </div>
         </div>
       </div>
+
+      {showCancelModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.3)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '30px',
+            width: '90%',
+            maxWidth: '440px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            border: '1px solid #f1f5f9',
+            animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>
+              🛑 Confirm Cancel?
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+              Are you sure you want to cancel? Any unsaved changes will be lost.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#64748b',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f8fafc'}
+                onMouseOut={(e) => e.target.style.background = '#ffffff'}
+              >
+                Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelModal(false);
+                  navigate('/sales/returns');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#dc2626'}
+                onMouseOut={(e) => e.target.style.background = '#ef4444'}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

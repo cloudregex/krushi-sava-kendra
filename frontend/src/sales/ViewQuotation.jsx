@@ -304,9 +304,28 @@ const ViewQuotation = () => {
           <button className="btn-agro btn-outline" onClick={() => navigate('/sales/quotations')} style={{ gap: '8px' }}>
             <ArrowLeft size={18} /> Back to Quotations
           </button>
-          <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px', background: '#8b5cf6' }}>
-            <Printer size={18} /> Print Quotation
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn-agro btn-outline"
+              onClick={() => {
+                if (qtnData.status === 'Accepted') return;
+                navigate('/sales/entry', { state: { quotationData: qtnData } });
+              }}
+              disabled={qtnData.status === 'Accepted'}
+              style={{
+                gap: '8px',
+                borderColor: qtnData.status === 'Accepted' ? '#d1d5db' : '#8b5cf6',
+                color: qtnData.status === 'Accepted' ? '#9ca3af' : '#8b5cf6',
+                opacity: qtnData.status === 'Accepted' ? 0.6 : 1,
+                cursor: qtnData.status === 'Accepted' ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {qtnData.status === 'Accepted' ? '✓ Converted' : 'Convert to Bill'}
+            </button>
+            <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px', background: '#8b5cf6' }}>
+              <Printer size={18} /> Print Quotation
+            </button>
+          </div>
         </div>
       )}
 

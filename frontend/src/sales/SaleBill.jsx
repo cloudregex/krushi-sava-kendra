@@ -53,8 +53,10 @@ const SaleBill = () => {
   };
 
   const getStatus = (bill) => {
-    if (bill.balanceAmount <= 0) return 'Paid';
-    if (bill.paidAmount > 0) return 'Partial';
+    const bal = parseFloat(bill.balanceAmount) || 0;
+    const paid = parseFloat(bill.paidAmount) || 0;
+    if (bal <= 0) return 'Paid';
+    if (paid > 0) return 'Partial';
     return 'Unpaid';
   };
 

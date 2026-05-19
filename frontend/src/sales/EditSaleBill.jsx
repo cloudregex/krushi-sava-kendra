@@ -64,6 +64,7 @@ const EditSaleBill = () => {
 
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -123,7 +124,7 @@ const EditSaleBill = () => {
           }));
 
           const mappedItems = sItems.map(item => {
-            const prod = prodData.find(p => p.id === item.productId) || item.product || {};
+            const prod = prodData.find(p => String(p.id) === String(item.productId)) || item.product || {};
             const multiUnits = prod.multiUnits || [];
             
             // Find conversion factor for the saved unit
@@ -543,9 +544,7 @@ const EditSaleBill = () => {
   };
 
   const handleCancel = () => {
-    if (window.confirm("Are you sure you want to cancel this sale? Any unsaved changes will be lost.")) {
-      navigate('/sales/bills');
-    }
+    setShowCancelModal(true);
   };
 
   return (
@@ -729,6 +728,9 @@ const EditSaleBill = () => {
                           type="number"
                           className="form-control"
                           value={child.discount || ''}
+                          autoComplete="off"
+                          name={`rowDiscount-${child.id}`}
+                          data-lpignore="true"
                           onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
                           style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
                         />
@@ -778,6 +780,9 @@ const EditSaleBill = () => {
                       className="form-control"
                       value={master.discountAmount === 0 || master.discountAmount === '0' ? '' : master.discountAmount}
                       onChange={(e) => handleMasterChange('discountAmount', e.target.value)}
+                      autoComplete="off"
+                      name="masterEditSaleDiscountAmount"
+                      data-lpignore="true"
                       style={{ border: 'none', height: '45px', textAlign: 'center', fontWeight: '700', flex: 1 }}
                     />
                     <select
@@ -792,15 +797,45 @@ const EditSaleBill = () => {
                 </div>
                 <div className="form-group">
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>CASH (₹)</label>
-                  <input type="number" className="form-control" value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange('cashPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                  <input 
+                    type="number" 
+                    name="cashPaid"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    className="form-control" 
+                    value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} 
+                    onChange={(e) => handleMasterChange('cashPaid', e.target.value)} 
+                    placeholder="0" 
+                    style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} 
+                  />
                 </div>
                 <div className="form-group">
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>UPI (₹)</label>
-                  <input type="number" className="form-control" value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange('upiPaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                  <input 
+                    type="number" 
+                    name="upiPaid"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    className="form-control" 
+                    value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} 
+                    onChange={(e) => handleMasterChange('upiPaid', e.target.value)} 
+                    placeholder="0" 
+                    style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} 
+                  />
                 </div>
                 <div className="form-group">
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>SWIPE (₹)</label>
-                  <input type="number" className="form-control" value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange('swipePaid', e.target.value)} placeholder="0" style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} />
+                  <input 
+                    type="number" 
+                    name="swipePaid"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    className="form-control" 
+                    value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} 
+                    onChange={(e) => handleMasterChange('swipePaid', e.target.value)} 
+                    placeholder="0" 
+                    style={{ height: '45px', textAlign: 'center', fontWeight: '700' }} 
+                  />
                 </div>
               </div>
 
@@ -956,6 +991,77 @@ const EditSaleBill = () => {
         </div>
 
       </div>
+
+      {showCancelModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.3)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '30px',
+            width: '90%',
+            maxWidth: '440px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            border: '1px solid #f1f5f9',
+            animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>
+              🛑 Confirm Cancel?
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+              Are you sure you want to cancel? Any unsaved changes will be lost.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#64748b',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f8fafc'}
+                onMouseOut={(e) => e.target.style.background = '#ffffff'}
+              >
+                Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelModal(false);
+                  navigate('/sales/bills');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#dc2626'}
+                onMouseOut={(e) => e.target.style.background = '#ef4444'}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

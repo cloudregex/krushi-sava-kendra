@@ -47,8 +47,16 @@ exports.getLatestBatch = async (req, res) => {
         let latestExpiry = '';
         let latestSaleRate = '';
         
-        // Prioritize Purchase batch because purchase is the true source of stock batches
-        if (lastPurchaseWithBatch) {
+        // Prioritize the absolute latest transaction (whether purchase or sale) for the batch and expiry
+        if (lastPurchaseWithBatch && lastSaleWithBatch) {
+            if (new Date(lastSaleWithBatch.createdAt) > new Date(lastPurchaseWithBatch.createdAt)) {
+                latestBatch = lastSaleWithBatch.batchNo;
+                latestExpiry = lastSaleWithBatch.expiryDate;
+            } else {
+                latestBatch = lastPurchaseWithBatch.batchNo;
+                latestExpiry = lastPurchaseWithBatch.expiryDate;
+            }
+        } else if (lastPurchaseWithBatch) {
             latestBatch = lastPurchaseWithBatch.batchNo;
             latestExpiry = lastPurchaseWithBatch.expiryDate;
         } else if (lastSaleWithBatch) {

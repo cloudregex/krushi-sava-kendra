@@ -62,6 +62,7 @@ const SaleEntry = () => {
 
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -109,12 +110,22 @@ const SaleEntry = () => {
                 notes: qtn.notes || ''
               }));
               
-              const mappedRows = qtn.items.map(item => {
+              const mappedRows = await Promise.all(qtn.items.map(async (item) => {
                 const prod = saleable.find(p => String(p.id) === String(item.productId));
                 const primaryUnit = prod?.unit || '';
                 const multiUnits = prod?.multiUnits || [];
                 const factor = item.conversionFactor || 1;
                 
+                let dbBatchNo = '';
+                try {
+                  const dbBatchRes = await api.get(`/products/${item.productId}/latest-batch`);
+                  if (dbBatchRes.data) {
+                    dbBatchNo = dbBatchRes.data.batchNo || '';
+                  }
+                } catch (bErr) {
+                  console.warn("Failed to fetch latest batch for quotation item:", item.productId, bErr);
+                }
+
                 return {
                   id: Date.now() + Math.random(),
                   productId: item.productId,
@@ -122,6 +133,7 @@ const SaleEntry = () => {
                   primaryUnit: primaryUnit,
                   hsnCode: prod?.hsnCode || '',
                   batchNo: item.batchNo || '',
+                  prevBatchNo: dbBatchNo || item.batchNo || '',
                   expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
                   currentStock: prod?.currentStock || 0,
                   quantity: item.quantity,
@@ -140,7 +152,7 @@ const SaleEntry = () => {
                   batchNoEdited: !!item.batchNo,
                   expiryDateEdited: !!item.expiryDate
                 };
-              });
+              }));
               
               setChildren(mappedRows);
               toast.success("Quotation Loaded Successfully!");
@@ -551,10 +563,7 @@ const SaleEntry = () => {
   };
 
   const handleCancel = () => {
-    const isFromQuotation = !!location.state?.quotationData;
-    if (window.confirm("Are you sure you want to cancel this sale? Any unsaved changes will be lost.")) {
-      navigate(isFromQuotation ? '/sales/quotations' : '/sales/bills');
-    }
+    setShowCancelModal(true);
   };
 
   return (
@@ -761,6 +770,9 @@ const SaleEntry = () => {
                                type="number"
                                className="form-control"
                                value={child.discount || ''}
+                               autoComplete="off"
+                               name={`rowDiscount-${child.id}`}
+                               data-lpignore="true"
                                onChange={(e) => handleChildChange(child.id, 'discount', e.target.value)}
                                style={{ border: 'none', height: '36px', textAlign: 'center', flex: 1, padding: '0 5px' }}
                              />
@@ -812,6 +824,9 @@ const SaleEntry = () => {
                       style={{ border: "none", background: "transparent", padding: "8px 12px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }}
                       value={master.discountAmount === 0 || master.discountAmount === '0' ? '' : master.discountAmount}
                       onChange={(e) => handleMasterChange("discountAmount", e.target.value)}
+                      autoComplete="off"
+                      name="masterSaleDiscountAmount"
+                      data-lpignore="true"
                     />
                     <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", borderRadius: "6px", minWidth: "50px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                       <select style={{ border: "none", background: "transparent", fontWeight: "700", fontSize: "14px", color: "#475569", padding: "8px 5px", outline: "none", cursor: "pointer", width: "100%", textAlign: "center" }} value={master.discountType} onChange={(e) => handleMasterChange("discountType", e.target.value)}>
@@ -822,15 +837,39 @@ const SaleEntry = () => {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
                     <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>Cash Amt</div>
-                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} onChange={(e) => handleMasterChange("cashPaid", e.target.value)} />
+                    <input 
+                      type="number" 
+                      name="cashPaid"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} 
+                      value={master.cashPaid === 0 || master.cashPaid === '0' ? '' : master.cashPaid} 
+                      onChange={(e) => handleMasterChange("cashPaid", e.target.value)} 
+                    />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
                     <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>UPI Amt</div>
-                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} onChange={(e) => handleMasterChange("upiPaid", e.target.value)} />
+                    <input 
+                      type="number" 
+                      name="upiPaid"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} 
+                      value={master.upiPaid === 0 || master.upiPaid === '0' ? '' : master.upiPaid} 
+                      onChange={(e) => handleMasterChange("upiPaid", e.target.value)} 
+                    />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "4px", background: "#ffffff" }}>
                     <div style={{ background: "#f1f5f9", color: "#475569", fontWeight: "700", fontSize: "12px", padding: "8px 10px", borderRadius: "6px", minWidth: "85px", display: "flex", alignItems: "center", justifyContent: "center", whiteSpace: "nowrap" }}>Swipe Amt</div>
-                    <input type="number" style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} onChange={(e) => handleMasterChange("swipePaid", e.target.value)} />
+                    <input 
+                      type="number" 
+                      name="swipePaid"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      style={{ border: "none", background: "transparent", padding: "8px", flex: 1, outline: "none", fontSize: "15px", fontWeight: "700", color: "#0f172a", minWidth: 0 }} 
+                      value={master.swipePaid === 0 || master.swipePaid === '0' ? '' : master.swipePaid} 
+                      onChange={(e) => handleMasterChange("swipePaid", e.target.value)} 
+                    />
                   </div>
 
                   {/* Row 2: 2 Fields */}
@@ -961,6 +1000,78 @@ const SaleEntry = () => {
           </div>
         </div>
       </div>
+
+      {showCancelModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.3)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '30px',
+            width: '90%',
+            maxWidth: '440px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            border: '1px solid #f1f5f9',
+            animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>
+              🛑 Confirm Cancel?
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+              Are you sure you want to cancel? Any unsaved changes will be lost.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#64748b',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f8fafc'}
+                onMouseOut={(e) => e.target.style.background = '#ffffff'}
+              >
+                Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelModal(false);
+                  const isFromQuotation = !!location.state?.quotationData;
+                  navigate(isFromQuotation ? '/sales/quotations' : '/sales/bills');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#dc2626'}
+                onMouseOut={(e) => e.target.style.background = '#ef4444'}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

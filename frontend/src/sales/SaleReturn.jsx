@@ -66,16 +66,14 @@ const SaleReturn = () => {
   };
 
   const getReturnStatus = (item) => {
-    const total = parseFloat(item.grandTotal || 0);
-    const refundAmt = parseFloat(item.refundAmount || 0);
-    const mode = (item.refundMode || 'Adjust').toLowerCase();
+    const total = parseFloat(item.grandTotal) || 0;
+    const refundAmt = parseFloat(item.refundAmount) || 0;
+    const mode = item.refundMode || 'Adjust';
 
-    if (refundAmt === 0) return 'Adjust';
-    if (refundAmt === total) {
-      if (mode === 'cash') return 'Cash';
-      if (mode === 'upi') return 'UPI';
+    if (refundAmt > 0 && refundAmt < total) {
+      return 'Partial';
     }
-    return 'Partial';
+    return mode;
   };
 
   const filteredReturns = returns.filter(r => {
