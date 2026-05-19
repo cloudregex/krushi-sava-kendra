@@ -94,14 +94,24 @@ const ViewPurchaseOrder = () => {
             }
           }
           @media print {
+            @page {
+              size: A4;
+              margin: 8mm;
+            }
+            body { background: white; margin: 0; padding: 0; color: #000; font-size: 11px; line-height: 1.3; }
             .no-print { display: none !important; }
-            .agro-container { padding: 0 !important; }
-            .agro-unified-card { box-shadow: none !important; border: none !important; margin: 0 !important; }
+            .agro-container { padding: 0 !important; min-height: auto !important; }
+            .agro-unified-card { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
             .agro-header-compact { display: none !important; }
-            .print-only-header { display: block !important; margin-bottom: 25px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; }
-            .print-only-header h1 { margin: 0; font-size: 26px; color: #000; font-weight: 900; }
-            .print-only-header p { margin: 2px 0; font-size: 14px; color: #333; font-weight: 500; }
-            .order-info-section { grid-template-columns: 1fr 1fr !important; }
+            .print-only-header { display: block !important; margin-bottom: 15px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .print-only-header h1 { margin: 0; font-size: 24px; color: #000; font-weight: 900; }
+            .print-only-header p { margin: 2px 0; font-size: 13px; color: #333; font-weight: 500; }
+            .order-info-section { grid-template-columns: 1fr 1fr !important; gap: 12px !important; margin-bottom: 12px; }
+            .order-info-section > div { padding: 8px 12px !important; }
+            .agro-table th, .agro-table td { padding: 6px 10px !important; font-size: 11px !important; border: 1px solid #999 !important; }
+            .agro-table { border: 1px solid #999 !important; margin-top: 10px; }
+            h3 { font-size: 12px !important; margin-bottom: 4px !important; }
+            p { margin: 2px 0 !important; }
           }
         `}
       </style>

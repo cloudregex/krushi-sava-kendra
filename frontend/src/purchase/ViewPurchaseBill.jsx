@@ -206,13 +206,16 @@ const ViewPurchaseBill = () => {
 
           @media print {
             @page {
-              size: auto;
-              margin: 5mm;
+              size: A4;
+              margin: 8mm;
             }
             body { 
               background: white; 
               margin: 0;
               padding: 0;
+              color: #000;
+              font-size: 11px;
+              line-height: 1.3;
             }
             .no-print { display: none !important; }
             .invoice-box { 
@@ -222,16 +225,21 @@ const ViewPurchaseBill = () => {
               padding: 0;
               width: 100%;
               max-width: 100%;
-              font-size: 11px; /* Reduced font size for print */
+              font-size: 11px;
+              line-height: 1.3;
             }
-            .agro-container { padding: 0 !important; background: white !important; }
-            .invoice-table { margin-top: 10px; }
-            .invoice-table th, .invoice-table td { padding: 4px 6px; } /* Compact padding */
-            h1 { font-size: 20px !important; }
-            h2 { font-size: 14px !important; }
-            .invoice-box h3 { font-size: 10px !important; margin-bottom: 5px !important; }
-            .summary-table { margin-top: 5px; }
+            .agro-container { padding: 0 !important; background: white !important; min-height: auto !important; }
+            .invoice-table { margin-top: 8px; font-size: 11px; }
+            .invoice-table th, .invoice-table td { padding: 3px 6px; border: 1px solid #999; }
+            h1 { font-size: 22px !important; margin: 0 !important; }
+            h2 { font-size: 14px !important; margin: 4px 0 !important; }
+            h3 { font-size: 11px !important; margin-bottom: 2px !important; }
+            p { margin: 2px 0 !important; }
+            .summary-table { margin-top: 4px; }
             table { page-break-inside: avoid; }
+            tr { page-break-inside: avoid; }
+            .print-compact-gap { margin-bottom: 10px !important; }
+            .print-compact-mt { margin-top: 12px !important; }
           }
         `}
       </style>
@@ -245,13 +253,13 @@ const ViewPurchaseBill = () => {
       )}
 
       <div className="invoice-box">
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '15px', marginBottom: '20px' }}>
-          <h1 style={{ margin: 0, fontSize: '28px', color: '#000', fontWeight: '900', letterSpacing: '1px' }}>KRUSHI SEVA KENDRA</h1>
-          <p style={{ margin: '5px 0', fontSize: '14px', color: '#555' }}>Market Yard, Pune - 411037 | GSTIN: 27AABCK1234F1Z5</p>
-          <h2 style={{ margin: '10px 0 0', fontSize: '18px', textDecoration: 'underline' }}>PURCHASE BILL / TAX INVOICE</h2>
+        <div className="print-compact-gap" style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '15px' }}>
+          <h1 style={{ margin: 0, fontSize: '26px', color: '#000', fontWeight: '900', letterSpacing: '1px' }}>KRUSHI SEVA KENDRA</h1>
+          <p style={{ margin: '3px 0', fontSize: '13px', color: '#444' }}>Market Yard, Pune - 411037 | GSTIN: 27AABCK1234F1Z5</p>
+          <h2 style={{ margin: '6px 0 0', fontSize: '16px', textDecoration: 'underline' }}>PURCHASE BILL / TAX INVOICE</h2>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '20px' }}>
+        <div className="print-compact-gap" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
           <div>
             <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Supplier Details</h3>
             <p style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>{billData.supplierName}</p>
@@ -342,12 +350,12 @@ const ViewPurchaseBill = () => {
           </tfoot>
         </table>
 
-        <div style={{ marginTop: '20px' }}>
+        <div className="print-compact-mt" style={{ marginTop: '12px' }}>
           <p style={{ margin: 0 }}><strong>Amount Chargeable (in words):</strong></p>
-          <p style={{ margin: '5px 0', fontSize: '14px', fontWeight: '800', textTransform: 'capitalize' }}>INR {numberToWords(Math.round(billData.grandTotal))}</p>
+          <p style={{ margin: '2px 0', fontSize: '13px', fontWeight: '800', textTransform: 'capitalize' }}>INR {numberToWords(Math.round(billData.grandTotal))}</p>
         </div>
 
-        <table className="invoice-table" style={{ marginTop: '30px', fontSize: '11px' }}>
+        <table className="invoice-table print-compact-mt" style={{ marginTop: '15px', fontSize: '11px' }}>
           <thead>
             <tr>
               <th>HSN/SAC</th>
@@ -392,13 +400,13 @@ const ViewPurchaseBill = () => {
           </tfoot>
         </table>
 
-        <div style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="print-compact-mt" style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', pageBreakInside: 'avoid' }}>
           <div>
-            <p style={{ fontSize: '10px', color: '#666', marginBottom: '15px' }}>Declaration: We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
-            <div style={{ marginTop: '20px', borderTop: '1px solid #333', width: '180px', textAlign: 'center', paddingTop: '5px' }}>Receiver's Signature</div>
+            <p style={{ fontSize: '10px', color: '#666', margin: '0 0 15px 0' }}>Declaration: We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
+            <div style={{ marginTop: '15px', borderTop: '1px solid #333', width: '180px', textAlign: 'center', paddingTop: '5px' }}>Receiver's Signature</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontWeight: '800', marginBottom: '20px' }}>for KRUSHI SEVA KENDRA</p>
+            <p style={{ fontWeight: '800', margin: '0 0 15px 0' }}>for KRUSHI SEVA KENDRA</p>
             <div style={{ marginTop: '15px', display: 'inline-block', borderTop: '1px solid #333', width: '180px', textAlign: 'center', paddingTop: '5px' }}>Authorised Signatory</div>
           </div>
         </div>
