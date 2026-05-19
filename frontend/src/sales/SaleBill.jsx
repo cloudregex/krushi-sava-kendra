@@ -49,26 +49,7 @@ const SaleBill = () => {
   };
 
   const handlePrint = (id) => {
-    toast.loading("Preparing print...", { id: "print-toast" });
-    const iframeId = 'print-iframe';
-    let iframe = document.getElementById(iframeId);
-    if (iframe) {
-      document.body.removeChild(iframe);
-    }
-    iframe = document.createElement('iframe');
-    iframe.id = iframeId;
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    iframe.src = `/sales/bills/view/${id}?print=true&quiet=true`;
-    document.body.appendChild(iframe);
-    
-    setTimeout(() => {
-      toast.dismiss("print-toast");
-    }, 2000);
+    navigate(`/sales/bills/view/${id}?print=true`);
   };
 
   const getStatus = (bill) => {

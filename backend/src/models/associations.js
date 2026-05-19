@@ -76,6 +76,9 @@ Product.hasMany(QuotationItem, { foreignKey: 'productId' });
 SaleReturn.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 Customer.hasMany(SaleReturn, { foreignKey: 'customerId' });
 
+SaleReturn.belongsTo(Sale, { foreignKey: 'saleId', as: 'sale' });
+Sale.hasMany(SaleReturn, { foreignKey: 'saleId' });
+
 SaleReturn.hasMany(SaleReturnItem, { foreignKey: 'saleReturnId', as: 'items' });
 SaleReturnItem.belongsTo(SaleReturn, { foreignKey: 'saleReturnId' });
 

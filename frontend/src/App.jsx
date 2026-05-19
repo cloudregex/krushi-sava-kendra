@@ -116,6 +116,7 @@ const AppRoutes = () => {
           <Route path="quotations/view/:id" element={<ViewQuotation />} />
           <Route path="returns" element={<SaleReturn />} />
           <Route path="returns/new" element={<NewSaleReturn />} />
+          <Route path="returns/edit/:id" element={<NewSaleReturn />} />
           <Route path="returns/view/:id" element={<ViewSaleReturn />} />
           <Route index element={<ModulePage title="Sales" module="sale" />} />
         </Route>

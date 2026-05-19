@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2, Save, ArrowLeft, Calendar, CreditCard, Package, RotateCcw, Search, Info } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
@@ -35,6 +35,7 @@ const newItem = () => ({
 
 const NewSaleReturn = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const rowRefs = useRef({});
@@ -81,7 +82,71 @@ const NewSaleReturn = () => {
         }
       }, 100);
     }
-  }, [items]);
+  }, []);
+
+  useEffect(() => {
+    if (id && products.length > 0 && customers.length > 0) {
+      ApiService.getById('sales/returns', id).then(response => {
+        if (response) {
+          const ret = response.returnData || response;
+          const retItems = response.items || [];
+          
+          setMaster({
+            customerId: ret.customerId || '',
+            returnDate: ret.returnDate ? ret.returnDate.split('T')[0] : '',
+            totalQuantity: parseFloat(ret.totalQuantity) || 0,
+            subtotal: parseFloat(ret.subtotal) || 0,
+            totalTaxAmount: parseFloat(ret.totalTaxAmount) || 0,
+            discount: parseFloat(ret.discount) || 0,
+            discountType: ret.discountType || '%',
+            grandTotal: parseFloat(ret.grandTotal) || 0,
+            cashAmount: parseFloat(ret.cashAmount) || 0,
+            upiAmount: parseFloat(ret.upiAmount) || 0,
+            swipeAmount: parseFloat(ret.swipeAmount) || 0,
+            creditAmount: parseFloat(ret.creditAmount) || 0,
+            paidAmount: parseFloat(ret.paidAmount) || 0,
+            dueAmount: parseFloat(ret.dueAmount) || 0,
+            reason: ret.reason || '',
+            roundOff: parseFloat(ret.roundOff) || 0,
+            saleId: ret.saleId || ''
+          });
+
+          setItems(retItems.map(item => {
+            const prod = products.find(p => p.id === item.productId) || item.product || {};
+            const multiUnits = prod.multiUnits ? (typeof prod.multiUnits === 'string' ? JSON.parse(prod.multiUnits) : prod.multiUnits) : [];
+            const availableUnits = [prod.unit, ...multiUnits.map(mu => mu.unitName)].filter(Boolean);
+
+            return {
+              id: item.id || Date.now() + Math.random(),
+              productId: item.productId,
+              productName: prod.name || '',
+              currentStock: prod.currentStock || 0,
+              hsnCode: prod.hsnCode || '',
+              batchNo: item.batchNo || '',
+              expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
+              quantity: parseFloat(item.quantity) || 0,
+              unit: item.unit || prod.unit || 'Bag',
+              rate: parseFloat(item.rate) || 0,
+              discountType: item.discountType || '%',
+              discountValue: parseFloat(item.discountValue) || 0,
+              taxPercent: parseFloat(item.taxPercent) || 0,
+              taxAmount: parseFloat(item.taxAmount) || 0,
+              totalAmount: parseFloat(item.totalAmount) || 0,
+              reason: item.reason || 'Customer Return',
+              availableUnits,
+              multiUnits,
+              primaryUnit: prod.unit || 'Bag',
+              stockIncrement: parseFloat(item.stockIncrement) || 1,
+              conversionFactor: 1
+            };
+          }));
+        }
+      }).catch(err => {
+        console.error("Error loading sales return for edit:", err);
+        toast.error("Failed to load sales return details");
+      });
+    }
+  }, [id, products, customers]);
 
   const [taxBreakdown, setTaxBreakdown] = useState({});
 
@@ -328,7 +393,7 @@ const NewSaleReturn = () => {
 
     const payload = {
       customerId: master.customerId,
-      saleId: null,
+      saleId: master.saleId || null,
       returnDate: master.returnDate,
       subtotal: master.subtotal,
       taxAmount: master.totalTaxAmount,
@@ -353,13 +418,18 @@ const NewSaleReturn = () => {
     };
 
     try {
-      toast.loading("Processing return...", { id: 'save-return' });
-      await ApiService.add('sales/returns', payload);
-      toast.success("Sales Return Recorded Successfully", { id: 'save-return' });
+      toast.loading(id ? "Updating return..." : "Processing return...", { id: 'save-return' });
+      if (id) {
+        await ApiService.update('sales/returns', id, payload);
+        toast.success("Sales Return Updated Successfully", { id: 'save-return' });
+      } else {
+        await ApiService.add('sales/returns', payload);
+        toast.success("Sales Return Recorded Successfully", { id: 'save-return' });
+      }
       navigate('/sales/returns');
     } catch (error) {
       console.error("Error saving return:", error);
-      toast.error("Failed to record sales return", { id: 'save-return' });
+      toast.error(id ? "Failed to update sales return" : "Failed to record sales return", { id: 'save-return' });
     }
   };
 
@@ -376,8 +446,8 @@ const NewSaleReturn = () => {
         {/* Header Section */}
         <div className="agro-header-compact" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 10px', borderBottom: '1px solid var(--border-light)', background: 'white' }}>
           <div>
-            <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>New Sale Return</h2>
-            <p style={{ fontSize: '12px', margin: 0 }}>Return items from your customer</p>
+            <h2 style={{ fontSize: '18px', marginBottom: '1px', color: '#ef4444' }}>{id ? "Edit Sale Return" : "New Sale Return"}</h2>
+            <p style={{ fontSize: '12px', margin: 0 }}>{id ? "Modify returned items from your customer" : "Return items from your customer"}</p>
           </div>
           <button className="btn-agro btn-outline" onClick={() => navigate('/sales/returns')} style={{ height: '34px', padding: '0 12px', fontSize: '12px' }}>
             <ArrowLeft size={16} /> Back

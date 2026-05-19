@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, AlertCircle } from 'lucide-react';
+import { RotateCcw, AlertCircle, Eye, Printer, Edit, Trash2 } from 'lucide-react';
 import { ApiService } from '../mastermodel/services/ApiService';
+import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
 
 const SaleReturn = () => {
@@ -9,6 +10,44 @@ const SaleReturn = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmModal, setConfirmModal] = useState({ show: false, returnBill: null });
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  const handlePrint = (id) => {
+    const iframeId = 'print-iframe';
+    let iframe = document.getElementById(iframeId);
+    if (iframe) {
+      document.body.removeChild(iframe);
+    }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    iframe.src = `/sales/returns/view/${id}?print=true&quiet=true`;
+    document.body.appendChild(iframe);
+  };
+
+  const handleDeleteClick = (returnBill) => {
+    setConfirmModal({ show: true, returnBill });
+  };
+
+  const confirmDelete = async () => {
+    const returnBill = confirmModal.returnBill;
+    setConfirmModal({ show: false, returnBill: null });
+    try {
+      toast.loading("Deleting return...", { id: "delete-return-toast" });
+      await ApiService.delete('sales/returns', returnBill.id);
+      toast.success("Return bill deleted successfully", { id: "delete-return-toast" });
+      fetchReturns();
+    } catch (error) {
+      console.error("Error deleting return bill:", error);
+      toast.error("Failed to delete return bill", { id: "delete-return-toast" });
+    }
+  };
 
   useEffect(() => {
     fetchReturns();
@@ -26,16 +65,35 @@ const SaleReturn = () => {
     }
   };
 
-  const filteredReturns = returns.filter(r =>
-    (r.returnNo || r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r.saleInvoiceNo || r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(r.customerId).includes(searchTerm) ||
-    (r.customer?.name || r.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(r.customerId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r.customerName && r.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const getReturnStatus = (item) => {
+    const total = parseFloat(item.grandTotal || 0);
+    const refundAmt = parseFloat(item.refundAmount || 0);
+    const mode = (item.refundMode || 'Adjust').toLowerCase();
+
+    if (refundAmt === 0) return 'Adjust';
+    if (refundAmt === total) {
+      if (mode === 'cash') return 'Cash';
+      if (mode === 'upi') return 'UPI';
+    }
+    return 'Partial';
+  };
+
+  const filteredReturns = returns.filter(r => {
+    const matchesSearch =
+      (r.returnNo || r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.saleInvoiceNo || r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(r.customerId).includes(searchTerm) ||
+      (r.customer?.name || r.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(r.saleId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(r.customerId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.customerName && r.customerName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const status = getReturnStatus(r);
+    const matchesStatus = statusFilter === 'All' || status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="agro-container">
@@ -54,7 +112,7 @@ const SaleReturn = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
               <input
                 type="text"
                 placeholder="Search returns..."
@@ -64,6 +122,18 @@ const SaleReturn = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <select
+              className="form-control"
+              style={{ width: '140px', height: '38px', fontSize: '13px', borderRadius: '10px', background: '#f8fafc', border: '1px solid var(--border)', cursor: 'pointer' }}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="Cash">Cash Refund</option>
+              <option value="UPI">UPI Refund</option>
+              <option value="Adjust">Adjusted</option>
+              <option value="Partial">Partial</option>
+            </select>
           </div>
 
           <button className="btn-agro btn-primary" onClick={() => navigate('/sales/returns/new')} style={{ height: '38px', padding: '0 16px', background: '#ef4444' }}>
@@ -77,25 +147,21 @@ const SaleReturn = () => {
               <thead>
                 <tr>
                   <th style={{ paddingLeft: '15px' }}>Return ID</th>
-                  <th>Sale ID</th>
                   <th>Customer</th>
                   <th>Date</th>
                   <th>Amount</th>
-                  <th>Refund Mode</th>
-                  <th>Reason</th>
-                  <th style={{ textAlign: 'left', paddingRight: '15px' }}>Actions</th>
+                  <th style={{ textAlign: 'center' }}>Refund Mode</th>
+                  <th style={{ textAlign: 'center' }}>Reason</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
+                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>Loading returns...</td></tr>
                 ) : filteredReturns.map((item) => (
                   <tr key={item.id}>
                     <td style={{ fontWeight: '700', fontSize: '13px', color: '#ef4444', paddingLeft: '15px' }}>
                       {item.returnNo || `SRTN-${new Date(item.returnDate || item.createdAt || new Date()).getFullYear()}-${String(item.id).padStart(6, '0')}`}
-                    </td>
-                    <td style={{ fontWeight: '600', color: '#475569' }}>
-                      {item.saleInvoiceNo || item.saleId || 'N/A'}
                     </td>
                     <td>
                       <div style={{ fontWeight: '700', color: '#1e293b' }}>{item.customer?.name || item.customerName || 'Unknown'}</div>
@@ -105,48 +171,85 @@ const SaleReturn = () => {
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>
                       ₹{parseFloat(item.grandTotal ?? item.totalAmount ?? 0).toFixed(2)}
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       {(() => {
                         const mode = item.refundMode || 'Adjust';
-                        let bg = '#f3e8ff';
                         let color = '#7e22ce';
-                        if (mode.toLowerCase() === 'cash') {
-                          bg = '#e6f4ea';
-                          color = '#137333';
-                        } else if (mode.toLowerCase() === 'upi') {
-                          bg = '#e8f0fe';
-                          color = '#1a73e8';
+                        let bg = '#faf5ff';
+                        let border = '#e9d5ff';
+                        let icon = '🟣';
+
+                        if (mode === 'Cash') {
+                          color = '#15803d';
+                          bg = '#f0fdf4';
+                          border = '#bbf7d0';
+                          icon = '💵';
+                        } else if (mode === 'UPI') {
+                          color = '#1d4ed8';
+                          bg = '#eff6ff';
+                          border = '#bfdbfe';
+                          icon = '📱';
                         }
+
                         return (
-                          <span style={{ 
-                            background: bg, 
-                            color: color, 
-                            fontWeight: '800', 
-                            fontSize: '11px', 
-                            padding: '3px 8px', 
-                            borderRadius: '6px', 
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px' 
+                          <span style={{
+                            fontSize: '11px',
+                            color,
+                            fontWeight: '700',
+                            background: bg,
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            border: `1px solid ${border}`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}>
-                            {mode}
+                            {icon} {mode}
                           </span>
                         );
                       })()}
                     </td>
-                    <td>
-                      <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '500' }}>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '500', justifyContent: 'center' }}>
                         <AlertCircle size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
                         {item.reason || 'Customer Return'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'left', paddingRight: '15px' }}>
-                      <button
-                        className="btn-agro btn-outline"
-                        onClick={() => navigate(`/sales/returns/view/${item.id}`)}
-                        style={{ padding: '4px 12px', height: '28px', fontSize: '11px', fontWeight: '600' }}
-                      >
-                        View
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action view"
+                          title="View"
+                          onClick={() => navigate(`/sales/returns/view/${item.id}`)}
+                          style={{ color: '#3b82f6', background: '#eff6ff', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn-action print"
+                          title="Print"
+                          onClick={() => handlePrint(item.id)}
+                          style={{ color: '#10b981', background: '#ecfdf5', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button
+                          className="btn-action edit"
+                          title="Edit"
+                          onClick={() => navigate(`/sales/returns/edit/${item.id}`)}
+                          style={{ color: '#f59e0b', background: '#fffbeb', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn-action delete"
+                          title="Delete"
+                          onClick={() => handleDeleteClick(item)}
+                          style={{ color: '#ef4444', background: '#fef2f2', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -158,6 +261,109 @@ const SaleReturn = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              background: '#fef2f2',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              color: '#ef4444'
+            }}>
+              <Trash2 size={30} />
+            </div>
+
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' }}>Confirm Delete?</h3>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '25px' }}>
+              Are you sure you want to delete this sales return? <br />
+              <strong style={{ color: '#ef4444' }}>This action cannot be undone.</strong>
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setConfirmModal({ show: false, returnBill: null })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f1f5f9'}
+                onMouseOut={(e) => e.target.style.background = '#f8fafc'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: 'white',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };

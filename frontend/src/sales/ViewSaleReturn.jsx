@@ -76,15 +76,15 @@ const ViewSaleReturn = () => {
       const rowTax = (taxableVal * taxP) / 100;
 
       if (!hsnMap[hsn]) {
-        hsnMap[hsn] = { 
-          hsn, 
-          taxRate: taxP, 
-          taxableVal, 
-          cgstRate: taxP / 2, 
-          sgstRate: taxP / 2, 
-          cgstAmount: rowTax / 2, 
-          sgstAmount: rowTax / 2, 
-          totalTax: rowTax 
+        hsnMap[hsn] = {
+          hsn,
+          taxRate: taxP,
+          taxableVal,
+          cgstRate: taxP / 2,
+          sgstRate: taxP / 2,
+          cgstAmount: rowTax / 2,
+          sgstAmount: rowTax / 2,
+          totalTax: rowTax
         };
       } else {
         hsnMap[hsn].taxableVal += taxableVal;
@@ -272,12 +272,9 @@ const ViewSaleReturn = () => {
 
       {/* Top Actions */}
       {!isQuiet && (
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '850px', margin: '0 auto 15px auto' }}>
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-start', maxWidth: '850px', margin: '0 auto 15px auto' }}>
           <button className="btn-agro btn-outline" onClick={() => navigate('/sales/returns')} style={{ gap: '8px' }}>
             <ArrowLeft size={18} /> Back to Returns
-          </button>
-          <button className="btn-agro btn-primary" onClick={() => window.print()} style={{ gap: '8px', background: '#ef4444', borderColor: '#ef4444' }}>
-            <Printer size={18} /> Print Credit Note
           </button>
         </div>
       )}
@@ -317,7 +314,6 @@ const ViewSaleReturn = () => {
           <div style={{ textAlign: 'right' }}>
             <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#be123c', marginBottom: '8px', letterSpacing: '1px' }}>Reference Info:</h3>
             <p style={{ margin: '3px 0', fontSize: '13px', color: '#475569' }}>
-              <strong>Original Sale ID:</strong> {returnData.saleId || 'General Customer Return'}<br />
               <strong>Reason for Return:</strong> {returnData.reason || 'Customer Return'}
             </p>
           </div>

@@ -5,6 +5,7 @@ const saleReturnController = require('../controllers/saleReturnController');
 router.get('/', saleReturnController.getAllReturns);
 router.get('/:id', saleReturnController.getReturnById);
 router.post('/', saleReturnController.createReturn);
+router.put('/:id', saleReturnController.updateReturn);
 router.delete('/:id', saleReturnController.deleteReturn);
 
 module.exports = router;
