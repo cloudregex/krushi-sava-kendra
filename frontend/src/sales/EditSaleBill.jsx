@@ -5,6 +5,8 @@ import { ApiService } from '../mastermodel/services/ApiService';
 import SearchableSelect from './SearchableSelect';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
+import { QuickCustomerModal, QuickProductModal } from './QuickCreateModals';
+import AgroDatePicker from './AgroDatePicker';
 
 const newRow = () => ({
   id: Date.now() + Math.random(),
@@ -65,6 +67,27 @@ const EditSaleBill = () => {
   const [children, setChildren] = useState([newRow()]);
   const rowToFocus = useRef(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [activeChildRowId, setActiveChildRowId] = useState(null);
+
+  const handleQuickCustomerSave = (newCustomer) => {
+    setCustomers(prev => [...prev, newCustomer]);
+    setMaster(prev => ({
+      ...prev,
+      customerId: newCustomer.id,
+      customerBalance: newCustomer.balance || 0
+    }));
+  };
+
+  const handleQuickProductSave = (newProduct) => {
+    setProducts(prev => [...prev, newProduct]);
+    if (activeChildRowId) {
+      handleChildChange(activeChildRowId, 'productId', newProduct.id, newProduct);
+      setActiveChildRowId(null);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -363,9 +386,11 @@ const EditSaleBill = () => {
         const factor = parseFloat(u.conversionFactor) || 1;
         const incVal = parseFloat(value) || 0;
         const fQty = parseFloat(u.freeQuantity) || 0;
-        // Formula: stockIncrement = (qty + freeQty) / factor
-        // So: qty = (stockIncrement * factor) - freeQty
-        u.quantity = Math.max(0, (incVal * factor) - fQty);
+        if (factor < 1) {
+          u.quantity = Math.max(0, (incVal / factor) - fQty);
+        } else {
+          u.quantity = Math.max(0, (incVal * factor) - fQty);
+        }
       }
 
       const qty = parseFloat(u.quantity) || 0;
@@ -376,7 +401,12 @@ const EditSaleBill = () => {
 
       // Recalculate Stock Increment if Quantity/Unit changes
       if (['quantity', 'freeQuantity', 'unit', 'productId'].includes(field)) {
-        u.stockIncrement = (qty + freeQty) / factor;
+        const totalQty = qty + freeQty;
+        if (factor < 1) {
+          u.stockIncrement = totalQty * factor;
+        } else {
+          u.stockIncrement = totalQty / factor;
+        }
       }
 
       const rowSub = qty * rate;
@@ -467,6 +497,13 @@ const EditSaleBill = () => {
     master.customerId
   ]);
 
+  const handleRowKeyDown = (e, index) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addChildRow();
+    }
+  };
+
   const addChildRow = () => {
     const r = newRow();
     setChildren([...children, r]);
@@ -492,6 +529,32 @@ const EditSaleBill = () => {
 
   const handleSaveSale = async (shouldPrint = false) => {
     if (!master.customerId) return toast.error("Please select a customer");
+
+    // Validate each child row
+    for (let i = 0; i < children.length; i++) {
+      const row = children[i];
+      if (row.productId) {
+        if (!row.batchNo || String(row.batchNo).trim() === '') {
+          return toast.error(`Please enter Batch No for row ${i + 1}`);
+        }
+        if (!row.expiryDate || String(row.expiryDate).trim() === '') {
+          return toast.error(`Please enter Expiry Date for row ${i + 1}`);
+        }
+        if (!row.quantity || parseFloat(row.quantity) <= 0) {
+          return toast.error(`Please enter a valid Quantity for row ${i + 1}`);
+        }
+        if (!row.unit || String(row.unit).trim() === '') {
+          return toast.error(`Please select Unit for row ${i + 1}`);
+        }
+        if (row.stockIncrement === undefined || row.stockIncrement === null || String(row.stockIncrement).trim() === '' || parseFloat(row.stockIncrement) <= 0) {
+          return toast.error(`Please enter Stock Decrement for row ${i + 1}`);
+        }
+        if (row.saleRate === undefined || row.saleRate === null || String(row.saleRate).trim() === '' || parseFloat(row.saleRate) <= 0) {
+          return toast.error(`Please enter Sale Rate for row ${i + 1}`);
+        }
+      }
+    }
+
     const validItems = children.filter(c => c.productId && c.quantity > 0);
     if (validItems.length === 0) return toast.error("Please add at least one product");
 
@@ -572,6 +635,8 @@ const EditSaleBill = () => {
               onChange={(val) => handleMasterChange('customerId', val)}
               placeholder="Search Customer..."
               height="42px"
+              showAddButton={true}
+              onAddClick={() => setCustomerModalOpen(true)}
             />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
@@ -593,7 +658,11 @@ const EditSaleBill = () => {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: '12px', fontWeight: '700', marginBottom: '5px', display: 'block' }}>SALE DATE</label>
-            <input type="date" className="form-control" value={master.billDate} onChange={(e) => handleMasterChange('billDate', e.target.value)} style={{ height: '42px' }} />
+            <AgroDatePicker
+              value={master.billDate}
+              onChange={(e) => handleMasterChange('billDate', e.target.value)}
+              height="42px"
+            />
           </div>
         </div>
 
@@ -623,7 +692,7 @@ const EditSaleBill = () => {
               </thead>
               <tbody>
                 {children.map((child, idx) => (
-                  <tr key={child.id}>
+                  <tr key={child.id} onKeyDown={(e) => handleRowKeyDown(e, idx)}>
                     <td style={{ verticalAlign: 'bottom' }}>
                       {child.productId && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '4px', fontSize: '10px', fontWeight: '700' }}>
@@ -631,12 +700,16 @@ const EditSaleBill = () => {
                           <span style={{ color: '#64748b' }}>Stock: <span style={{ color: child.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{child.currentStock}</span></span>
                         </div>
                       )}
-                      <SearchableSelect
-                        options={products}
+                      <SearchableSelect id={`product-select-${idx}`} options={products}
                         value={child.productId}
                         onChange={(val, data) => handleChildChange(child.id, 'productId', val, data)}
                         placeholder="Select Product"
                         height="36px"
+                        showAddButton={true}
+                        onAddClick={() => {
+                          setActiveChildRowId(child.id);
+                          setProductModalOpen(true);
+                        }}
                       />
                     </td>
                     <td style={{ verticalAlign: 'bottom' }}>
@@ -654,18 +727,16 @@ const EditSaleBill = () => {
                       />
                     </td>
                     <td style={{ verticalAlign: 'bottom' }}>
-                       <input
-                        type="date"
-                        className="form-control"
-                        value={child.expiryDate}
-                        readOnly
-                        style={{ height: '36px', fontSize: '13px', textAlign: 'center', background: '#f8fafc', cursor: 'not-allowed' }}
+                      <AgroDatePicker tabIndex={child.productId ? -1 : 0} value={child.expiryDate}
+                        readOnly={true}
+                        height="36px"
+                        align="center"
                       />
                     </td>
                     <td style={{ verticalAlign: 'bottom' }}>
                        <input
                         ref={el => qtyRefs.current[child.id] = el}
-                        type="number" className="form-control" value={child.quantity ?? ''}
+                        type="number" className="form-control" value={child.quantity ?? ''} autoComplete="new-password" data-lpignore="true" name={`rowQuantity-${child.id}`}
                         onChange={(e) => handleChildChange(child.id, 'quantity', e.target.value)}
                         style={{
                           height: '36px',
@@ -699,9 +770,10 @@ const EditSaleBill = () => {
                         <input
                           type="number"
                           className="form-control"
-                          value={child.stockIncrement ?? ''}
+                          value={child.stockIncrement ?? ''} tabIndex={child.productId ? -1 : 0} autoComplete="new-password" data-lpignore="true" name={`rowStockDecrement-${child.id}`} tabIndex={child.productId ? -1 : 0}
                           onChange={(e) => handleChildChange(child.id, 'stockIncrement', e.target.value)}
                           style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
+                          readOnly={!!child.productId}
                         />
                         {child.primaryUnit && (
                           <span style={{
@@ -721,7 +793,7 @@ const EditSaleBill = () => {
                         )}
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.saleRate ?? ''} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.saleRate ?? ''} tabIndex={child.productId ? -1 : 0} tabIndex={child.productId ? -1 : 0} onChange={(e) => handleChildChange(child.id, 'saleRate', e.target.value)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} readOnly={!!child.productId} /></td>
                     <td style={{ verticalAlign: 'bottom' }}>
                        <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
                         <input
@@ -744,7 +816,7 @@ const EditSaleBill = () => {
                         </select>
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent || ''} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                    <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={child.taxPercent || ''} tabIndex={-1} tabIndex={-1} onChange={(e) => handleChildChange(child.id, 'taxPercent', e.target.value)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
                     <td style={{ verticalAlign: 'bottom' }}>
                        <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
                         ₹{child.amount.toFixed(2)}
@@ -1062,6 +1134,18 @@ const EditSaleBill = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Registration Modals */}
+      <QuickCustomerModal
+        isOpen={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+        onSave={handleQuickCustomerSave}
+      />
+      <QuickProductModal
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
+        onSave={handleQuickProductSave}
+      />
     </div>
   );
 };

@@ -6,6 +6,8 @@ import SearchableSelect from './SearchableSelect';
 import api from '../adminauth/utils/api';
 import toast from 'react-hot-toast';
 import '../mastermodel/styles/MasterModel.css';
+import { QuickCustomerModal, QuickProductModal } from './QuickCreateModals';
+import AgroDatePicker from './AgroDatePicker';
 
 const newItem = () => ({
   id: Date.now() + Math.random(),
@@ -41,6 +43,26 @@ const NewSaleReturn = () => {
   const rowRefs = useRef({});
   const qtyRefs = useRef({});
   const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [activeChildRowId, setActiveChildRowId] = useState(null);
+
+  const handleQuickCustomerSave = (newCustomer) => {
+    setCustomers(prev => [...prev, newCustomer]);
+    setMaster(prev => ({
+      ...prev,
+      customerId: newCustomer.id
+    }));
+  };
+
+  const handleQuickProductSave = (newProduct) => {
+    setProducts(prev => [...prev, newProduct]);
+    if (activeChildRowId) {
+      handleItemChange(activeChildRowId, 'productId', newProduct.id, newProduct);
+      setActiveChildRowId(null);
+    }
+  };
 
   const [master, setMaster] = useState({
     customerId: '',
@@ -303,7 +325,11 @@ const NewSaleReturn = () => {
       if (field === 'stockIncrement') {
         const factor = parseFloat(u.conversionFactor) || 1;
         const incVal = parseFloat(value) || 0;
-        u.quantity = Math.max(0, incVal * factor);
+        if (factor < 1) {
+          u.quantity = Math.max(0, incVal / factor);
+        } else {
+          u.quantity = Math.max(0, incVal * factor);
+        }
       }
 
       const qty = parseFloat(u.quantity) || 0;
@@ -311,7 +337,12 @@ const NewSaleReturn = () => {
 
       // Recalculate Stock Increment if Quantity/Unit changes
       if (['quantity', 'unit', 'productId'].includes(field)) {
-        u.stockIncrement = qty / factor;
+        const totalQty = qty;
+        if (factor < 1) {
+          u.stockIncrement = totalQty * factor;
+        } else {
+          u.stockIncrement = totalQty / factor;
+        }
       }
 
       const price = parseFloat(u.rate) || 0;
@@ -355,13 +386,7 @@ const NewSaleReturn = () => {
   const handleEnterNavigation = (e, index) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (index === items.length - 1) {
-        addItemRow();
-      } else {
-        const nextId = items[index + 1].id;
-        const el = rowRefs.current[nextId];
-        if (el) el.focus();
-      }
+      addItemRow();
     }
   };
 
@@ -386,6 +411,38 @@ const NewSaleReturn = () => {
       toast.error("Please select a Return Date");
       return;
     }
+
+    // Validate each row
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.productId) {
+        if (!item.batchNo || String(item.batchNo).trim() === '') {
+          toast.error(`Please enter Batch No for row ${i + 1}`);
+          return;
+        }
+        if (!item.expiryDate || String(item.expiryDate).trim() === '') {
+          toast.error(`Please enter Expiry Date for row ${i + 1}`);
+          return;
+        }
+        if (!item.quantity || parseFloat(item.quantity) <= 0) {
+          toast.error(`Please enter a valid Quantity for row ${i + 1}`);
+          return;
+        }
+        if (!item.unit || String(item.unit).trim() === '') {
+          toast.error(`Please select Unit for row ${i + 1}`);
+          return;
+        }
+        if (item.stockIncrement === undefined || item.stockIncrement === null || String(item.stockIncrement).trim() === '' || parseFloat(item.stockIncrement) <= 0) {
+          toast.error(`Please enter Stock Decrement for row ${i + 1}`);
+          return;
+        }
+        if (item.rate === undefined || item.rate === null || String(item.rate).trim() === '' || parseFloat(item.rate) <= 0) {
+          toast.error(`Please enter Refund Rate for row ${i + 1}`);
+          return;
+        }
+      }
+    }
+
     const validItems = items.filter(item => item.productId && item.quantity > 0);
     if (validItems.length === 0) {
       toast.error("Please add at least one valid item to return");
@@ -467,7 +524,15 @@ const NewSaleReturn = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '15px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Customer</label>
-                  <SearchableSelect options={customerOptions} value={master.customerId} onChange={(val) => handleMasterChange('customerId', val)} placeholder="Search Customer..." height="36px" />
+                  <SearchableSelect
+                    options={customerOptions}
+                    value={master.customerId}
+                    onChange={(val) => handleMasterChange('customerId', val)}
+                    placeholder="Search Customer..."
+                    height="36px"
+                    showAddButton={true}
+                    onAddClick={() => setCustomerModalOpen(true)}
+                  />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Reason for Return</label>
@@ -482,7 +547,11 @@ const NewSaleReturn = () => {
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Return Date</label>
-                  <input type="date" className="form-control" style={{ height: '36px', fontSize: '13px' }} value={master.returnDate} onChange={(e) => handleMasterChange('returnDate', e.target.value)} />
+                  <AgroDatePicker
+                    value={master.returnDate}
+                    onChange={(e) => handleMasterChange('returnDate', e.target.value)}
+                    height="36px"
+                  />
                 </div>
               </div>
             </div>
@@ -536,7 +605,7 @@ const NewSaleReturn = () => {
                   </thead>
                   <tbody>
                     {items.map((item, idx) => (
-                      <tr key={item.id}>
+                      <tr key={item.id} onKeyDown={(e) => handleEnterNavigation(e, idx)}>
                          <td style={{ verticalAlign: 'bottom' }}>
                            {item.productId && (
                              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '4px', fontSize: '10px', fontWeight: '700' }}>
@@ -544,13 +613,17 @@ const NewSaleReturn = () => {
                                <span style={{ color: '#64748b' }}>Stock: <span style={{ color: item.currentStock > 0 ? '#16a34a' : '#ef4444' }}>{item.currentStock}</span></span>
                              </div>
                            )}
-                           <SearchableSelect
-                             options={products}
-                             value={item.productId}
-                             onChange={(val, data) => handleItemChange(item.id, 'productId', val, data)}
-                             placeholder="Select Product"
-                             height="36px"
-                           />
+                            <SearchableSelect id={`product-select-${idx}`} options={products}
+                              value={item.productId}
+                              onChange={(val, data) => handleItemChange(item.id, 'productId', val, data)}
+                              placeholder="Select Product"
+                              height="36px"
+                              showAddButton={true}
+                              onAddClick={() => {
+                                setActiveChildRowId(item.id);
+                                setProductModalOpen(true);
+                              }}
+                            />
                          </td>
                          <td style={{ verticalAlign: 'bottom' }}>
                            {item.productId && (
@@ -558,13 +631,18 @@ const NewSaleReturn = () => {
                                Prev: {item.prevBatchNo || 'None'}
                              </div>
                            )}
-                           <input type="text" className="form-control" value={item.batchNo} onChange={(e) => handleItemChange(item.id, 'batchNo', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
+                           <input type="text" className="form-control" value={item.batchNo} onChange={(e) => handleItemChange(item.id, 'batchNo', e.target.value)} autoComplete="new-password" data-lpignore="true" name={`rowBatchNo-${item.id}`} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} />
                          </td>
-                         <td style={{ verticalAlign: 'bottom' }}><input type="date" className="form-control" value={item.expiryDate} onChange={(e) => handleItemChange(item.id, 'expiryDate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', fontSize: '13px', textAlign: 'center' }} /></td>
+                         <td style={{ verticalAlign: 'bottom' }}><AgroDatePicker tabIndex={item.productId ? -1 : 0} value={item.expiryDate}
+                              readOnly={!!item.productId}
+                              onChange={(e) => handleItemChange(item.id, 'expiryDate', e.target.value)}
+                              height="36px"
+                              align="center"
+                            /></td>
                          <td style={{ verticalAlign: 'bottom' }}>
                            <input
                              ref={el => qtyRefs.current[item.id] = el}
-                             type="number" className="form-control" value={item.productId ? (item.quantity ?? '') : ''} disabled={!item.productId}
+                             type="number" className="form-control" value={item.productId ? (item.quantity ?? '') : ''} autoComplete="new-password" data-lpignore="true" name={`rowQuantity-${item.id}`} disabled={!item.productId}
                              onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
                              onKeyDown={(e) => handleEnterNavigation(e, idx)}
                              style={{
@@ -601,7 +679,7 @@ const NewSaleReturn = () => {
                              <input
                                type="number"
                                className="form-control"
-                               value={item.productId ? (item.stockIncrement ?? '') : ''} disabled={!item.productId}
+                               value={item.productId ? (item.stockIncrement ?? '') : ''} disabled={!item.productId} readOnly={!!item.productId}
                                onChange={(e) => handleItemChange(item.id, 'stockIncrement', e.target.value)}
                                onKeyDown={(e) => handleEnterNavigation(e, idx)}
                                style={{ height: '36px', textAlign: 'center', paddingRight: '40px', fontSize: '13px', fontWeight: '700' }}
@@ -624,7 +702,7 @@ const NewSaleReturn = () => {
                              )}
                            </div>
                          </td>
-                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={item.productId ? (item.rate ?? '') : ''} disabled={!item.productId} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} /></td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={item.productId ? (item.rate ?? '') : ''} tabIndex={item.productId ? -1 : 0} autoComplete="new-password" data-lpignore="true" name={`rowRefundRate-${item.id}`} disabled={!item.productId} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', textAlign: 'center', fontWeight: '700' }} readOnly={!!item.productId} /></td>
                          <td style={{ verticalAlign: 'bottom' }}>
                            <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', height: '36px' }}>
                              <input
@@ -648,7 +726,7 @@ const NewSaleReturn = () => {
                              </select>
                            </div>
                          </td>
-                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={item.taxPercent || ''} onChange={(e) => handleItemChange(item.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
+                         <td style={{ verticalAlign: 'bottom' }}><input type="number" className="form-control" value={item.taxPercent || ''} tabIndex={-1} onChange={(e) => handleItemChange(item.id, 'taxPercent', e.target.value)} onKeyDown={(e) => handleEnterNavigation(e, idx)} style={{ height: '36px', background: '#f8fafc', textAlign: 'center' }} readOnly /></td>
                          <td style={{ verticalAlign: 'bottom' }}>
                            <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontWeight: '800', color: 'var(--primary)', paddingRight: '15px' }}>
                              ₹{item.totalAmount.toFixed(2)}
@@ -947,6 +1025,18 @@ const NewSaleReturn = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Registration Modals */}
+      <QuickCustomerModal
+        isOpen={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+        onSave={handleQuickCustomerSave}
+      />
+      <QuickProductModal
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
+        onSave={handleQuickProductSave}
+      />
     </div>
   );
 };

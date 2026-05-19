@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-const SearchableSelect = ({ options, value, onChange, placeholder, style, height = '40px', padding = '0 12px', textColor = '#1e293b', bgColor = 'white', inputRef: forwardedRef, onEnterSelect }) => {
+const SearchableSelect = ({ id, options, value, onChange, placeholder, style, height = '40px', padding = '0 12px', textColor = '#1e293b', bgColor = 'white', inputRef: forwardedRef, onEnterSelect, showAddButton, onAddClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -99,12 +99,17 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
       e.preventDefault();
       setHighlightedIndex(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (displayOptions[highlightedIndex]) {
-        selectOption(displayOptions[highlightedIndex]);
-        // After selection, call the parent's enter handler (e.g. add new row)
-        if (onEnterSelect) setTimeout(() => onEnterSelect(), 100);
+      if (searchTerm.trim() !== '') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (displayOptions[highlightedIndex]) {
+          selectOption(displayOptions[highlightedIndex]);
+          // After selection, call the parent's enter handler (e.g. add new row)
+          if (onEnterSelect) setTimeout(() => onEnterSelect(), 100);
+        }
+      } else {
+        // If searchTerm is empty, close the dropdown and let the Enter key bubble up to add a new row
+        setIsOpen(false);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -178,67 +183,105 @@ const SearchableSelect = ({ options, value, onChange, placeholder, style, height
   ) : null;
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', ...style }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          cursor: 'text',
-          padding: padding,
-          height: height,
-          background: bgColor,
-          borderRadius: '10px',
-          border: isOpen ? '2px solid var(--primary)' : '1px solid var(--border)',
-          transition: 'all 0.2s ease',
-          boxShadow: isOpen ? '0 0 0 4px var(--primary-soft)' : 'none'
-        }}
-        onClick={handleOpen}
-      >
-        <Search size={15} style={{ flexShrink: 0, marginRight: '8px', color: isOpen ? 'var(--primary)' : '#9ca3af' }} />
-
-        <input
-          ref={inputRef}
-          type="text"
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+      <div ref={wrapperRef} style={{ position: 'relative', flex: 1, ...style }}>
+        <div
           style={{
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: textColor,
-            width: '100%',
-            height: '100%',
-            fontSize: '0.9rem',
-            fontWeight: selectedOption ? '700' : '500'
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'text',
+            padding: padding,
+            height: height,
+            background: bgColor,
+            borderRadius: '10px',
+            border: isOpen ? '2px solid var(--primary)' : '1px solid var(--border)',
+            transition: 'all 0.2s ease',
+            boxShadow: isOpen ? '0 0 0 4px var(--primary-soft)' : 'none'
           }}
-          placeholder={placeholder}
-          value={isOpen ? searchTerm : getDisplayValue(selectedOption)}
-          onChange={e => {
-            setSearchTerm(e.target.value);
-            if (!isOpen) { calcPos(); setIsOpen(true); }
-          }}
-          onFocus={handleOpen}
-          onBlur={() => {
-            setTimeout(() => setIsOpen(false), 150);
-          }}
-          onKeyDown={handleKeyDown}
-          autoComplete="off"
-        />
+          onClick={handleOpen}
+        >
+          <Search size={15} style={{ flexShrink: 0, marginRight: '8px', color: isOpen ? 'var(--primary)' : '#9ca3af' }} />
 
-        {value && !isOpen && (
-          <div
-            style={{ marginLeft: '6px', color: '#9ca3af', cursor: 'pointer' }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={e => { e.stopPropagation(); onChange('', null); }}
-          >
-            <X size={14} />
-          </div>
-        )}
+          <input
+            id={id}
+            ref={inputRef}
+            type="text"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: textColor,
+              width: '100%',
+              height: '100%',
+              fontSize: '0.9rem',
+              fontWeight: selectedOption ? '700' : '500'
+            }}
+            placeholder={placeholder}
+            value={isOpen ? searchTerm : getDisplayValue(selectedOption)}
+            onChange={e => {
+              setSearchTerm(e.target.value);
+              if (!isOpen) { calcPos(); setIsOpen(true); }
+            }}
+            onFocus={handleOpen}
+            onBlur={() => {
+              setTimeout(() => setIsOpen(false), 150);
+            }}
+            onKeyDown={handleKeyDown}
+            autoComplete="new-password"
+            data-lpignore="true"
+            name={`search-select-${Math.random()}`}
+          />
 
-        {!value && !isOpen && (
-          <ChevronDown size={15} style={{ marginLeft: '6px', opacity: 0.5, flexShrink: 0 }} />
-        )}
+          {value && !isOpen && (
+            <div
+              style={{ marginLeft: '6px', color: '#9ca3af', cursor: 'pointer' }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => { e.stopPropagation(); onChange('', null); }}
+            >
+              <X size={14} />
+            </div>
+          )}
+
+          {!value && !isOpen && (
+            <ChevronDown size={15} style={{ marginLeft: '6px', opacity: 0.5, flexShrink: 0 }} />
+          )}
+        </div>
+
+        {dropdown}
       </div>
 
-      {dropdown}
+      {showAddButton && (
+        <button
+          type="button"
+          onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onAddClick) onAddClick();
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: height,
+            height: height,
+            borderRadius: '10px',
+            background: 'var(--primary, #ef4444)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            flexShrink: 0,
+            transition: 'background 0.2s',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+          }}
+          onMouseOver={e => e.currentTarget.style.background = '#dc2626'}
+          onMouseOut={e => e.currentTarget.style.background = 'var(--primary, #ef4444)'}
+          title="Add New"
+        >
+          +
+        </button>
+      )}
     </div>
   );
 };
